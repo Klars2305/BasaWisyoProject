@@ -622,19 +622,15 @@ document.addEventListener("change", e => {
 
 // Initial boot
 AUTH.init();
-const arrivingFromLogin = window.location?.hash === "#signed-in";
 const openingRegistration = window.location?.hash === "#register";
-if (arrivingFromLogin || openingRegistration) {
+if (openingRegistration) {
   try {
     window.history?.replaceState(null, "", window.location.pathname + window.location.search);
   } catch (error) {
     // The page can still open when a file URL does not allow history changes.
   }
 }
-if (!arrivingFromLogin && (AUTH.currentUser?.role === "teacher" || AUTH.currentUser?.role === "admin")) {
-  AUTH.logout();
-  GUEST_MODE = true;
-} else if (AUTH.currentUser) {
+if (AUTH.currentUser) {
   CURRENT_TAB = dashboardTabForRole(AUTH.currentUser.role);
 }
 renderApp();

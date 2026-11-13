@@ -264,7 +264,7 @@ test('separate login page rejects bad credentials and redirects after sign-in', 
 
   password.value = 'teacher123';
   listeners.get('form:submit')({ preventDefault() {} });
-  assert.equal(destination.url, 'index.html#signed-in');
+  assert.equal(destination.url, 'index.html');
   assert.equal(JSON.parse(storage.get('basa_wisyo_session_v2')).role, 'teacher');
   assert.equal(password.value, '');
 });
@@ -282,37 +282,32 @@ test('fresh visits show the landing page and returning students open Student Hom
   assert.equal(returningVisit.eval('GUEST_MODE'), false);
 });
 
-test('teacher and admin reloads clear the local session and open Guest Home', () => {
-  for (const [email, password] of [
-    ['teacher@basawisyo.ph', 'teacher123'],
-    ['admin@basawisyo.ph', 'admin123'],
-  ]) {
-    const storage = new Map();
-    const firstVisit = loadApp(storage);
-    assert.equal(firstVisit.eval(`AUTH.login(${JSON.stringify(email)}, ${JSON.stringify(password)}).success`), true);
-    const returningVisit = loadApp(storage);
-    assert.equal(returningVisit.eval('AUTH.currentUser'), null);
-    assert.equal(returningVisit.eval('CURRENT_TAB'), 'home');
-    assert.equal(returningVisit.eval('GUEST_MODE'), true);
-    assert.equal(storage.has('basa_wisyo_session_v2'), false);
-  }
-});
-
-test('arrival from the login page opens the teacher or admin dashboard once', () => {
+test('teacher and admin reloads restore their own dashboard', () => {
   for (const [email, password, tab] of [
     ['teacher@basawisyo.ph', 'teacher123', 'teacher'],
     ['admin@basawisyo.ph', 'admin123', 'admin'],
   ]) {
     const storage = new Map();
-    const login = loadApp(storage);
-    login.eval(`AUTH.login(${JSON.stringify(email)}, ${JSON.stringify(password)})`);
-    const arrival = loadApp(storage, { locationHash: '#signed-in' });
-    assert.equal(arrival.eval('CURRENT_TAB'), tab);
-    assert.equal(arrival.eval('AUTH.currentUser.role'), tab);
-    const reload = loadApp(storage);
-    assert.equal(reload.eval('AUTH.currentUser'), null);
-    assert.equal(reload.eval('GUEST_MODE'), true);
+    const firstVisit = loadApp(storage);
+    assert.equal(firstVisit.eval(`AUTH.login(${JSON.stringify(email)}, ${JSON.stringify(password)}).success`), true);
+    const returningVisit = loadApp(storage);
+    assert.equal(returningVisit.eval('AUTH.currentUser.role'), tab);
+    assert.equal(returningVisit.eval('CURRENT_TAB'), tab);
+    assert.equal(returningVisit.eval('GUEST_MODE'), false);
+    assert.equal(storage.has('basa_wisyo_session_v2'), true);
   }
+});
+
+test('a suspended session returns to the public landing page', () => {
+  const storage = new Map();
+  const firstVisit = loadApp(storage);
+  assert.equal(firstVisit.eval('AUTH.login("teacher@basawisyo.ph", "teacher123").success'), true);
+  firstVisit.eval('AUTH.currentUser.status = "suspended"; AUTH.saveUsers()');
+
+  const returningVisit = loadApp(storage);
+  assert.equal(returningVisit.eval('AUTH.currentUser'), null);
+  assert.equal(returningVisit.eval('GUEST_MODE'), false);
+  assert.equal(storage.has('basa_wisyo_session_v2'), false);
 });
 
 test('public entry links to a separate login page and keeps registration', () => {

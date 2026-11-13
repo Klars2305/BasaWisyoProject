@@ -1,8 +1,6 @@
 AUTH.init();
-if (AUTH.currentUser?.role === "student") {
+if (AUTH.currentUser) {
   window.location.replace("index.html");
-} else if (AUTH.currentUser) {
-  AUTH.logout();
 }
 
 const loginForm = document.querySelector("#entry-login-form");
@@ -34,7 +32,7 @@ loginForm.addEventListener("submit", event => {
   }
 
   loginPassword.value = "";
-  window.location.replace("index.html#signed-in");
+  window.location.replace("index.html");
 });
 
 loginEmail.addEventListener("input", () => showLoginError(""));
