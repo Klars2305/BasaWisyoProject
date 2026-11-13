@@ -116,6 +116,9 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
     change(target) {
       for (const listener of listeners.get('change') ?? []) listener({ target });
     },
+    input(target) {
+      for (const listener of listeners.get('input') ?? []) listener({ target });
+    },
     submit(target) {
       for (const listener of listeners.get('submit') ?? []) {
         listener({ target, preventDefault() {} });
@@ -391,6 +394,39 @@ test('question editor saves and reopens every selected question', () => {
   assert.equal(app.eval('AUTH.customPassages[0].qs[0].a'), 4);
   app.click('practice-edit', id);
   assert.match(questionContainer.innerHTML, /Option 5/);
+});
+
+test('question slider shows one card at a time and reaches invalid questions', () => {
+  const app = loadApp();
+  const cards = [
+    mockQuestionCard({ q: 'First?', o: ['Yes', 'No'] }),
+    mockQuestionCard({ q: 'Second?', o: ['Yes', 'No'] }),
+    mockQuestionCard({ q: '', o: ['', ''] }),
+  ];
+  app.element('.practice-question-card', cards);
+  app.element('#passage-questions', { innerHTML: '' });
+  app.element('#practice-question-count', { value: '3' });
+  const position = { textContent: '' };
+  const slider = { value: '1', max: '1' };
+  const previous = { disabled: false };
+  const next = { disabled: false };
+  app.element('#practice-question-position', position);
+  app.element('#practice-question-slider', slider);
+  app.element('#practice-question-prev', previous);
+  app.element('#practice-question-next', next);
+  app.eval('renderPracticeQuestionCards([{}, {}, {}])');
+  assert.deepEqual(cards.map(card => card.hidden), [false, true, true]);
+  assert.equal(previous.disabled, true);
+  app.click('practice-question-next');
+  assert.deepEqual(cards.map(card => card.hidden), [true, false, true]);
+  assert.equal(position.textContent, 'Question 2 of 3');
+  slider.value = '3';
+  app.input({ id: 'practice-question-slider', value: '3' });
+  assert.deepEqual(cards.map(card => card.hidden), [true, true, false]);
+  assert.equal(next.disabled, true);
+  app.click('practice-question-prev');
+  assert.throws(() => app.eval('validatedPracticeQuestions()'), /Complete question 3/);
+  assert.deepEqual(cards.map(card => card.hidden), [true, true, false]);
 });
 
 test('Wisyo offline helper drafts editable questions with valid answer keys', async () => {

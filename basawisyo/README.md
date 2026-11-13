@@ -29,8 +29,9 @@ the app. `node --check` can check each JavaScript file.
 - `src/pages/`: guest, student, teacher, admin, and supporting page views.
 - Teachers can submit reading practices for admin review. Approved practices
   appear in the library and teacher assignment picker on the same browser.
-- The practice editor supports 1–20 editable questions. Authors can write them
-  manually or ask Wisyo for drafts. Wisyo uses an on-device browser model when
+- The practice editor supports 1–20 editable questions, shown one at a time
+  with Previous/Next controls and a slider. Authors can write them manually
+  or ask Wisyo for drafts. Wisyo uses an on-device browser model when
   available; otherwise its offline helper suggests passage-based word questions.
   Authors should verify every suggested question and answer before submission.
 - Public registration creates student accounts only; staff roles are assigned

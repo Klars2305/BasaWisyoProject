@@ -188,6 +188,14 @@
           <button type="button" class="btn o" data-a="practice-wisyo-suggest" id="practice-wisyo-suggest">Ask Wisyo to draft questions</button>
           <span id="practice-wisyo-status" class="sub-sm" role="status" aria-live="polite">Wisyo suggestions need your review before submission.</span>
         </div>
+        <div class="practice-question-nav" aria-label="Question navigation">
+          <button type="button" class="btn o sm" data-a="practice-question-prev" id="practice-question-prev">← Previous</button>
+          <div class="practice-question-progress">
+            <label for="practice-question-slider" id="practice-question-position" aria-live="polite">Question 1 of 1</label>
+            <input type="range" id="practice-question-slider" min="1" max="1" value="1" aria-label="Go to question">
+          </div>
+          <button type="button" class="btn o sm" data-a="practice-question-next" id="practice-question-next">Next →</button>
+        </div>
         <div id="passage-questions"></div>
       </section>
 

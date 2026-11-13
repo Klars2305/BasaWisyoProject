@@ -98,6 +98,29 @@
   flex-wrap: wrap;
   margin: 14px 0;
 }
+.practice-question-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+.practice-question-nav .btn { flex: none; }
+.practice-question-progress {
+  flex: 1;
+  min-width: 110px;
+  text-align: center;
+}
+.practice-question-progress label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.practice-question-progress input { width: 100%; accent-color: var(--gold); }
+.practice-question-nav button:disabled { opacity: .45; cursor: not-allowed; }
 .practice-question-card {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -124,6 +147,8 @@
 @media (max-width: 560px) {
   .practice-option-grid { grid-template-columns: 1fr; }
   .practice-count-field { width: 100%; }
+  .practice-question-nav { gap: 6px; padding: 8px; }
+  .practice-question-nav .btn { padding: 6px 8px; font-size: 11px; }
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

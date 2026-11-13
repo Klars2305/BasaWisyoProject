@@ -20,6 +20,7 @@ function logoutToIndex() {
 
 let EDITING_PRACTICE_ID = null;
 let PRACTICE_EDITOR_GENERATION = 0;
+let PRACTICE_ACTIVE_QUESTION_INDEX = 0;
 
 function practiceQuestionMarkup(question = {}, index = 0) {
   const optionCount = Math.max(4, Math.min(6, question.o?.length ?? 4));
@@ -61,8 +62,28 @@ function readPracticeQuestionDrafts() {
   }));
 }
 
-function renderPracticeQuestionCards(questions) {
+function showPracticeQuestion(index, count = practiceQuestionCount()) {
+  PRACTICE_ACTIVE_QUESTION_INDEX = Math.max(0, Math.min(count - 1, index));
+  Array.from($$(".practice-question-card")).forEach((card, cardIndex) => {
+    card.hidden = cardIndex !== PRACTICE_ACTIVE_QUESTION_INDEX;
+  });
+  const position = $("#practice-question-position");
+  if (position) position.textContent = `Question ${PRACTICE_ACTIVE_QUESTION_INDEX + 1} of ${count}`;
+  const slider = $("#practice-question-slider");
+  if (slider) {
+    slider.max = String(count);
+    slider.value = String(PRACTICE_ACTIVE_QUESTION_INDEX + 1);
+    slider.disabled = count === 1;
+  }
+  const previous = $("#practice-question-prev");
+  if (previous) previous.disabled = PRACTICE_ACTIVE_QUESTION_INDEX === 0;
+  const next = $("#practice-question-next");
+  if (next) next.disabled = PRACTICE_ACTIVE_QUESTION_INDEX === count - 1;
+}
+
+function renderPracticeQuestionCards(questions, activeIndex = 0) {
   $("#passage-questions").innerHTML = questions.map(practiceQuestionMarkup).join("");
+  showPracticeQuestion(activeIndex, questions.length);
 }
 
 function practiceQuestionCount() {
@@ -81,7 +102,13 @@ function validatedPracticeQuestions() {
   return questions.map((question, index) => {
     const firstEmpty = question.o.findIndex(option => !option.trim());
     if (firstEmpty >= 0 && question.o.slice(firstEmpty + 1).some(option => option.trim())) {
+      showPracticeQuestion(index);
       throw new Error(`Question ${index + 1}: fill answer options in order, without gaps.`);
+    }
+    if (!question.q.trim() || question.o.filter(option => option.trim()).length < 2
+        || !question.o[question.a]?.trim()) {
+      showPracticeQuestion(index);
+      throw new Error(`Complete question ${index + 1}, including two answers and the correct choice.`);
     }
     return { ...question, o: question.o.filter(option => option.trim()) };
   });
@@ -107,7 +134,7 @@ function openPracticeEditor(id = null) {
   }
   PRACTICE_EDITOR_GENERATION++;
   $("#practice-question-count").value = String(passage?.qs.length ?? 1);
-  renderPracticeQuestionCards(passage?.qs ?? [{}]);
+  renderPracticeQuestionCards(passage?.qs ?? [{}], 0);
   $("#practice-wisyo-status").textContent = "Wisyo suggestions need your review before submission.";
   $("#passage-modal-title").textContent = passage ? "Edit reading practice" : "Add reading practice";
   $("#passage-modal-hint").textContent = actor.role === "teacher"
@@ -581,6 +608,9 @@ document.addEventListener("click", e => {
     EDITING_PRACTICE_ID = null;
     $("#admin-passage-modal").hidden = true;
   }
+  else if (a === "practice-question-prev" || a === "practice-question-next") {
+    showPracticeQuestion(PRACTICE_ACTIVE_QUESTION_INDEX + (a === "practice-question-next" ? 1 : -1));
+  }
   else if (a === "practice-wisyo-suggest") {
     try {
       AUTH.practiceActor();
@@ -605,7 +635,7 @@ document.addEventListener("click", e => {
             filled++;
             return result.questions[index];
           });
-          renderPracticeQuestionCards(merged);
+          renderPracticeQuestionCards(merged, PRACTICE_ACTIVE_QUESTION_INDEX);
           status.textContent = filled
             ? `Wisyo filled ${filled} blank question${filled === 1 ? "" : "s"} using the ${result.source}. Check each answer before saving.`
             : "Your existing questions were kept. Clear a question to ask Wisyo for a new draft.";
@@ -759,6 +789,12 @@ $("#admin-passage-modal")?.addEventListener("click", e => {
 });
 
 // JSON Backup Restore File Handler
+document.addEventListener("input", e => {
+  if (e.target.id === "practice-question-slider") {
+    showPracticeQuestion(Number(e.target.value) - 1);
+  }
+});
+
 document.addEventListener("change", e => {
   if (e.target.id === "practice-question-count") {
     const previous = readPracticeQuestionDrafts();
@@ -776,7 +812,9 @@ document.addEventListener("change", e => {
       return;
     }
     PRACTICE_EDITOR_GENERATION++;
-    renderPracticeQuestionCards(Array.from({ length: count }, (_, index) => previous[index] ?? {}));
+    const activeIndex = count > previous.length ? previous.length
+      : Math.min(PRACTICE_ACTIVE_QUESTION_INDEX, count - 1);
+    renderPracticeQuestionCards(Array.from({ length: count }, (_, index) => previous[index] ?? {}), activeIndex);
     $("#practice-wisyo-status").textContent = "Wisyo suggestions need your review before submission.";
     return;
   }
