@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="assets/images/wisyo.png" type="image/png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BasaWisyo | Offline Reading Companion for Filipino Learners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/styles/base.css">
+<link rel="stylesheet" href="src/styles/roles.css">
+</head>
+<body>
+
+<div id="app">
+  <div class="demo-role-bar">
+  <span>⚡ Quick Test Role:</span>
+  <div class="demo-btn-group">
+    <button class="demo-pill-btn" data-a="switch-role" data-v="admin" title="Log in as School Principal / Administrator">🛡️ Admin</button>
+    <button class="demo-pill-btn" data-a="switch-role" data-v="teacher" title="Log in as Teacher (Guro Juan) with Share Code">👩‍🏫 Teacher</button>
+    <button class="demo-pill-btn" data-a="switch-role" data-v="student" title="Log in as Student (Carlo)">🎓 Student</button>
+    <button class="demo-pill-btn" data-a="switch-role" data-v="guest" title="Experience app as Unregistered Student">👤 Guest (No Account)</button>
+  </div>
+</div>
+<header>
+    <a href="#" class="brand" data-a="tab" data-v="home">
+      <div class="brand-avatar" id="brand-avatar">
+        <img src="assets/images/wisyo.png" alt="BasaWisyo Logo" class="mascot-img">
+      </div>
+      <div class="brand-text">
+        <h1>BasaWisyo</h1>
+        <span id="header-status">Grade 7â€“12 Phil-IRI Companion</span>
+      </div>
+    </a>
+    <div class="hdr-actions">
+      <button class="user-hdr-badge" id="hdr-auth-btn" data-a="auth-open" title="Click to Sign In, Register, or View Account">
+        <span class="user-avatar-dot" id="hdr-user-avatar">👤</span>
+        <span id="hdr-user-name">Guest</span>
+        <span class="user-role-badge role-guest" id="hdr-user-role">Guest</span>
+      </button>
+      <span class="pill" id="lv-pill">No level</span>
+      <button class="icon-btn" id="theme-btn" data-a="toggle-theme" title="Toggle Dark/Light Mode" aria-label="Toggle theme">ðŸŒ“</button>
+    </div>
+  </header>
+
+  <!-- Sub Navigation Tabs -->
+  <div id="sn"></div>
+
+  <!-- Main View Area -->
+  <main id="v"></main>
+<!-- ==========================================================================
+     Authentication, Projector & Management Modals
+     ========================================================================== -->
+
+<!-- Authentication Modal (Sign In / Register / Guest Diagnostic) -->
+<div id="auth-modal" class="app-modal-overlay" hidden>
+  <div class="app-modal-card">
+    <div class="modal-hdr">
+      <h2 id="auth-modal-title">ðŸ” Sign In to BasaWisyo</h2>
+      <button class="modal-close-btn" data-a="auth-close" aria-label="Close">âœ•</button>
+    </div>
+
+    <!-- Quick Guest Diagnostic Callout -->
+    <div class="guest-screener-banner">
+      <h4>ðŸ“– Don't have an account yet?</h4>
+      <p>Identify your Phil-IRI reading level in 3 minutes as a Guest. No email or password needed!</p>
+      <button class="btn gold" style="width:100%" data-a="start-placement" data-v="guest">âš¡ Take Quick Diagnostic as Guest</button>
+    </div>
+
+    <!-- Auth Tabs -->
+    <div class="auth-tab-bar">
+      <button class="auth-tab-btn active" id="tab-btn-login" data-a="auth-tab" data-v="login">Sign In</button>
+      <button class="auth-tab-btn" id="tab-btn-register" data-a="auth-tab" data-v="register">Create Account</button>
+    </div>
+
+    <!-- Sign In Form -->
+    <div id="auth-login-pane">
+      <form id="form-login" onsubmit="return false;">
+        <div class="auth-form-group">
+          <label>Email Address</label>
+          <input type="email" id="login-email" class="auth-input" placeholder="e.g. student@basawisyo.ph" required>
+        </div>
+        <div class="auth-form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" class="auth-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required>
+        </div>
+        <button class="btn" style="width:100%;margin-top:10px" data-a="auth-login-submit">Sign In</button>
+      </form>
+
+      <!-- Pre-seeded 1-Click Demo Logins -->
+      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px">
+        <div class="lab" style="margin-bottom:8px">âš¡ Quick 1-Click Demo Accounts:</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn o" style="font-size:12px;padding:6px 12px;justify-content:flex-start" data-a="auth-quick-fill" data-v="admin">
+            ðŸ›¡ï¸ <b>Admin:</b> admin@basawisyo.ph (Principal Maria Santos)
+          </button>
+          <button class="btn o" style="font-size:12px;padding:6px 12px;justify-content:flex-start" data-a="auth-quick-fill" data-v="teacher">
+            ðŸ‘©â€ðŸ« <b>Teacher:</b> teacher@basawisyo.ph (Guro Juan dela Cruz)
+          </button>
+          <button class="btn o" style="font-size:12px;padding:6px 12px;justify-content:flex-start" data-a="auth-quick-fill" data-v="student">
+            ðŸŽ“ <b>Student:</b> student@basawisyo.ph (Carlo Bautista)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="auth-register-pane" hidden>
+      <form id="form-register" onsubmit="return false;">
+        <div class="lab" style="margin-bottom:6px">Select Account Role:</div>
+        <div class="role-picker-grid">
+          <div class="role-choice-card selected" data-a="auth-select-role" data-v="student" id="role-card-student">
+            <div class="role-icon">ðŸŽ“</div>
+            <div class="role-title">Student</div>
+            <div class="role-desc">Read & Learn</div>
+          </div>
+          <div class="role-choice-card" data-a="auth-select-role" data-v="teacher" id="role-card-teacher">
+            <div class="role-icon">ðŸ‘©â€ðŸ«</div>
+            <div class="role-title">Teacher</div>
+            <div class="role-desc">Share & Track</div>
+          </div>
+          <div class="role-choice-card" data-a="auth-select-role" data-v="admin" id="role-card-admin">
+            <div class="role-icon">ðŸ›¡ï¸</div>
+            <div class="role-title">Admin</div>
+            <div class="role-desc">School Control</div>
+          </div>
+        </div>
+
+        <input type="hidden" id="reg-role" value="student">
+
+        <div class="auth-form-group">
+          <label>Full Name</label>
+          <input type="text" id="reg-name" class="auth-input" placeholder="e.g. Juan dela Cruz" required>
+        </div>
+        <div class="auth-form-group">
+          <label>Email Address</label>
+          <input type="email" id="reg-email" class="auth-input" placeholder="e.g. juan@school.edu.ph" required>
+        </div>
+        <div class="auth-form-group">
+          <label>Password</label>
+          <input type="password" id="reg-password" class="auth-input" placeholder="Min. 6 characters" required>
+        </div>
+
+        <!-- Student-specific Teacher Share Code Field -->
+        <div class="auth-form-group" id="reg-group-student">
+          <label>Teacher's Share Code (Optional)</label>
+          <input type="text" id="reg-teacher-code" class="auth-input" placeholder="e.g. BASA-TEACH-8492" style="text-transform:uppercase;font-family:monospace">
+          <div class="auth-help">Enter code provided by your teacher to automatically join their class section!</div>
+        </div>
+
+        <!-- Teacher-specific Section Field -->
+        <div class="auth-form-group" id="reg-group-teacher" hidden>
+          <label>Grade Level & Section</label>
+          <input type="text" id="reg-section" class="auth-input" placeholder="e.g. Grade 8 - Rizal">
+          <div class="auth-help">A unique Teacher Share Code will be automatically generated for your students.</div>
+        </div>
+
+        <!-- Admin-specific Passkey Field -->
+        <div class="auth-form-group" id="reg-group-admin" hidden>
+          <label>Admin Authorization Key</label>
+          <input type="password" id="reg-admin-key" class="auth-input" placeholder="Default: DEPED-ADMIN-2026" value="DEPED-ADMIN-2026">
+          <div class="auth-help">Master key required to register administrative accounts.</div>
+        </div>
+
+        <button class="btn gold" style="width:100%;margin-top:10px" data-a="auth-register-submit">Create Account</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Teacher Projector / Blackboard Display Modal -->
+<div id="projector-modal" class="app-modal-overlay" hidden>
+  <div class="app-modal-card wide">
+    <div class="modal-hdr">
+      <h2>ðŸ“¡ Classroom Connect: Display Mode</h2>
+      <button class="modal-close-btn" data-a="projector-close" aria-label="Close">âœ•</button>
+    </div>
+    <div class="projector-display-box">
+      <div style="font-size:18px;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:var(--gold)">
+        Join Guro Juan's Class Section
+      </div>
+      <div class="projector-code" id="projector-share-code">BASA-TEACH-8492</div>
+      <div class="projector-steps">
+        <b>Instructions for Nearby Students:</b><br>
+        1. Open <b>BasaWisyo</b> on your phone, tablet, or browser<br>
+        2. Click <b>"Connect Teacher"</b> or Register as Student<br>
+        3. Enter code <b style="color:var(--gold)" id="projector-share-code-sub">BASA-TEACH-8492</b><br>
+        4. Your reading assessments and WPM will sync immediately!
+      </div>
+      <div style="margin-top:24px;display:flex;justify-content:center;gap:12px">
+        <button class="btn gold" data-a="teacher-copy-code" style="font-size:15px;padding:10px 24px">ðŸ“‹ Copy Share Code</button>
+        <button class="btn o" data-a="projector-close" style="font-size:15px;padding:10px 20px;border-color:rgba(255,255,255,0.4);color:#fff">Done / Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Passage Builder / Editor Modal -->
+<div id="admin-passage-modal" class="app-modal-overlay" hidden>
+  <div class="app-modal-card wide">
+    <div class="modal-hdr">
+      <h2 id="passage-modal-title">ðŸ“ Add Leveled Reading Passage</h2>
+      <button class="modal-close-btn" data-a="passage-modal-close" aria-label="Close">âœ•</button>
+    </div>
+    <form id="form-passage" onsubmit="return false;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="auth-form-group">
+          <label>Passage Title</label>
+          <input type="text" id="pass-title" class="auth-input" placeholder="e.g. Ang Munting Bangka" required>
+        </div>
+        <div class="auth-form-group">
+          <label>Difficulty Tier</label>
+          <select id="pass-diff" class="auth-input">
+            <option value="easy">Madali (Easy - Frustration/Early Instructional)</option>
+            <option value="medium">Katamtaman (Medium - Instructional)</option>
+            <option value="hard">Mahirap (Hard - Independent)</option>
+            <option value="extreme">Matindi (Extreme - Mastery)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <label>Passage Text Content</label>
+        <textarea id="pass-text" class="auth-input" rows="5" placeholder="Type or paste the reading passage text here..." required></textarea>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
+        <div class="lab" style="margin-bottom:8px">Comprehension Question #1</div>
+        <div class="auth-form-group">
+          <label>Question Prompt</label>
+          <input type="text" id="pass-q1" class="auth-input" placeholder="e.g. Ano ang ginamit sa pag-aayos ng bangka?" required>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <label style="font-size:11px">Option 1</label>
+            <input type="text" id="pass-opt-0" class="auth-input" placeholder="Option A" required>
+          </div>
+          <div>
+            <label style="font-size:11px">Option 2</label>
+            <input type="text" id="pass-opt-1" class="auth-input" placeholder="Option B" required>
+          </div>
+          <div>
+            <label style="font-size:11px">Option 3</label>
+            <input type="text" id="pass-opt-2" class="auth-input" placeholder="Option C" required>
+          </div>
+          <div>
+            <label style="font-size:11px">Option 4</label>
+            <input type="text" id="pass-opt-3" class="auth-input" placeholder="Option D" required>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+          <div class="auth-form-group">
+            <label>Correct Answer</label>
+            <select id="pass-ans" class="auth-input">
+              <option value="0">Option 1 is correct</option>
+              <option value="1">Option 2 is correct</option>
+              <option value="2">Option 3 is correct</option>
+              <option value="3">Option 4 is correct</option>
+            </select>
+          </div>
+          <div class="auth-form-group">
+            <label>Question Skill Type</label>
+            <select id="pass-skill" class="auth-input">
+              <option value="Literal">Literal (Factual Recall)</option>
+              <option value="Inference">Inferential (Reading between lines)</option>
+              <option value="Critical reading">Critical Reading (Evaluation)</option>
+              <option value="Main idea">Main Idea (Central Theme)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+        <button class="btn o" data-a="passage-modal-close">Cancel</button>
+        <button class="btn gold" data-a="admin-save-passage">Save Passage to Curriculum</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+</div>
+
+<!-- Bottom Navigation Bar -->
+<nav>
+  <div class="nav-inner" id="nav"></div>
+</nav>
+
+<!-- Floating Wisyo AI Tutor Launcher Button -->
+<button id="aib" data-a="ai-open" aria-label="Open Wisyo AI Tutor">
+  <div class="mascot-icon">
+    <img src="assets/images/wisyo.png" alt="Wisyo Mascot" class="mascot-img">
+  </div>
+  <span>Ask Wisyo</span>
+</button>
+
+<!-- Trilingual Dictionary Tooltip Card -->
+<div id="tip" hidden></div>
+
+<!-- Reports & Form 14 Sheet Modal -->
+<div id="md" hidden></div>
+
+<!-- Interactive Wisyo AI Assistant Modal Drawer -->
+<div id="ai" hidden>
+  <div class="drawer">
+    <div class="ai-header">
+      <div class="mascot-lg">
+        <img src="assets/images/wisyo.png" alt="Wisyo Mascot" class="mascot-img">
+      </div>
+      <div>
+        <b>Wisyo Tutor <span class="ai-badge" id="ai-mode-tag">Smart Offline NLP</span></b>
+        <small id="ai-subtitle">Always here to help with questions, words, & study tips</small>
+      </div>
+      <span class="spacer"></span>
+      <button class="icon-btn" data-a="ai-clear" title="Clear chat history">ðŸ—‘ï¸</button>
+      <button class="icon-btn" data-a="ai-close" title="Close drawer">âœ•</button>
+    </div>
+
+    <!-- Message stream -->
+    <div id="aim"></div>
+
+    <!-- Quick prompt recommendation chips -->
+    <div class="chips" id="ai-chips">
+      <button data-a="ai-chip" data-v="Explain my last mistake and help me fix it">ðŸ’¡ Explain my mistake</button>
+      <button data-a="ai-chip" data-v="Summarize the passage I am currently reading">ðŸ“– Summarize current passage</button>
+      <button data-a="ai-chip" data-v="What is the difference between literal and inferential questions?">ðŸŽ¯ Literal vs Inference</button>
+      <button data-a="ai-chip" data-v="Give me a quick Filipino riddle (bugtong)!">ðŸŽ² Give me a bugtong</button>
+      <button data-a="ai-chip" data-v="How can I prepare for the Phil-IRI exam?">ðŸ“ Phil-IRI Tips</button>
+    </div>
+
+    <!-- Text input box -->
+    <div class="ai-input-row">
+      <input id="aii" type="text" placeholder="Ask anything in English, Filipino, or Bisayaâ€¦" autocomplete="off">
+      <button class="btn gold" data-a="ai-send" aria-label="Send">Send</button>
+    </div>
+  </div>
+</div>
+
+<script src="src/utils/core.js"></script>
+<script src="src/data/dictionary.js"></script>
+<script src="src/data/passages.js"></script>
+<script src="src/services/auth.js"></script>
+<script src="src/pages/teacher.js"></script>
+<script src="src/pages/admin.js"></script>
+<script src="src/services/state.js"></script>
+<script src="src/utils/reading.js"></script>
+<script src="src/components/navigation.js"></script>
+<script src="src/components/shell.js"></script>
+<script src="src/pages/home.js"></script>
+<script src="src/pages/assess.js"></script>
+<script src="src/pages/practice.js"></script>
+<script src="src/pages/quest.js"></script>
+<script src="src/pages/reports.js"></script>
+<script src="src/pages/parent.js"></script>
+<script src="src/pages/about.js"></script>
+<script src="src/pages/services.js"></script>
+<script src="src/services/quiz.js"></script>
+<script src="src/services/tutor.js"></script>
+<script src="src/components/notifications.js"></script>
+<script src="src/services/exports.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
+
+
+
