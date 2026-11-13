@@ -55,15 +55,30 @@ function normalizePassage(raw) {
 
   // Existing admin records had no status and were intended for the curriculum.
   const status = raw.status ?? (raw.published === false ? "draft" : "published");
-  if (status !== "draft" && status !== "published") {
-    throw new Error("Passage status must be draft or published.");
+  if (!["draft", "pending", "rejected", "published"].includes(status)) {
+    throw new Error("Passage status must be draft, pending, rejected, or published.");
   }
   const result = { id, t, diff, x, qs, status };
+  if (raw.ownerId != null && raw.ownerId !== "") {
+    result.ownerId = passageText(raw.ownerId, "Owner ID", 80);
+  }
   if (raw.author != null && raw.author !== "") {
     result.author = passageText(raw.author, "Author", 160);
   }
   if (raw.createdAt != null && raw.createdAt !== "") {
     result.createdAt = passageText(raw.createdAt, "Created date", 40);
+  }
+  if (raw.submittedAt != null && raw.submittedAt !== "") {
+    result.submittedAt = passageText(raw.submittedAt, "Submission date", 40);
+  }
+  if (raw.reviewedById != null && raw.reviewedById !== "") {
+    result.reviewedById = passageText(raw.reviewedById, "Reviewer ID", 80);
+  }
+  if (raw.reviewedAt != null && raw.reviewedAt !== "") {
+    result.reviewedAt = passageText(raw.reviewedAt, "Review date", 40);
+  }
+  if (raw.reviewNote != null && raw.reviewNote !== "") {
+    result.reviewNote = passageText(raw.reviewNote, "Review note", 500);
   }
   return result;
 }

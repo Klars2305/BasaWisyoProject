@@ -81,34 +81,14 @@
 <div id="auth-modal" class="app-modal-overlay" hidden>
   <div class="app-modal-card">
     <div class="modal-hdr">
-      <h2 id="auth-modal-title">Create a BasaWisyo account</h2>
+      <h2 id="auth-modal-title">Create a student account</h2>
       <button class="modal-close-btn" data-a="auth-close" aria-label="Close">✕</button>
     </div>
+    <p class="sub">Need teacher or admin access? Ask your school admin to assign it.</p>
 
     <!-- Register Form -->
     <div id="auth-register-pane">
       <form id="form-register" onsubmit="return false;">
-        <div class="lab" style="margin-bottom:6px">Select Account Role:</div>
-        <div class="role-picker-grid">
-          <div class="role-choice-card selected" data-a="auth-select-role" data-v="student" id="role-card-student">
-            <div class="role-icon">🎓</div>
-            <div class="role-title">Student</div>
-            <div class="role-desc">Read & Learn</div>
-          </div>
-          <div class="role-choice-card" data-a="auth-select-role" data-v="teacher" id="role-card-teacher">
-            <div class="role-icon">👩‍🏫</div>
-            <div class="role-title">Teacher</div>
-            <div class="role-desc">Share & Track</div>
-          </div>
-          <div class="role-choice-card" data-a="auth-select-role" data-v="admin" id="role-card-admin">
-            <div class="role-icon">🛡️</div>
-            <div class="role-title">Admin</div>
-            <div class="role-desc">School Control</div>
-          </div>
-        </div>
-
-        <input type="hidden" id="reg-role" value="student">
-
         <div class="auth-form-group">
           <label>Full Name</label>
           <input type="text" id="reg-name" class="auth-input" placeholder="e.g. Juan dela Cruz" required>
@@ -129,21 +109,7 @@
           <div class="auth-help">Enter code provided by your teacher to automatically join their class section!</div>
         </div>
 
-        <!-- Teacher-specific Section Field -->
-        <div class="auth-form-group" id="reg-group-teacher" hidden>
-          <label>Grade Level & Section</label>
-          <input type="text" id="reg-section" class="auth-input" placeholder="e.g. Grade 8 - Rizal">
-          <div class="auth-help">A unique Teacher Share Code will be automatically generated for your students.</div>
-        </div>
-
-        <!-- Admin-specific Passkey Field -->
-        <div class="auth-form-group" id="reg-group-admin" hidden>
-          <label>Admin Authorization Key</label>
-          <input type="password" id="reg-admin-key" class="auth-input" placeholder="Default: DEPED-ADMIN-2026" value="DEPED-ADMIN-2026">
-          <div class="auth-help">Master key required to register administrative accounts.</div>
-        </div>
-
-        <button class="btn gold" style="width:100%;margin-top:10px" data-a="auth-register-submit">Create Account</button>
+        <button class="btn gold" style="width:100%;margin-top:10px" data-a="auth-register-submit">Create Student Account</button>
       </form>
       <p class="login-register">Already have an account? <a href="login.html">Sign in</a></p>
     </div>
@@ -177,13 +143,14 @@
   </div>
 </div>
 
-<!-- Admin Passage Builder / Editor Modal -->
+<!-- Teacher and admin practice editor -->
 <div id="admin-passage-modal" class="app-modal-overlay" hidden>
   <div class="app-modal-card wide">
     <div class="modal-hdr">
-      <h2 id="passage-modal-title">📝 Add Leveled Reading Passage</h2>
+      <h2 id="passage-modal-title">Add reading practice</h2>
       <button class="modal-close-btn" data-a="passage-modal-close" aria-label="Close">✕</button>
     </div>
+    <p id="passage-modal-hint" class="sub">Add a passage and comprehension question.</p>
     <form id="form-passage" onsubmit="return false;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="auth-form-group">
@@ -252,9 +219,11 @@
         </div>
       </div>
 
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-        <button class="btn o" data-a="passage-modal-close">Cancel</button>
-        <button class="btn gold" data-a="admin-save-passage">Save Passage to Curriculum</button>
+      <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px">
+        <button type="button" class="btn o" data-a="passage-modal-close">Cancel</button>
+        <button type="button" class="btn o" id="practice-save-draft" data-a="practice-save-draft" hidden>Save draft</button>
+        <button type="button" class="btn gold" id="practice-submit" data-a="practice-submit" hidden>Submit for approval</button>
+        <button type="button" class="btn gold" id="practice-admin-save" data-a="practice-admin-save" hidden>Publish practice</button>
       </div>
     </form>
   </div>

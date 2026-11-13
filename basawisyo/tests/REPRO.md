@@ -14,7 +14,7 @@ Run `node --test tests/repro.test.mjs` from `basawisyo/`.
 3. Pass that record to `startQuiz()`.
 
 Originally observed: `P.qs.forEach` throws because `qs` is undefined. The reader also
-expects `diff` and question skill `k`. Source: `src/app.js` admin-save-passage
+expects `diff` and question skill `k`. Source: `src/app.js` practice-admin-save
 handler and `src/services/quiz.js` `startQuiz()`.
 
 ## BW-007 — Admin passage library visibility

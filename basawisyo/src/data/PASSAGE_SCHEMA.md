@@ -16,14 +16,22 @@ validation path for reading content. It returns the canonical form:
     k: "Literal",              // skill name, 1–60 chars
     exp: "Optional explanation" // optional, up to 2,000 chars
   }],
-  status: "published",         // published | draft
+  status: "published",         // draft | pending | rejected | published
+  ownerId: "usr_teach_1",      // creator's local account ID
   author: "Optional author",
-  createdAt: "Optional date"
+  createdAt: "Optional date",
+  submittedAt: "Optional date",
+  reviewedById: "Optional admin ID",
+  reviewedAt: "Optional date",
+  reviewNote: "Optional admin feedback"
 }
 ```
 
-The admin form saves valid passages as `published`. Draft records do not
-appear in the student library or teacher assignment selector. Existing admin
+Admins can publish new practices directly. Teachers can save a draft or submit
+it as `pending`. An admin can approve a pending practice to make it `published`,
+or reject it with a reason. Teachers can withdraw pending work, then edit or
+resubmit their own draft or rejected work. Only `published` records appear in
+the student library and teacher assignment selector. Existing admin
 records with `tier`, `q`, and `skill` are converted to `diff`, `qs`, and `k`
 when read. Legacy records without a status are treated as published. Stored
 legacy records are **not rewritten on load**; their raw bytes remain available
@@ -33,4 +41,5 @@ for the later backup and migration work.
 24 built-in passages, valid published admin passages, and valid shared
 passages, with IDs deduplicated. Invalid records remain in storage but are
 excluded from the reader; the admin curriculum table labels them for repair.
-This is a local demo publication rule, not server-side authorization.
+These role and ownership checks operate in one browser's local storage. They
+are not server-side authorization or cross-device synchronization.

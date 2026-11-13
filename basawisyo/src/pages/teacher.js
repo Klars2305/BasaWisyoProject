@@ -27,6 +27,12 @@ function viewTeacher() {
 
   const assignments = AUTH.assignments.filter(a => a.teacherCode === teacher.shareCode);
   const assignablePassages = getPublishedPassages();
+  const myPractices = AUTH.customPassages
+    .filter(passage => passage?.ownerId === teacher.id)
+    .map(passage => {
+      try { return normalizePassage(passage); } catch (error) { return null; }
+    })
+    .filter(Boolean);
 
   return `
     <!-- Teacher Header & Share Code Hero Banner -->
@@ -73,6 +79,35 @@ function viewTeacher() {
         <div class="metric-value">${avgWpm}</div>
         <div class="metric-title">Avg. Words Per Min</div>
       </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div>
+          <h3>My reading practices</h3>
+          <p class="sub">Create a passage and question. An admin reviews submissions before students can read or receive them.</p>
+        </div>
+        <button class="btn gold" data-a="practice-new">Add practice</button>
+      </div>
+      ${myPractices.length ? `<div style="display:grid;gap:10px;margin-top:16px">
+        ${myPractices.map(passage => `
+          <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px">
+            <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+              <div><b>${escapeHTML(passage.t)}</b><div class="sub-sm">${escapeHTML(DIFF_NAMES[passage.diff])} · ${wordCount(passage.x)} words</div></div>
+              <span class="pill">${escapeHTML(passage.status)}</span>
+            </div>
+            ${passage.reviewNote ? `<p class="sub" style="margin:8px 0">Admin note: ${escapeHTML(passage.reviewNote)}</p>` : ""}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+              ${["draft", "rejected"].includes(passage.status) ? `
+                <button class="btn o sm" data-a="practice-edit" data-v="${escapeHTML(passage.id)}">Edit</button>
+                <button class="btn o sm" data-a="practice-delete" data-v="${escapeHTML(passage.id)}">Delete</button>
+              ` : ""}
+              ${passage.status === "pending" ? `<button class="btn o sm" data-a="practice-withdraw" data-v="${escapeHTML(passage.id)}">Withdraw to edit</button>` : ""}
+              ${passage.status === "published" ? `<span class="sub-sm">Available in the reading library and assignment picker.</span>` : ""}
+            </div>
+          </div>
+        `).join("")}
+      </div>` : `<p class="sub" style="margin-top:14px">No practices yet. Add one to start the admin review process.</p>`}
     </div>
 
     <!-- Targeted Differentiated Assignment Dispatcher -->
@@ -123,7 +158,10 @@ function viewTeacher() {
                   <span class="assignment-badge">📌 ${escapeHTML(a.title)}</span>
                   <span style="font-size:12px;color:var(--sub);margin-left:8px">Target: <b>${escapeHTML(a.targetGroup)}</b> · Due: ${escapeHTML(a.dueDate)}</span>
                 </div>
-                <div style="font-size:12px;color:var(--teal);font-weight:600">Active in Student Dashboards</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:12px;color:var(--teal);font-weight:600">Active in Student Dashboards</span>
+                  <button class="btn o sm" data-a="teacher-remove-assignment" data-v="${escapeHTML(a.id)}">Remove</button>
+                </div>
               </div>
             `).join("")}
           </div>

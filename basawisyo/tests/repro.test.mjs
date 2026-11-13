@@ -108,8 +108,8 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
     failNextRemove(key) { failNextRemoveKey = key; },
     eval: expression => vm.runInContext(expression, context),
     element(selector, value) { elements.set(selector, value); },
-    click(action) {
-      const event = { target: { closest: () => ({ dataset: { a: action } }) } };
+    click(action, value) {
+      const event = { target: { closest: () => ({ dataset: { a: action, v: value } }) } };
       for (const listener of listeners.get('click') ?? []) listener(event);
     },
     change(target) {
@@ -125,6 +125,7 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
 }
 
 function exportedBackup(app) {
+  app.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
   app.click('admin-export-backup');
   return JSON.parse(app.exportedJson());
 }
@@ -135,6 +136,7 @@ function restorePayload(app, payload) {
 }
 
 function saveAdminPassage(app, title = 'Regression Passage') {
+  app.eval('AUTH.currentUser = AUTH.users.find(user => user.role === "admin")');
   const fields = {
     '#pass-title': title,
     '#pass-diff': 'easy',
@@ -151,7 +153,7 @@ function saveAdminPassage(app, title = 'Regression Passage') {
     app.element(selector, { value });
   }
   app.element('#admin-passage-modal', { hidden: false });
-  app.click('admin-save-passage');
+  app.click('practice-admin-save');
   assert.equal(app.eval('AUTH.customPassages.length'), 1);
 }
 
@@ -205,6 +207,7 @@ test('legacy admin fields normalize without rewriting stored records', () => {
 
 test('draft and invalid custom records stay out of the published collection', () => {
   const app = loadApp();
+  app.eval('AUTH.currentUser = AUTH.users.find(user => user.role === "admin")');
   app.eval(`AUTH.customPassages.push({
     id: 'cust_draft', t: 'Draft Passage', diff: 'easy', x: 'Draft body.',
     qs: [{ q: 'Question?', o: ['Yes', 'No'], a: 0, k: 'Literal' }],
@@ -224,6 +227,132 @@ test('teacher assignment choices include the published admin passage', () => {
   app.eval('AUTH.currentUser = AUTH.users.find(user => user.role === "teacher")');
   const id = app.eval('AUTH.customPassages[0].id');
   assert.ok(app.eval('viewTeacher()').includes(`<option value="${id}">Regression Passage</option>`));
+});
+
+test('teacher submission stays private until admin approval, then becomes assignable', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const id = app.eval(`AUTH.savePractice({
+    t: 'Our Garden', diff: 'easy', x: 'Students plant seeds in the school garden.',
+    qs: [{ q: 'What did they plant?', o: ['Seeds', 'Rocks'], a: 0, k: 'Literal' }]
+  }, { submit: true }).id`);
+  assert.equal(app.eval(`AUTH.customPassages.find(p => p.id === ${JSON.stringify(id)}).status`), 'pending');
+  assert.equal(app.eval(`getPublishedPassageById(${JSON.stringify(id)})`), undefined);
+  assert.ok(app.eval('viewTeacher()').includes('Our Garden'));
+  assert.ok(app.eval('viewTeacher()').includes('data-a="practice-new"'));
+  assert.throws(() => app.eval(`AUTH.createAssignment(${JSON.stringify(id)}, 'Our Garden')`), /approved published/);
+
+  const reloaded = loadApp(app.storage);
+  assert.equal(reloaded.eval(`AUTH.customPassages.find(p => p.id === ${JSON.stringify(id)}).status`), 'pending');
+  reloaded.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
+  assert.ok(reloaded.eval('renderAdminCurriculumTab()').includes(`data-a="practice-approve" data-v="${id}"`));
+  reloaded.click('practice-approve', id);
+  assert.equal(reloaded.eval(`AUTH.customPassages.find(p => p.id === ${JSON.stringify(id)}).status`), 'published');
+  assert.ok(reloaded.eval('viewPractice()').includes('Our Garden'));
+  reloaded.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.ok(reloaded.eval('viewTeacher()').includes(`<option value="${id}">Our Garden</option>`));
+  const assignmentId = reloaded.eval(`AUTH.createAssignment(${JSON.stringify(id)}, 'Our Garden').id`);
+  reloaded.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
+  assert.throws(() => reloaded.eval(`AUTH.setPracticePublished(${JSON.stringify(id)}, false)`), /Remove this practice/);
+  assert.equal(reloaded.eval(`AUTH.removePracticeAssignments(${JSON.stringify(id)})`), 1);
+  assert.equal(reloaded.eval(`AUTH.assignments.some(a => a.id === ${JSON.stringify(assignmentId)})`), false);
+  reloaded.eval(`AUTH.setPracticePublished(${JSON.stringify(id)}, false)`);
+  assert.equal(reloaded.eval(`getPublishedPassageById(${JSON.stringify(id)})`), undefined);
+});
+
+test('review, editing, withdrawal, and deletion enforce teacher ownership', () => {
+  const app = loadApp();
+  const input = `{
+    t: 'River Cleanup', diff: 'medium', x: 'The class cleaned the river bank.',
+    qs: [{ q: 'What did the class clean?', o: ['River bank', 'School hall'], a: 0, k: 'Literal' }]
+  }`;
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const id = app.eval(`AUTH.savePractice(${input}, { submit: true }).id`);
+  assert.throws(() => app.eval(`AUTH.reviewPractice(${JSON.stringify(id)}, 'approve')`), /Only an admin/);
+  assert.throws(() => app.eval(`AUTH.savePractice(${input}, { id: ${JSON.stringify(id)}, submit: true })`), /Withdraw a pending/);
+  app.eval(`AUTH.withdrawPractice(${JSON.stringify(id)})`);
+  assert.equal(app.eval(`AUTH.customPassages[0].status`), 'draft');
+  app.eval(`AUTH.savePractice(${input}, { id: ${JSON.stringify(id)}, submit: true })`);
+
+  app.eval(`AUTH.users.push({ ...AUTH.currentUser, id: 'other_teacher', email: 'other@school.test' }); AUTH.currentUser = AUTH.users.at(-1)`);
+  assert.throws(() => app.eval(`AUTH.withdrawPractice(${JSON.stringify(id)})`), /own pending/);
+  assert.throws(() => app.eval(`AUTH.deletePractice(${JSON.stringify(id)})`), /own draft or rejected/);
+
+  app.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
+  assert.throws(() => app.eval(`AUTH.reviewPractice(${JSON.stringify(id)}, 'reject', '')`), /reason/);
+  app.eval(`AUTH.reviewPractice(${JSON.stringify(id)}, 'reject', 'Clarify the answer choices.')`);
+  assert.equal(app.eval('AUTH.customPassages[0].status'), 'rejected');
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.ok(app.eval('viewTeacher()').includes('Clarify the answer choices.'));
+  app.eval(`AUTH.savePractice(${input}, { id: ${JSON.stringify(id)}, submit: true })`);
+  assert.equal(app.eval('AUTH.customPassages[0].reviewNote'), undefined);
+});
+
+test('practice storage failure leaves the review queue unchanged', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  app.failNextWrite('basa_wisyo_custom_passages_v2');
+  assert.throws(() => app.eval(`AUTH.savePractice({
+    t: 'Failed Save', diff: 'easy', x: 'A short passage.',
+    qs: [{ q: 'What is this?', o: ['Passage', 'Poem'], a: 0, k: 'Literal' }]
+  }, { submit: true })`), /could not be saved/);
+  assert.equal(app.eval('AUTH.customPassages.length'), 0);
+  assert.equal(app.storage.get('basa_wisyo_custom_passages_v2'), undefined);
+});
+
+test('teacher editor submits a practice for admin review', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const fields = new Map();
+  for (const selector of [
+    '#pass-title', '#pass-diff', '#pass-text', '#pass-q1',
+    '#pass-opt-0', '#pass-opt-1', '#pass-opt-2', '#pass-opt-3',
+    '#pass-ans', '#pass-skill'
+  ]) {
+    const field = { value: '', focus() {} };
+    fields.set(selector, field);
+    app.element(selector, field);
+  }
+  const modal = { hidden: true };
+  app.element('#admin-passage-modal', modal);
+  app.element('#passage-modal-title', { textContent: '' });
+  app.element('#passage-modal-hint', { textContent: '' });
+  app.element('#practice-save-draft', { hidden: true });
+  app.element('#practice-submit', { hidden: true });
+  app.element('#practice-admin-save', { hidden: true, textContent: '' });
+
+  app.click('practice-new');
+  assert.equal(modal.hidden, false);
+  fields.get('#pass-title').value = 'Market Morning';
+  fields.get('#pass-diff').value = 'easy';
+  fields.get('#pass-text').value = 'The learners visited a morning market.';
+  fields.get('#pass-q1').value = 'Where did the learners go?';
+  fields.get('#pass-opt-0').value = 'Market';
+  fields.get('#pass-opt-1').value = 'River';
+  fields.get('#pass-ans').value = '0';
+  fields.get('#pass-skill').value = 'Literal';
+  app.click('practice-submit');
+  assert.equal(modal.hidden, true);
+  assert.equal(app.eval('AUTH.customPassages[0].status'), 'pending');
+  assert.equal(app.eval('AUTH.customPassages[0].ownerId'), 'usr_teach_1');
+});
+
+test('backup preserves a pending practice and its review metadata', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const id = app.eval(`AUTH.savePractice({
+    t: 'Coastal Cleanup', diff: 'easy', x: 'The class gathered litter on the shore.',
+    qs: [{ q: 'What did the class gather?', o: ['Litter', 'Shells'], a: 0, k: 'Literal' }]
+  }, { submit: true }).id`);
+  app.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
+  const backup = exportedBackup(app);
+  assert.equal(backup.customPassages[0].status, 'pending');
+  app.eval('AUTH.customPassages = []');
+  restorePayload(app, backup);
+  assert.equal(app.eval('AUTH.customPassages[0].status'), 'pending');
+  app.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
+  app.eval(`AUTH.reviewPractice(${JSON.stringify(id)}, 'reject', 'Add a clearer answer.')`);
+  assert.equal(app.eval('AUTH.customPassages[0].reviewNote'), 'Add a clearer answer.');
 });
 
 test('custom passage text is escaped in library and quiz markup', () => {
@@ -327,8 +456,30 @@ test('public entry links to a separate login page and keeps registration', () =>
   assert.match(html, /data-a="auth-open" data-v="register">Create student account<\/button>/);
   assert.ok(!html.includes('id="entry-login-form"'));
   assert.ok(!html.includes('id="form-login"'));
+  assert.ok(!html.includes('id="role-card-admin"'));
+  assert.ok(!html.includes('id="reg-admin-key"'));
   assert.match(loginHtml, /id="entry-login-form"/);
   assert.match(loginHtml, /href="index.html#register"/);
+});
+
+test('public registration cannot create a teacher or admin account', () => {
+  const app = loadApp();
+  const before = app.eval('AUTH.users.length');
+  assert.equal(app.eval(`AUTH.register({
+    name: 'New Teacher', email: 'newteacher@school.test', password: 'test123', role: 'teacher'
+  }).success`), false);
+  assert.equal(app.eval(`AUTH.register({
+    name: 'New Admin', email: 'newadmin@school.test', password: 'test123', role: 'admin'
+  }).success`), false);
+  assert.equal(app.eval('AUTH.users.length'), before);
+});
+
+test('a guest cannot invoke admin account controls through a forged UI action', () => {
+  const app = loadApp();
+  app.click('admin-edit-role', 'usr_stud_1');
+  assert.equal(app.eval('AUTH.users.find(user => user.id === "usr_stud_1").role'), 'student');
+  app.click('admin-export-backup');
+  assert.equal(app.exportedJson(), null);
 });
 
 test('registration link from login page opens registration on the public page', () => {
@@ -391,6 +542,7 @@ test('quick role controls and one-click demo accounts are absent', () => {
 
 test('BW-008: the restore control opens the file input rendered by admin', () => {
   const app = loadApp();
+  app.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
   const markup = app.eval('renderAdminSystemTab()');
   const id = markup.match(/<input\s+type="file"\s+id="([^"]+)"/)?.[1];
   assert.ok(id, 'admin system view must render a file input');
@@ -402,6 +554,7 @@ test('BW-008: the restore control opens the file input rendered by admin', () =>
 
 test('BW-009: restoring an exported backup restores systemState', () => {
   const app = loadApp();
+  app.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
   app.eval('S.w = 1234; S.theme = "dark"');
   app.click('admin-export-backup');
   const json = app.exportedJson();
@@ -487,14 +640,14 @@ test('canceling restore does not change stored or in-memory data', () => {
 
 test('failed storage write rolls back the complete restore', () => {
   const app = loadApp();
-  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
   const backup = exportedBackup(app);
   backup.systemState.w = 700;
   const before = new Map(app.storage);
   app.failNextWrite('basa_wisyo_state_v2');
   restorePayload(app, backup);
   assert.deepEqual(app.storage, before);
-  assert.equal(app.eval('AUTH.currentUser.role'), 'student');
+  assert.equal(app.eval('AUTH.currentUser.role'), 'admin');
   assert.match(app.alerts[0], /Previous data was restored/);
 });
 

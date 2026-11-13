@@ -27,6 +27,7 @@ function viewAdmin() {
     PRACTICE_DATA.hard.length + 
     PRACTICE_DATA.extreme.length + 
     AUTH.customPassages.length;
+  const pendingPractices = AUTH.customPassages.filter(passage => passage?.status === "pending").length;
 
   return `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px">
@@ -35,7 +36,7 @@ function viewAdmin() {
         <p class="sub" style="margin:4px 0 0 0">${admin.school} · Master Oversight & Curriculum Control</p>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn gold" data-a="admin-open-add-passage">➕ Add Passage</button>
+        <button class="btn gold" data-a="practice-new">➕ Add Practice</button>
         <button class="btn o" data-a="admin-export-backup">💾 Export Backup</button>
       </div>
     </div>
@@ -70,7 +71,7 @@ function viewAdmin() {
         👥 User Management (${allUsers.length})
       </button>
       <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'curriculum' ? 'active' : ''}" data-a="admin-tab" data-v="curriculum">
-        📚 Curriculum & Passages (${totalPassages})
+        📚 Curriculum & Passages (${totalPassages}${pendingPractices ? ` · ${pendingPractices} awaiting review` : ""})
       </button>
       <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'benchmarks' ? 'active' : ''}" data-a="admin-tab" data-v="benchmarks">
         ⚙️ Phil-IRI Standards
@@ -156,12 +157,14 @@ function renderAdminCurriculumTab() {
       };
     }
   });
+  customRows.sort((a, b) => Number(b.status === "pending") - Number(a.status === "pending"));
+  const pendingCount = customRows.filter(p => p.status === "pending").length;
   const allPassages = [
+    ...customRows,
     ...PRACTICE_DATA.easy.map(p => ({ ...p, tier: "Madali (Easy)" })),
     ...PRACTICE_DATA.medium.map(p => ({ ...p, tier: "Katamtaman (Medium)" })),
     ...PRACTICE_DATA.hard.map(p => ({ ...p, tier: "Mahirap (Hard)" })),
-    ...PRACTICE_DATA.extreme.map(p => ({ ...p, tier: "Matindi (Extreme)" })),
-    ...customRows
+    ...PRACTICE_DATA.extreme.map(p => ({ ...p, tier: "Matindi (Extreme)" }))
   ];
 
   return `
@@ -171,8 +174,10 @@ function renderAdminCurriculumTab() {
           <div class="lab">Leveled Reading Curriculum</div>
           <p class="sub" style="margin:2px 0 0 0">Built-in and custom passage records; only published valid passages appear to readers.</p>
         </div>
-        <button class="btn gold" data-a="admin-open-add-passage">➕ Add New Passage</button>
+        <button class="btn gold" data-a="practice-new">➕ Add New Practice</button>
       </div>
+
+      <p class="sub">${pendingCount ? `${pendingCount} teacher practice${pendingCount === 1 ? "" : "s"} awaiting review. Approve to add to the student library, or reject with a reason.` : "No teacher practices are awaiting review."}</p>
 
       <div class="responsive-table-wrap">
         <table class="data-table">
@@ -195,15 +200,23 @@ function renderAdminCurriculumTab() {
                 <tr>
                   <td><code>${escapeHTML(p.id)}</code></td>
                   <td><b>${escapeHTML(p.tier)}</b></td>
-                  <td>${escapeHTML(p.t)}</td>
+                  <td>${escapeHTML(p.t)}${p.reviewNote ? `<div class="sub-sm">Review note: ${escapeHTML(p.reviewNote)}</div>` : ""}</td>
                   <td>${wordCount(p.x)} words</td>
                   <td>${p.qs.length} questions</td>
                   <td>${escapeHTML(p.status || "published")}</td>
-                  <td>${isCustom ? '<span style="color:var(--gold);font-weight:700">Admin Custom</span>' : 'Standard Core'}</td>
+                  <td>${isCustom ? escapeHTML(AUTH.users.find(user => user.id === p.ownerId)?.name || p.author || "Legacy custom") : 'Standard Core'}</td>
                   <td>
                     ${isCustom ? `
                       ${p.status === "published" ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="read-passage" data-v="${escapeHTML(p.id)}">Preview</button>` : ""}
-                      <button class="btn o" style="font-size:11px;padding:2px 8px;color:var(--coral)" data-a="admin-delete-passage" data-v="${escapeHTML(p.id)}">Delete</button>
+                      ${p.status !== "invalid" ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-edit" data-v="${escapeHTML(p.id)}">Edit</button>` : ""}
+                      ${p.status === "pending" ? `
+                        <button class="btn gold" style="font-size:11px;padding:2px 8px" data-a="practice-approve" data-v="${escapeHTML(p.id)}">Approve</button>
+                        <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-reject" data-v="${escapeHTML(p.id)}">Reject</button>
+                      ` : ""}
+                      ${p.status === "published" ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-unpublish" data-v="${escapeHTML(p.id)}">Unpublish</button>` : ""}
+                      ${p.status === "draft" && AUTH.users.find(user => user.id === p.ownerId)?.role !== "teacher" ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-publish" data-v="${escapeHTML(p.id)}">Publish</button>` : ""}
+                      ${AUTH.assignments.some(assignment => assignment.passageId === p.id) ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-remove-assignments" data-v="${escapeHTML(p.id)}">Remove class assignments</button>` : ""}
+                      <button class="btn o" style="font-size:11px;padding:2px 8px;color:var(--coral)" data-a="practice-delete" data-v="${escapeHTML(p.id)}">Delete</button>
                     ` : `
                       <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="read-passage" data-v="${p.id}">Preview</button>
                     `}

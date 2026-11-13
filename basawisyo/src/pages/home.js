@@ -12,7 +12,8 @@ function viewHome() {
       const teachName = teach ? teach.name : "Your Teacher";
       // Check assignments
       const myAsgs = AUTH.assignments.filter(a => 
-        a.teacherCode === u.teacherCode && (a.targetGroup === "all" || a.targetGroup === `level-${S.lvl}`)
+        a.teacherCode === u.teacherCode && getPublishedPassageById(a.passageId)
+        && (a.targetGroup === "all" || a.targetGroup === `level-${S.lvl}`)
       );
 
       roleBanner = `

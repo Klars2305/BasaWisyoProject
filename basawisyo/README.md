@@ -27,6 +27,10 @@ the app. `node --check` can check each JavaScript file.
   `src/data/PASSAGE_SCHEMA.md` documents the shared passage contract.
 - `src/components/`: navigation, app shell, and toast rendering.
 - `src/pages/`: guest, student, teacher, admin, and supporting page views.
+- Teachers can submit reading practices for admin review. Approved practices
+  appear in the library and teacher assignment picker on the same browser.
+- Public registration creates student accounts only; staff roles are assigned
+  from the existing admin account-management view in this prototype.
 - `src/services/`: account/storage state, quizzes, tutor, export, and backup
   behavior. `src/services/BACKUP_FORMAT.md` documents backup version 1.
 - `src/utils/`: common constants, selectors, speech, and reading helpers.
@@ -43,4 +47,6 @@ The passage schema and library fixes cover BW-006 and BW-007. Backup restore
 now covers BW-008 and BW-009. Authentication and authorization are still
 browser-side demo behavior; browser storage is shared at the origin level;
 reports can include sample values. Backup files include plaintext demo
-passwords. Do not use real student accounts or records with this build.
+passwords. Practice approval is also local to one browser; it does not sync
+teacher and admin devices. Do not use real student accounts or records with
+this build.

@@ -245,6 +245,15 @@ const AUTH = {
     } catch(e) {}
   },
 
+  persistPractices(next) {
+    try {
+      localStorage.setItem(this.CUSTOM_PASSAGES_KEY, JSON.stringify(next));
+    } catch(e) {
+      throw new Error("Practice could not be saved in this browser. Check storage and try again.");
+    }
+    this.customPassages = next;
+  },
+
   // Auth Operations
   login(email, password) {
     const cleanEmail = (email || "").trim().toLowerCase();
@@ -266,31 +275,29 @@ const AUTH = {
   },
 
   register(data) {
+    if (data.role !== "student") {
+      return { success: false, message: "Public registration is for students. Ask an admin to assign a staff role." };
+    }
     const cleanEmail = (data.email || "").trim().toLowerCase();
     if (this.users.some(u => u.email.toLowerCase() === cleanEmail)) {
       return { success: false, message: "An account with this email already exists." };
     }
 
     const id = "usr_" + Date.now();
-    let shareCode = null;
-    if (data.role === "teacher") {
-      shareCode = "BASA-TEACH-" + Math.floor(1000 + Math.random() * 9000);
-    }
-
     const newUser = {
       id,
       email: cleanEmail,
       password: data.password,
       name: data.name.trim(),
-      role: data.role,
+      role: "student",
       school: data.school || "Rizal National High School",
-      section: data.section || (data.role === "teacher" ? "Grade 8 - Section 1" : ""),
+      section: data.section || "",
       teacherCode: (data.teacherCode || "").trim().toUpperCase(),
-      shareCode,
-      lvl: data.role === "student" ? (S.lvl !== null ? S.lvl : 1) : null,
-      wpm: data.role === "student" ? 110 : null,
-      comp: data.role === "student" ? 75 : null,
-      wordsRead: data.role === "student" ? (S.w || 0) : null,
+      shareCode: null,
+      lvl: S.lvl !== null ? S.lvl : 1,
+      wpm: 110,
+      comp: 75,
+      wordsRead: S.w || 0,
       status: "active",
       createdAt: new Date().toISOString().split("T")[0]
     };
@@ -339,7 +346,12 @@ const AUTH = {
   },
 
   createAssignment(passageId, title, targetGroup, dueDate, note) {
-    if (!this.currentUser || this.currentUser.role !== "teacher") return;
+    if (!this.currentUser || this.currentUser.role !== "teacher") {
+      throw new Error("Only a teacher can assign practices.");
+    }
+    if (!getPublishedPassageById(passageId)) {
+      throw new Error("Only an approved published practice can be assigned.");
+    }
     const newAsg = {
       id: "asg_" + Date.now(),
       teacherCode: this.currentUser.shareCode,
@@ -349,8 +361,44 @@ const AUTH = {
       dueDate: dueDate || "Next Class",
       note: note || ""
     };
-    this.assignments.unshift(newAsg);
-    this.saveAssignments();
+    const next = [newAsg, ...this.assignments];
+    try {
+      localStorage.setItem(this.ASSIGNMENTS_KEY, JSON.stringify(next));
+    } catch(e) {
+      throw new Error("Assignment could not be saved. Check browser storage and try again.");
+    }
+    this.assignments = next;
+    return newAsg;
+  },
+
+  removeAssignment(id) {
+    const actor = this.practiceActor();
+    const assignment = this.assignments.find(item => item.id === id);
+    if (!assignment) throw new Error("Assignment was not found.");
+    if (actor.role === "teacher" && assignment.teacherCode !== actor.shareCode) {
+      throw new Error("You can remove only your class assignments.");
+    }
+    const next = this.assignments.filter(item => item.id !== id);
+    try {
+      localStorage.setItem(this.ASSIGNMENTS_KEY, JSON.stringify(next));
+    } catch(e) {
+      throw new Error("Assignment could not be removed. Check browser storage and try again.");
+    }
+    this.assignments = next;
+  },
+
+  removePracticeAssignments(id) {
+    const actor = this.practiceActor();
+    if (actor.role !== "admin") throw new Error("Only an admin can remove all practice assignments.");
+    const next = this.assignments.filter(item => item.passageId !== id);
+    try {
+      localStorage.setItem(this.ASSIGNMENTS_KEY, JSON.stringify(next));
+    } catch(e) {
+      throw new Error("Assignments could not be removed. Check browser storage and try again.");
+    }
+    const removed = this.assignments.length - next.length;
+    this.assignments = next;
+    return removed;
   },
 
   // Guest Token Mechanism
@@ -433,26 +481,132 @@ const AUTH = {
     this.saveUsers();
   },
 
-  addCustomPassage(p) {
-    const passage = normalizePassage({
-      ...p,
-      id: p.id || "cust_" + Date.now(),
-      status: p.status ?? "published"
-    });
-    if (getPublishedPassages().some(existing => existing.id === passage.id)
-        || this.customPassages.some(existing => existing?.id === passage.id)) {
-      throw new Error("Passage ID already exists.");
+  practiceActor() {
+    const actor = this.currentUser && this.users.find(user => user.id === this.currentUser.id);
+    if (!actor || actor.status === "suspended" || !["teacher", "admin"].includes(actor.role)) {
+      throw new Error("Only an active teacher or admin can manage practices.");
     }
-    this.customPassages.push(passage);
-    this.saveCustomPassages();
+    return actor;
+  },
+
+  savePractice(input, { id = null, submit = false } = {}) {
+    const actor = this.practiceActor();
+    const index = id === null ? -1 : this.customPassages.findIndex(passage => passage?.id === id);
+    if (id !== null && index < 0) throw new Error("Practice was not found.");
+    const previous = index < 0 ? null : normalizePassage(this.customPassages[index]);
+    if (actor.role === "teacher" && previous) {
+      if (previous.ownerId !== actor.id) throw new Error("You can edit only your own practices.");
+      if (!["draft", "rejected"].includes(previous.status)) {
+        throw new Error("Withdraw a pending practice before editing. Published practices are managed by the admin.");
+      }
+    }
+
+    const now = new Date().toISOString();
+    const status = actor.role === "teacher" ? (submit ? "pending" : "draft")
+      : (previous?.status ?? "published");
+    const passage = normalizePassage({
+      ...input,
+      id: previous?.id ?? `cust_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
+      status,
+      ownerId: previous?.ownerId ?? actor.id,
+      author: previous?.author ?? actor.name,
+      createdAt: previous?.createdAt ?? now,
+      submittedAt: status === "pending" && actor.role === "teacher" ? now : previous?.submittedAt,
+      reviewedById: status === "pending" && actor.role === "teacher" ? null : previous?.reviewedById,
+      reviewedAt: status === "pending" && actor.role === "teacher" ? null : previous?.reviewedAt,
+      reviewNote: status === "pending" && actor.role === "teacher" ? null : previous?.reviewNote
+    });
+    if (!previous && (getPublishedPassages().some(existing => existing.id === passage.id)
+        || this.customPassages.some(existing => existing?.id === passage.id))) {
+      throw new Error("Practice ID already exists. Try saving again.");
+    }
+    const next = [...this.customPassages];
+    if (index < 0) next.push(passage);
+    else next[index] = passage;
+    this.persistPractices(next);
     return passage;
   },
 
+  reviewPractice(id, decision, note = "") {
+    const actor = this.practiceActor();
+    if (actor.role !== "admin") throw new Error("Only an admin can review practices.");
+    if (!["approve", "reject"].includes(decision)) throw new Error("Choose approve or reject.");
+    const index = this.customPassages.findIndex(passage => passage?.id === id);
+    if (index < 0) throw new Error("Practice was not found.");
+    const current = normalizePassage(this.customPassages[index]);
+    if (current.status !== "pending") throw new Error("Only pending practices can be reviewed.");
+    const cleanNote = String(note || "").trim();
+    if (decision === "reject" && !cleanNote) throw new Error("Give the teacher a reason for rejection.");
+    const reviewed = normalizePassage({
+      ...current,
+      status: decision === "approve" ? "published" : "rejected",
+      reviewedById: actor.id,
+      reviewedAt: new Date().toISOString(),
+      reviewNote: cleanNote
+    });
+    const next = [...this.customPassages];
+    next[index] = reviewed;
+    this.persistPractices(next);
+    return reviewed;
+  },
+
+  withdrawPractice(id) {
+    const actor = this.practiceActor();
+    if (actor.role !== "teacher") throw new Error("Only the author can withdraw a submission.");
+    const index = this.customPassages.findIndex(passage => passage?.id === id);
+    if (index < 0) throw new Error("Practice was not found.");
+    const current = normalizePassage(this.customPassages[index]);
+    if (current.ownerId !== actor.id || current.status !== "pending") {
+      throw new Error("You can withdraw only your own pending practice.");
+    }
+    const next = [...this.customPassages];
+    next[index] = normalizePassage({ ...current, status: "draft", submittedAt: null });
+    this.persistPractices(next);
+    return next[index];
+  },
+
+  setPracticePublished(id, published) {
+    const actor = this.practiceActor();
+    if (actor.role !== "admin") throw new Error("Only an admin can publish or unpublish practices.");
+    const index = this.customPassages.findIndex(passage => passage?.id === id);
+    if (index < 0) throw new Error("Practice was not found.");
+    const current = normalizePassage(this.customPassages[index]);
+    const owner = this.users.find(user => user.id === current.ownerId);
+    if (published && (current.status !== "draft" || owner?.role === "teacher")) {
+      throw new Error("Teacher practices must be submitted for approval before publication.");
+    }
+    if (!published && current.status !== "published") throw new Error("Only published practices can be unpublished.");
+    if (!published && this.assignments.some(assignment => assignment.passageId === id)) {
+      throw new Error("Remove this practice's class assignments before unpublishing it.");
+    }
+    const next = [...this.customPassages];
+    next[index] = normalizePassage({ ...current, status: published ? "published" : "draft" });
+    this.persistPractices(next);
+    return next[index];
+  },
+
+  deletePractice(id) {
+    const actor = this.practiceActor();
+    const index = this.customPassages.findIndex(passage => passage?.id === id);
+    if (index < 0) throw new Error("Practice was not found.");
+    const current = this.customPassages[index];
+    if (actor.role === "teacher" && (current.ownerId !== actor.id
+        || !["draft", "rejected"].includes(current.status))) {
+      throw new Error("You can delete only your own draft or rejected practice.");
+    }
+    if (this.assignments.some(assignment => assignment.passageId === id)) {
+      throw new Error("This practice is assigned to a class. Remove its assignment before deleting it.");
+    }
+    this.persistPractices(this.customPassages.filter((_, position) => position !== index));
+    return true;
+  },
+
+  addCustomPassage(p) {
+    return this.savePractice(p);
+  },
+
   deleteCustomPassage(id) {
-    this.customPassages = this.customPassages.filter(p => p.id !== id);
-    this.saveCustomPassages();
-    S.sh = S.sh.filter(p => p.id !== id);
-    save();
+    return this.deletePractice(id);
   }
 };
 

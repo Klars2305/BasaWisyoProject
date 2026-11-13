@@ -4,7 +4,6 @@ function dashboardTabForRole(role) {
 
 function openRegistration() {
   $("#auth-modal").hidden = false;
-  $("#role-card-student")?.click();
 }
 
 function logoutToIndex() {
@@ -19,6 +18,71 @@ function logoutToIndex() {
   window.location.replace("index.html");
 }
 
+let EDITING_PRACTICE_ID = null;
+
+function openPracticeEditor(id = null) {
+  const actor = AUTH.practiceActor();
+  const raw = id ? AUTH.customPassages.find(passage => passage?.id === id) : null;
+  if (id && !raw) throw new Error("Practice was not found.");
+  const passage = raw ? normalizePassage(raw) : null;
+  if (actor.role === "teacher" && passage
+      && (passage.ownerId !== actor.id || !["draft", "rejected"].includes(passage.status))) {
+    throw new Error("You can edit only your own draft or rejected practice.");
+  }
+  EDITING_PRACTICE_ID = passage?.id ?? null;
+  const question = passage?.qs[0];
+  const values = {
+    "#pass-title": passage?.t ?? "", "#pass-diff": passage?.diff ?? "easy",
+    "#pass-text": passage?.x ?? "", "#pass-q1": question?.q ?? "",
+    "#pass-opt-0": question?.o[0] ?? "", "#pass-opt-1": question?.o[1] ?? "",
+    "#pass-opt-2": question?.o[2] ?? "", "#pass-opt-3": question?.o[3] ?? "",
+    "#pass-ans": String(question?.a ?? 0), "#pass-skill": question?.k ?? "Literal"
+  };
+  for (const [selector, value] of Object.entries(values)) {
+    const field = $(selector);
+    if (field) field.value = value;
+  }
+  $("#passage-modal-title").textContent = passage ? "Edit reading practice" : "Add reading practice";
+  $("#passage-modal-hint").textContent = actor.role === "teacher"
+    ? "Save a draft or submit it for admin approval. Only approved work is visible to students."
+    : "Admin changes to published practices appear in the reading library immediately.";
+  $("#practice-save-draft").hidden = actor.role !== "teacher";
+  $("#practice-submit").hidden = actor.role !== "teacher";
+  $("#practice-admin-save").hidden = actor.role !== "admin";
+  $("#practice-admin-save").textContent = passage ? "Save changes" : "Publish practice";
+  $("#admin-passage-modal").hidden = false;
+  $("#pass-title").focus();
+}
+
+function savePracticeFromEditor(submit) {
+  const previous = EDITING_PRACTICE_ID
+    ? AUTH.customPassages.find(passage => passage?.id === EDITING_PRACTICE_ID) : null;
+  const otherQuestions = previous ? normalizePassage(previous).qs.slice(1) : [];
+  const enteredOptions = [0, 1, 2, 3].map(index => $("#pass-opt-" + index)?.value || "");
+  const firstEmpty = enteredOptions.findIndex(option => !option.trim());
+  if (firstEmpty >= 0 && enteredOptions.slice(firstEmpty + 1).some(option => option.trim())) {
+    throw new Error("Fill answer options in order, without gaps.");
+  }
+  const options = enteredOptions.filter(option => option.trim());
+  const passage = AUTH.savePractice({
+    t: $("#pass-title")?.value,
+    diff: $("#pass-diff")?.value,
+    x: $("#pass-text")?.value,
+    qs: [{
+      q: $("#pass-q1")?.value,
+      o: options,
+      a: Number($("#pass-ans")?.value),
+      k: $("#pass-skill")?.value
+    }, ...otherQuestions]
+  }, { id: EDITING_PRACTICE_ID, submit });
+  EDITING_PRACTICE_ID = null;
+  $("#admin-passage-modal").hidden = true;
+  if (AUTH.currentUser.role === "admin") CURRENT_ADMIN_TAB = "curriculum";
+  renderApp();
+  showToast(passage.status === "pending" ? "Practice submitted for admin approval."
+    : passage.status === "draft" ? "Practice draft saved." : "Practice saved to the curriculum.");
+}
+
 /* ==========================================================================
    Global Event Delegations
    ========================================================================== */
@@ -27,6 +91,14 @@ document.addEventListener("click", e => {
   if (!t) return;
   const a = t.dataset.a;
   const v = t.dataset.v;
+  if (a.startsWith("admin-") && AUTH.currentUser?.role !== "admin") {
+    showToast("Admin account required for this action.", "warn");
+    return;
+  }
+  if (a.startsWith("teacher-") && AUTH.currentUser?.role !== "teacher") {
+    showToast("Teacher account required for this action.", "warn");
+    return;
+  }
 
   // Tabs
   if (a === "tab") {
@@ -258,40 +330,18 @@ document.addEventListener("click", e => {
     const modal = $("#auth-modal");
     if (modal) modal.hidden = true;
   }
-  else if (a === "auth-select-role") {
-    $$(".role-choice-card").forEach(c => c.classList.remove("selected"));
-    t.classList.add("selected");
-    const roleInput = $("#reg-role");
-    if (roleInput) roleInput.value = v;
-
-    const studGroup = $("#reg-group-student");
-    const teachGroup = $("#reg-group-teacher");
-    const adminGroup = $("#reg-group-admin");
-
-    if (studGroup) studGroup.hidden = (v !== "student");
-    if (teachGroup) teachGroup.hidden = (v !== "teacher");
-    if (adminGroup) adminGroup.hidden = (v !== "admin");
-  }
   else if (a === "auth-register-submit") {
     const name = $("#reg-name")?.value;
     const email = $("#reg-email")?.value;
     const password = $("#reg-password")?.value;
-    const role = $("#reg-role")?.value || "student";
-    const section = $("#reg-section")?.value;
     const teacherCode = $("#reg-teacher-code")?.value;
-    const adminKey = $("#reg-admin-key")?.value;
 
     if (!name || !email || !password) {
       showToast("Please fill in your name, email, and password.", "warn");
       return;
     }
 
-    if (role === "admin" && adminKey !== "DEPED-ADMIN-2026") {
-      showToast("Invalid Admin Authorization Key. Default is DEPED-ADMIN-2026", "warn");
-      return;
-    }
-
-    const res = AUTH.register({ name, email, password, role, section, teacherCode });
+    const res = AUTH.register({ name, email, password, role: "student", teacherCode });
     if (res.success) {
       $("#auth-modal").hidden = true;
       GUEST_MODE = false;
@@ -349,9 +399,23 @@ document.addEventListener("click", e => {
     const targetGroup = tSelect?.value || "all";
     const note = noteInput?.value || "Assigned by Teacher";
 
-    AUTH.createAssignment(pId, pTitle, targetGroup, "Upcoming Session", note);
-    showToast(`Assignment dispatched to ${targetGroup === 'all' ? 'entire class' : targetGroup}! 🚀`);
-    renderApp();
+    try {
+      AUTH.createAssignment(pId, pTitle, targetGroup, "Upcoming Session", note);
+      showToast(`Assignment dispatched to ${targetGroup === 'all' ? 'entire class' : targetGroup}! 🚀`);
+      renderApp();
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
+  }
+  else if (a === "teacher-remove-assignment") {
+    if (!confirm("Remove this assignment from the class?")) return;
+    try {
+      AUTH.removeAssignment(v);
+      renderApp();
+      showToast("Assignment removed.");
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
   }
   else if (a === "teacher-import-guest") {
     const token = prompt("Enter Student Guest Token (e.g. GUEST-8492):");
@@ -427,6 +491,7 @@ document.addEventListener("click", e => {
     user.role = cleanRole;
     if (cleanRole === "teacher" && !user.shareCode) {
       user.shareCode = "BASA-TEACH-" + Math.floor(1000 + Math.random() * 9000);
+      user.section = user.section || "Grade 8 - Section 1";
     }
     AUTH.saveUsers();
     showToast(`Updated ${user.name}'s role to ${cleanRole.toUpperCase()}!`);
@@ -451,61 +516,65 @@ document.addEventListener("click", e => {
     AUTH.saveUsers();
     showToast(`Password updated for ${user.name}! 🔑`);
   }
-  else if (a === "admin-open-add-passage") {
-    const modal = $("#admin-passage-modal");
-    if (modal) modal.hidden = false;
-  }
-  else if (a === "passage-modal-close") {
-    const modal = $("#admin-passage-modal");
-    if (modal) modal.hidden = true;
-  }
-  else if (a === "admin-save-passage") {
-    const title = $("#pass-title")?.value;
-    const diff = $("#pass-diff")?.value || "easy";
-    const text = $("#pass-text")?.value;
-    const q1 = $("#pass-q1")?.value;
-    const opt0 = $("#pass-opt-0")?.value;
-    const opt1 = $("#pass-opt-1")?.value;
-    const opt2 = $("#pass-opt-2")?.value;
-    const opt3 = $("#pass-opt-3")?.value;
-    const ans = parseInt($("#pass-ans")?.value || "0", 10);
-    const skill = $("#pass-skill")?.value || "Literal";
-
-    if (!title || !text || !q1 || !opt0 || !opt1) {
-      showToast("Please fill in Title, Passage Text, Question, and Options.", "warn");
-      return;
-    }
-
+  else if (a === "practice-new" || a === "practice-edit") {
     try {
-      AUTH.addCustomPassage({
-        t: title,
-        diff,
-        x: text,
-        qs: [{
-          q: q1,
-          o: [opt0, opt1, opt2, opt3].filter(option => typeof option === "string" && option.trim()),
-          a: ans,
-          k: skill
-        }],
-        status: "published",
-        author: (AUTH.currentUser && AUTH.currentUser.name) || "Curriculum Admin",
-        createdAt: new Date().toISOString().split("T")[0]
-      });
+      openPracticeEditor(a === "practice-edit" ? v : null);
     } catch (error) {
       showToast(error.message, "warn");
-      return;
     }
-    $("#admin-passage-modal").hidden = true;
-    showToast(`Custom passage "${title}" added to curriculum! 📚`);
-    renderApp();
   }
-  else if (a === "admin-delete-passage") {
-    const pId = v;
-    if (!confirm("Are you sure you want to remove this custom passage from the curriculum?")) return;
-    AUTH.customPassages = AUTH.customPassages.filter(p => p.id !== pId);
-    AUTH.saveCustomPassages();
-    showToast("Passage removed from curriculum.");
-    renderApp();
+  else if (a === "passage-modal-close") {
+    EDITING_PRACTICE_ID = null;
+    $("#admin-passage-modal").hidden = true;
+  }
+  else if (["practice-save-draft", "practice-submit", "practice-admin-save"].includes(a)) {
+    try {
+      savePracticeFromEditor(a === "practice-submit");
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
+  }
+  else if (a === "practice-approve" || a === "practice-reject") {
+    const note = a === "practice-reject" ? prompt("Reason for rejection (shown to the teacher):") : "";
+    if (a === "practice-reject" && note === null) return;
+    try {
+      AUTH.reviewPractice(v, a === "practice-approve" ? "approve" : "reject", note);
+      renderApp();
+      showToast(a === "practice-approve" ? "Practice approved and published." : "Practice returned to the teacher with feedback.");
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
+  }
+  else if (a === "practice-withdraw" || a === "practice-publish" || a === "practice-unpublish") {
+    try {
+      if (a === "practice-withdraw") AUTH.withdrawPractice(v);
+      else AUTH.setPracticePublished(v, a === "practice-publish");
+      renderApp();
+      showToast(a === "practice-withdraw" ? "Practice moved to draft. You can edit it now."
+        : a === "practice-publish" ? "Practice published." : "Practice unpublished.");
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
+  }
+  else if (a === "practice-delete") {
+    if (!confirm("Delete this practice? This cannot be undone.")) return;
+    try {
+      AUTH.deletePractice(v);
+      renderApp();
+      showToast("Practice deleted.");
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
+  }
+  else if (a === "practice-remove-assignments") {
+    if (!confirm("Remove this practice from every class assignment?")) return;
+    try {
+      const count = AUTH.removePracticeAssignments(v);
+      renderApp();
+      showToast(`${count} class assignment${count === 1 ? "" : "s"} removed.`);
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
   }
   else if (a === "admin-export-backup") {
     try {
