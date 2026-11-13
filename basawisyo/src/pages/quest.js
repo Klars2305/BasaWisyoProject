@@ -14,7 +14,7 @@ function viewQuest() {
       <div class="big" style="color:#fff;margin:6px 0">${totalWords.toLocaleString()} <span style="font-size:1.1rem;font-weight:500;color:#ccdcf8">/ ${GOAL.toLocaleString()}</span></div>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <p class="sub" style="color:#e0edff">
-        ${totalWords >= GOAL ? "ðŸŽ‰ Goal Reached! Maraming salamat sa sipag at tiyaga ng buong klase!" : `Remaining: ${(GOAL - totalWords).toLocaleString()} words to complete this week's quest.`}
+        ${totalWords >= GOAL ? "🎉 Goal Reached! Maraming salamat sa sipag at tiyaga ng buong klase!" : `Remaining: ${(GOAL - totalWords).toLocaleString()} words to complete this week's quest.`}
       </p>
       <div class="row" style="background:rgba(255,255,255,0.1);padding:8px 12px;border-radius:10px;margin-top:10px">
         <span>Your contribution:</span>
@@ -24,7 +24,7 @@ function viewQuest() {
 
     <!-- BasaMesh Card -->
     <div class="card">
-      <div class="lab">BasaMesh Â· Offline Passage Sharing</div>
+      <div class="lab">BasaMesh · Offline Passage Sharing</div>
       <h3>Share Stories Without Internet</h3>
       <p class="sub">
         Create custom passages and peer quizzes. Generate a share code to send via Bluetooth, SMS, or handwritten note!

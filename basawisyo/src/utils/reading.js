@@ -20,7 +20,7 @@ const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({
 const tapMarkup = text => {
   let markup = "";
   let lastIndex = 0;
-  for (const match of text.matchAll(/[A-Za-zâ€™'-]+/g)) {
+  for (const match of text.matchAll(/[A-Za-z’'-]+/g)) {
     markup += escapeHTML(text.slice(lastIndex, match.index));
     const w = match[0];
     const clean = w.toLowerCase().replace(/[^a-z]/g, "");

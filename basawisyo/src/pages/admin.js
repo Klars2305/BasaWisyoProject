@@ -31,12 +31,12 @@ function viewAdmin() {
   return `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px">
       <div>
-        <h2 style="margin:0">ðŸ›¡ï¸ DepEd School Admin Console</h2>
-        <p class="sub" style="margin:4px 0 0 0">${admin.school} Â· Master Oversight & Curriculum Control</p>
+        <h2 style="margin:0">🛡️ DepEd School Admin Console</h2>
+        <p class="sub" style="margin:4px 0 0 0">${admin.school} · Master Oversight & Curriculum Control</p>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn gold" data-a="admin-open-add-passage">âž• Add Passage</button>
-        <button class="btn o" data-a="admin-export-backup">ðŸ’¾ Export Backup</button>
+        <button class="btn gold" data-a="admin-open-add-passage">➕ Add Passage</button>
+        <button class="btn o" data-a="admin-export-backup">💾 Export Backup</button>
       </div>
     </div>
 
@@ -67,16 +67,16 @@ function viewAdmin() {
     <!-- Admin Navigation Tabs -->
     <div class="auth-tab-bar" style="margin-bottom:18px">
       <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'users' ? 'active' : ''}" data-a="admin-tab" data-v="users">
-        ðŸ‘¥ User Management (${allUsers.length})
+        👥 User Management (${allUsers.length})
       </button>
       <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'curriculum' ? 'active' : ''}" data-a="admin-tab" data-v="curriculum">
-        ðŸ“š Curriculum & Passages (${totalPassages})
+        📚 Curriculum & Passages (${totalPassages})
       </button>
       <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'benchmarks' ? 'active' : ''}" data-a="admin-tab" data-v="benchmarks">
-        âš™ï¸ Phil-IRI Standards
+        ⚙️ Phil-IRI Standards
       </button>
       <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'system' ? 'active' : ''}" data-a="admin-tab" data-v="system">
-        ðŸ’¾ Database & Backup
+        💾 Database & Backup
       </button>
     </div>
 
@@ -123,7 +123,7 @@ function renderAdminUsersTab(users) {
                 </td>
                 <td>
                   <span style="color:${u.status === 'active' ? 'var(--teal)' : 'var(--coral)'};font-weight:700">
-                    ${u.status === 'active' ? 'â— Active' : 'â—‹ Suspended'}
+                    ${u.status === 'active' ? '● Active' : '○ Suspended'}
                   </span>
                 </td>
                 <td>
@@ -171,7 +171,7 @@ function renderAdminCurriculumTab() {
           <div class="lab">Leveled Reading Curriculum</div>
           <p class="sub" style="margin:2px 0 0 0">Built-in and custom passage records; only published valid passages appear to readers.</p>
         </div>
-        <button class="btn gold" data-a="admin-open-add-passage">âž• Add New Passage</button>
+        <button class="btn gold" data-a="admin-open-add-passage">➕ Add New Passage</button>
       </div>
 
       <div class="responsive-table-wrap">
@@ -244,21 +244,21 @@ function renderAdminBenchmarksTab() {
           </tr>
           <tr>
             <td><span class="level-badge level-1">Instructional</span></td>
-            <td>59% â€“ 79%</td>
-            <td>90 â€“ 129 WPM</td>
-            <td>110 â€“ 149 WPM</td>
+            <td>59% – 79%</td>
+            <td>90 – 129 WPM</td>
+            <td>110 – 149 WPM</td>
             <td>Guided Reading & Inferential Skill Focus</td>
           </tr>
           <tr>
             <td><span class="level-badge level-2">Independent</span></td>
-            <td>80% â€“ 89%</td>
-            <td>130 â€“ 159 WPM</td>
-            <td>150 â€“ 179 WPM</td>
+            <td>80% – 89%</td>
+            <td>130 – 159 WPM</td>
+            <td>150 – 179 WPM</td>
             <td>Self-directed Reading & Critical Analysis</td>
           </tr>
           <tr>
             <td><span class="level-badge level-3">Mastery</span></td>
-            <td>90% â€“ 100%</td>
+            <td>90% – 100%</td>
             <td>160+ WPM</td>
             <td>180+ WPM</td>
             <td>Peer Tutoring & Advanced Synthesis</td>
@@ -277,9 +277,9 @@ function renderAdminSystemTab() {
         Export the complete school state including accounts, share codes, assignments, and curriculum. Works completely offline.
       </p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn" data-a="admin-export-backup">ðŸ’¾ Export Complete JSON Backup</button>
-        <button class="btn o" data-a="admin-restore-backup-trigger">ðŸ“¥ Restore from JSON File</button>
-        <button class="btn o" style="color:var(--coral)" data-a="admin-reset-presets">ðŸ”„ Reset to DepEd Factory Presets</button>
+        <button class="btn" data-a="admin-export-backup">💾 Export Complete JSON Backup</button>
+        <button class="btn o" data-a="admin-restore-backup-trigger">📥 Restore from JSON File</button>
+        <button class="btn o" style="color:var(--coral)" data-a="admin-reset-presets">🔄 Reset to DepEd Factory Presets</button>
       </div>
       <input type="file" id="admin-restore-file" style="display:none" accept=".json,application/json">
     </div>

@@ -1,7 +1,7 @@
 /* PARENT HUB VIEW */
 function viewParent() {
   const currentLevelStr = S.lvl !== null ? PHIL_IRI_LEVELS[S.lvl] : "Pending Placement";
-  const startLevelStr = S.l0 !== null ? PHIL_IRI_LEVELS[S.l0] : "â€”";
+  const startLevelStr = S.l0 !== null ? PHIL_IRI_LEVELS[S.l0] : "—";
   const estPages = Math.max(1, Math.round(S.w / 220));
 
   const monthlyTutoring = (S.pay || 0) * (S.pm || 0);
@@ -12,13 +12,13 @@ function viewParent() {
       <div class="lab" style="color:#f5ab1d">Para sa Magulang at Pamilya</div>
       <h2>Empowering Parents in Daily Reading Growth</h2>
       <p class="sub">
-        Tangible proof of your childâ€™s progress, actionable DepEd Brigada Pagbasa tips, and a simple 10-minute nightly routine.
+        Tangible proof of your child’s progress, actionable DepEd Brigada Pagbasa tips, and a simple 10-minute nightly routine.
       </p>
       ${S.sub ? `
-        <span class="pill ok" style="background:#fff;color:var(--teal)">Subscribed âœ“ (Demo Mode Active)</span>
+        <span class="pill ok" style="background:#fff;color:var(--teal)">Subscribed ✓ (Demo Mode Active)</span>
       ` : `
         <button class="btn gold sm" data-a="sub-toggle">
-          Unlock Parent Hub Â· â‚±99/month (Demo)
+          Unlock Parent Hub · ₱99/month (Demo)
         </button>
       `}
     </div>
@@ -31,14 +31,14 @@ function viewParent() {
           <div class="sub-sm">Starting Point</div>
           <b>${startLevelStr}</b>
         </div>
-        <div class="big" style="color:var(--gold)">â†’</div>
+        <div class="big" style="color:var(--gold)">→</div>
         <div style="text-align:right">
           <div class="sub-sm">Current Level</div>
           <b style="color:var(--navy)">${currentLevelStr}</b>
         </div>
       </div>
       <div class="sub">
-        ${S.ss} reading sessions completed Â· ${S.w.toLocaleString()} words read (~${estPages} book pages).
+        ${S.ss} reading sessions completed · ${S.w.toLocaleString()} words read (~${estPages} book pages).
       </div>
     </div>
 
@@ -61,7 +61,7 @@ function viewParent() {
       <div class="speech-bubble" id="ofw-msg">
         "Kamusta po! Update lang po sa pagbasa ni anak sa BasaWisyo: Nasa level na po siya ng ${currentLevelStr}! Nakatapos na po siya ng ${S.ss} reading sessions at nakabasa ng ${S.w.toLocaleString()} salita. Tuloy-tuloy po ang pagpupursigi!"
       </div>
-      <button class="btn sm o" data-a="copy-ofw-msg">ðŸ“‹ Copy Message for Messenger / SMS</button>
+      <button class="btn sm o" data-a="copy-ofw-msg">📋 Copy Message for Messenger / SMS</button>
     </div>
 
     <!-- Tutoring Cost Comparison -->
@@ -71,7 +71,7 @@ function viewParent() {
       
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
-          <label class="sub-sm">Rate per session (â‚±)</label>
+          <label class="sub-sm">Rate per session (₱)</label>
           <input type="number" id="tutor-rate" value="${S.pay || ''}" placeholder="e.g. 250">
         </div>
         <div>
@@ -83,8 +83,8 @@ function viewParent() {
 
       ${monthlyTutoring > 0 ? `
         <div style="margin-top:12px;background:var(--teal-soft);padding:10px 12px;border-radius:10px">
-          <b style="color:var(--teal)">Private Tutoring: â‚±${monthlyTutoring.toLocaleString()} / month</b><br>
-          <span class="sub-sm">BasaWisyo companion: â‚±99 / month. You save approx <b>â‚±${diff.toLocaleString()}</b> every month!</span>
+          <b style="color:var(--teal)">Private Tutoring: ₱${monthlyTutoring.toLocaleString()} / month</b><br>
+          <span class="sub-sm">BasaWisyo companion: ₱99 / month. You save approx <b>₱${diff.toLocaleString()}</b> every month!</span>
         </div>
       ` : ''}
     </div>

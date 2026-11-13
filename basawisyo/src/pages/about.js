@@ -18,21 +18,21 @@ function viewAbout() {
         <div class="row">
           <div>
             <b>Justin A. Rayon</b>
-            <div class="sub-sm">Chief Executive Officer Â· Strategy & DepEd Partnerships</div>
+            <div class="sub-sm">Chief Executive Officer · Strategy & DepEd Partnerships</div>
           </div>
           <span class="pill">Leadership</span>
         </div>
         <div class="row">
           <div>
             <b>Charles Jerico H. Villapa</b>
-            <div class="sub-sm">Chief Operating Officer Â· School Pilots & Teacher Training</div>
+            <div class="sub-sm">Chief Operating Officer · School Pilots & Teacher Training</div>
           </div>
           <span class="pill">Operations</span>
         </div>
         <div class="row">
           <div>
             <b>Jobert C. Jamelo</b>
-            <div class="sub-sm">Chief Technology Officer Â· Offline Architecture & NLP Systems</div>
+            <div class="sub-sm">Chief Technology Officer · Offline Architecture & NLP Systems</div>
           </div>
           <span class="pill">Engineering</span>
         </div>

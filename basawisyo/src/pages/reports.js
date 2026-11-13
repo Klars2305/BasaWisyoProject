@@ -16,7 +16,7 @@ function viewReports() {
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
         <div>
           <div class="row">
-            <span>ðŸ”´ Frustration (Needs Intensive Remediation)</span>
+            <span>🔴 Frustration (Needs Intensive Remediation)</span>
             <b>${counts[0]} students</b>
           </div>
           <div class="bar"><i style="width:${(counts[0]/total)*100}%;background:var(--coral)"></i></div>
@@ -24,7 +24,7 @@ function viewReports() {
 
         <div>
           <div class="row">
-            <span>ðŸŸ¡ Instructional (Guided Reading)</span>
+            <span>🟡 Instructional (Guided Reading)</span>
             <b>${counts[1]} students</b>
           </div>
           <div class="bar"><i style="width:${(counts[1]/total)*100}%;background:var(--gold-hover)"></i></div>
@@ -32,7 +32,7 @@ function viewReports() {
 
         <div>
           <div class="row">
-            <span>ðŸ”µ Independent (At Grade Level)</span>
+            <span>🔵 Independent (At Grade Level)</span>
             <b>${counts[2]} students</b>
           </div>
           <div class="bar"><i style="width:${(counts[2]/total)*100}%;background:var(--sky)"></i></div>
@@ -40,7 +40,7 @@ function viewReports() {
 
         <div>
           <div class="row">
-            <span>ðŸŸ¢ Mastery (Advanced / Honor)</span>
+            <span>🟢 Mastery (Advanced / Honor)</span>
             <b>${counts[3]} students</b>
           </div>
           <div class="bar"><i style="width:${(counts[3]/total)*100}%;background:var(--teal)"></i></div>
@@ -62,10 +62,10 @@ function viewReports() {
 
     <div class="btn-row" style="margin-top:12px">
       <button class="btn gold" data-a="open-report-sheet" data-v="DepEd Phil-IRI Form 14">
-        ðŸ“„ View Official Form 14
+        📄 View Official Form 14
       </button>
       <button class="btn o" data-a="download-csv">
-        ðŸ’¾ Export CSV
+        💾 Export CSV
       </button>
     </div>
   `;

@@ -61,7 +61,7 @@
       </div>
       <div class="brand-text">
         <h1>BasaWisyo</h1>
-        <span id="header-status">Grade 7â€“12 Phil-IRI Companion</span>
+        <span id="header-status">Grade 7–12 Phil-IRI Companion</span>
       </div>
     </a>
     <div class="hdr-actions">
@@ -71,7 +71,7 @@
         <span class="user-role-badge role-guest" id="hdr-user-role">Guest</span>
       </button>
       <span class="pill" id="lv-pill">No level</span>
-      <button class="icon-btn" id="theme-btn" data-a="toggle-theme" title="Toggle Dark/Light Mode" aria-label="Toggle theme">ðŸŒ“</button>
+      <button class="icon-btn" id="theme-btn" data-a="toggle-theme" title="Toggle Dark/Light Mode" aria-label="Toggle theme">🌓</button>
     </div>
   </header>
 
@@ -89,15 +89,15 @@
 <div id="auth-modal" class="app-modal-overlay" hidden>
   <div class="app-modal-card">
     <div class="modal-hdr">
-      <h2 id="auth-modal-title">ðŸ” Sign In to BasaWisyo</h2>
-      <button class="modal-close-btn" data-a="auth-close" aria-label="Close">âœ•</button>
+      <h2 id="auth-modal-title">🔐 Sign In to BasaWisyo</h2>
+      <button class="modal-close-btn" data-a="auth-close" aria-label="Close">✕</button>
     </div>
 
     <!-- Quick Guest Diagnostic Callout -->
     <div class="guest-screener-banner">
-      <h4>ðŸ“– Don't have an account yet?</h4>
+      <h4>📖 Don't have an account yet?</h4>
       <p>Identify your Phil-IRI reading level in 3 minutes as a Guest. No email or password needed!</p>
-      <button class="btn gold" style="width:100%" data-a="start-placement" data-v="guest">âš¡ Take Quick Diagnostic as Guest</button>
+      <button class="btn gold" style="width:100%" data-a="start-placement" data-v="guest">⚡ Take Quick Diagnostic as Guest</button>
     </div>
 
     <!-- Auth Tabs -->
@@ -115,7 +115,7 @@
         </div>
         <div class="auth-form-group">
           <label>Password</label>
-          <input type="password" id="login-password" class="auth-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required>
+          <input type="password" id="login-password" class="auth-input" placeholder="••••••••" required>
         </div>
         <button class="btn" style="width:100%;margin-top:10px" data-a="auth-login-submit">Sign In</button>
       </form>
@@ -128,17 +128,17 @@
         <div class="lab" style="margin-bottom:6px">Select Account Role:</div>
         <div class="role-picker-grid">
           <div class="role-choice-card selected" data-a="auth-select-role" data-v="student" id="role-card-student">
-            <div class="role-icon">ðŸŽ“</div>
+            <div class="role-icon">🎓</div>
             <div class="role-title">Student</div>
             <div class="role-desc">Read & Learn</div>
           </div>
           <div class="role-choice-card" data-a="auth-select-role" data-v="teacher" id="role-card-teacher">
-            <div class="role-icon">ðŸ‘©â€ðŸ«</div>
+            <div class="role-icon">👩‍🏫</div>
             <div class="role-title">Teacher</div>
             <div class="role-desc">Share & Track</div>
           </div>
           <div class="role-choice-card" data-a="auth-select-role" data-v="admin" id="role-card-admin">
-            <div class="role-icon">ðŸ›¡ï¸</div>
+            <div class="role-icon">🛡️</div>
             <div class="role-title">Admin</div>
             <div class="role-desc">School Control</div>
           </div>
@@ -190,8 +190,8 @@
 <div id="projector-modal" class="app-modal-overlay" hidden>
   <div class="app-modal-card wide">
     <div class="modal-hdr">
-      <h2>ðŸ“¡ Classroom Connect: Display Mode</h2>
-      <button class="modal-close-btn" data-a="projector-close" aria-label="Close">âœ•</button>
+      <h2>📡 Classroom Connect: Display Mode</h2>
+      <button class="modal-close-btn" data-a="projector-close" aria-label="Close">✕</button>
     </div>
     <div class="projector-display-box">
       <div style="font-size:18px;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:var(--gold)">
@@ -206,7 +206,7 @@
         4. Your reading assessments and WPM will sync immediately!
       </div>
       <div style="margin-top:24px;display:flex;justify-content:center;gap:12px">
-        <button class="btn gold" data-a="teacher-copy-code" style="font-size:15px;padding:10px 24px">ðŸ“‹ Copy Share Code</button>
+        <button class="btn gold" data-a="teacher-copy-code" style="font-size:15px;padding:10px 24px">📋 Copy Share Code</button>
         <button class="btn o" data-a="projector-close" style="font-size:15px;padding:10px 20px;border-color:rgba(255,255,255,0.4);color:#fff">Done / Close</button>
       </div>
     </div>
@@ -217,8 +217,8 @@
 <div id="admin-passage-modal" class="app-modal-overlay" hidden>
   <div class="app-modal-card wide">
     <div class="modal-hdr">
-      <h2 id="passage-modal-title">ðŸ“ Add Leveled Reading Passage</h2>
-      <button class="modal-close-btn" data-a="passage-modal-close" aria-label="Close">âœ•</button>
+      <h2 id="passage-modal-title">📝 Add Leveled Reading Passage</h2>
+      <button class="modal-close-btn" data-a="passage-modal-close" aria-label="Close">✕</button>
     </div>
     <form id="form-passage" onsubmit="return false;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -327,8 +327,8 @@
         <small id="ai-subtitle">Always here to help with questions, words, & study tips</small>
       </div>
       <span class="spacer"></span>
-      <button class="icon-btn" data-a="ai-clear" title="Clear chat history">ðŸ—‘ï¸</button>
-      <button class="icon-btn" data-a="ai-close" title="Close drawer">âœ•</button>
+      <button class="icon-btn" data-a="ai-clear" title="Clear chat history">🗑️</button>
+      <button class="icon-btn" data-a="ai-close" title="Close drawer">✕</button>
     </div>
 
     <!-- Message stream -->
@@ -336,16 +336,16 @@
 
     <!-- Quick prompt recommendation chips -->
     <div class="chips" id="ai-chips">
-      <button data-a="ai-chip" data-v="Explain my last mistake and help me fix it">ðŸ’¡ Explain my mistake</button>
-      <button data-a="ai-chip" data-v="Summarize the passage I am currently reading">ðŸ“– Summarize current passage</button>
-      <button data-a="ai-chip" data-v="What is the difference between literal and inferential questions?">ðŸŽ¯ Literal vs Inference</button>
-      <button data-a="ai-chip" data-v="Give me a quick Filipino riddle (bugtong)!">ðŸŽ² Give me a bugtong</button>
-      <button data-a="ai-chip" data-v="How can I prepare for the Phil-IRI exam?">ðŸ“ Phil-IRI Tips</button>
+      <button data-a="ai-chip" data-v="Explain my last mistake and help me fix it">💡 Explain my mistake</button>
+      <button data-a="ai-chip" data-v="Summarize the passage I am currently reading">📖 Summarize current passage</button>
+      <button data-a="ai-chip" data-v="What is the difference between literal and inferential questions?">🎯 Literal vs Inference</button>
+      <button data-a="ai-chip" data-v="Give me a quick Filipino riddle (bugtong)!">🎲 Give me a bugtong</button>
+      <button data-a="ai-chip" data-v="How can I prepare for the Phil-IRI exam?">📝 Phil-IRI Tips</button>
     </div>
 
     <!-- Text input box -->
     <div class="ai-input-row">
-      <input id="aii" type="text" placeholder="Ask anything in English, Filipino, or Bisayaâ€¦" autocomplete="off">
+      <input id="aii" type="text" placeholder="Ask anything in English, Filipino, or Bisaya…" autocomplete="off">
       <button class="btn gold" data-a="ai-send" aria-label="Send">Send</button>
     </div>
   </div>

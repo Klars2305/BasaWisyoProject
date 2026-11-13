@@ -8,7 +8,7 @@ function showToast(msg) {
   const d = document.createElement("div");
   d.className = "toast";
   const icon = document.createElement("span");
-  icon.textContent = "ðŸ’¬";
+  icon.textContent = "💬";
   const message = document.createElement("span");
   message.textContent = msg;
   d.append(icon, message);

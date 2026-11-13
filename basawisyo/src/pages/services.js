@@ -8,7 +8,7 @@ function viewServices() {
       <p class="sub">
         Complete offline package deployed on school servers or tablets. Includes automated Phil-IRI Pre-test / Post-test tracking, division-level reporting, and specialized Teacher Training Workshops.
       </p>
-      <div class="sub-sm"><b>Estimated licensing:</b> â‚±150 â€“ â‚±250 per student/year (subsidy eligible).</div>
+      <div class="sub-sm"><b>Estimated licensing:</b> ₱150 – ₱250 per student/year (subsidy eligible).</div>
     </div>
 
     <div class="card">

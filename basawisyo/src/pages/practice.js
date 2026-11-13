@@ -57,13 +57,13 @@ function viewPractice() {
             <div class="card-header">
               <div>
                 <span class="badge-diff ${diffClass}">${diffLabel}</span>
-                <span class="sub-sm" style="margin-left:6px">${wc} words Â· ~${estMin} min</span>
+                <span class="sub-sm" style="margin-left:6px">${wc} words · ~${estMin} min</span>
                 <h3 style="margin-top:4px">${escapeHTML(p.t)}</h3>
               </div>
-              <span class="pill ${isDone ? 'ok' : ''}">${isDone ? 'Done âœ“' : 'New'}</span>
+              <span class="pill ${isDone ? 'ok' : ''}">${isDone ? 'Done ✓' : 'New'}</span>
             </div>
             <p class="sub" style="font-size:0.82rem;margin-bottom:10px">
-              ${escapeHTML(p.x.slice(0, 110))}â€¦
+              ${escapeHTML(p.x.slice(0, 110))}…
             </p>
             <div class="row">
               <span class="sub-sm">${p.qs.length} comprehension questions</span>

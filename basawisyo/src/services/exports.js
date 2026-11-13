@@ -29,9 +29,9 @@ function openForm14Modal() {
       <div class="row">
         <div>
           <h2>DepEd Phil-IRI Form 14: Class Reading Profile</h2>
-          <div class="sub-sm">School Year 2026â€“2027 Â· Grade 8 - Section A</div>
+          <div class="sub-sm">School Year 2026–2027 · Grade 8 - Section A</div>
         </div>
-        <button class="icon-btn noprint" data-a="modal-close">âœ•</button>
+        <button class="icon-btn noprint" data-a="modal-close">✕</button>
       </div>
 
       <p class="sub">
@@ -58,8 +58,8 @@ function openForm14Modal() {
       </div>
 
       <div class="btn-row noprint" style="margin-top:14px">
-        <button class="btn gold" data-a="download-csv">ðŸ’¾ Download CSV Report</button>
-        <button class="btn o" data-a="print-sheet">ðŸ–¨ï¸ Print Form 14</button>
+        <button class="btn gold" data-a="download-csv">💾 Download CSV Report</button>
+        <button class="btn o" data-a="print-sheet">🖨️ Print Form 14</button>
         <button class="btn o" data-a="modal-close">Close</button>
       </div>
     </div>

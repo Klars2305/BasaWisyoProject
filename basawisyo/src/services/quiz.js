@@ -33,7 +33,7 @@ function renderQuiz() {
 
   $("#v").innerHTML = `
     <div class="row" style="margin-bottom:6px">
-      <div class="sub-sm">${escapeHTML(qz.title)} Â· Question ${qz.idx + 1} of ${qz.steps.length}</div>
+      <div class="sub-sm">${escapeHTML(qz.title)} · Question ${qz.idx + 1} of ${qz.steps.length}</div>
       <button class="btn sm o" data-a="quit-quiz" style="padding:4px 10px;font-size:0.75rem">Exit Quiz</button>
     </div>
     <div class="bar"><i style="width:${progressPct}%"></i></div>
@@ -42,7 +42,7 @@ function renderQuiz() {
     <div class="reader-toolbar">
       <div class="reader-tools">
         ${diffBadge}
-        <button class="icon-btn" data-a="speech-read" title="Listen to text read aloud">ðŸ”Š</button>
+        <button class="icon-btn" data-a="speech-read" title="Listen to text read aloud">🔊</button>
       </div>
       <div class="reader-tools">
         <button class="icon-btn" data-a="font-dec" title="Decrease font size">A-</button>
@@ -56,7 +56,7 @@ function renderQuiz() {
         <div class="card" style="margin-bottom:0">
           <div class="lab">Passage: ${escapeHTML(P.t)}</div>
           <div class="ps" id="active-ps">${tapMarkup(P.x)}</div>
-          <div class="sub-sm" style="margin-top:10px;font-style:italic;color:var(--sky)">ðŸ’¡ Tip: Tap any dotted word to see Filipino, Bisaya, & English meanings.</div>
+          <div class="sub-sm" style="margin-top:10px;font-style:italic;color:var(--sky)">💡 Tip: Tap any dotted word to see Filipino, Bisaya, & English meanings.</div>
         </div>
       </div>
 
@@ -133,11 +133,11 @@ function handleAnswer(choiceIdx) {
     <div style="display:flex;gap:8px;margin-top:10px">
       ${!isCorrect ? `
         <button class="btn sm o" data-a="ai-explain-why" style="flex:1">
-          ðŸ’¡ Ask Wisyo Why
+          💡 Ask Wisyo Why
         </button>
       ` : ''}
       <button class="btn sm gold" data-a="quiz-next" style="flex:1">
-        ${qz.idx + 1 < qz.steps.length ? 'Next Question â†’' : 'Finish Quiz âœ“'}
+        ${qz.idx + 1 < qz.steps.length ? 'Next Question →' : 'Finish Quiz ✓'}
       </button>
     </div>
   `;

@@ -85,14 +85,14 @@ document.addEventListener("click", e => {
         <div class="tip-header">
           <div style="display:flex;align-items:center;gap:6px">
             <b style="font-size:1.1rem;color:var(--navy);text-transform:capitalize">${wordKey}</b>
-            <button class="icon-btn" data-a="speech-speak-word" data-v="${wordKey}" style="width:26px;height:26px;font-size:12px" title="Pronounce word">ðŸ”Š</button>
+            <button class="icon-btn" data-a="speech-speak-word" data-v="${wordKey}" style="width:26px;height:26px;font-size:12px" title="Pronounce word">🔊</button>
           </div>
-          <button class="icon-btn" data-a="tip-close" style="width:24px;height:24px;font-size:11px">âœ•</button>
+          <button class="icon-btn" data-a="tip-close" style="width:24px;height:24px;font-size:11px">✕</button>
         </div>
         <div style="font-size:0.875rem;line-height:1.5">
-          <div>ðŸ‡µðŸ‡­ <b>Filipino:</b> ${entry[0]}</div>
-          <div>ðŸï¸ <b>Bisaya:</b> ${entry[1]}</div>
-          <div style="margin-top:4px">ðŸ“– <b>English:</b> ${entry[2]}</div>
+          <div>🇵🇭 <b>Filipino:</b> ${entry[0]}</div>
+          <div>🏝️ <b>Bisaya:</b> ${entry[1]}</div>
+          <div style="margin-top:4px">📖 <b>English:</b> ${entry[2]}</div>
         </div>
       `;
     }
@@ -594,7 +594,7 @@ document.addEventListener("click", e => {
     S.theme = S.theme === "dark" ? "light" : "dark";
     save();
     renderApp();
-    showToast(S.theme === "dark" ? "Dark Mode enabled ðŸŒ™" : "Light Mode enabled â˜€ï¸");
+    showToast(S.theme === "dark" ? "Dark Mode enabled 🌙" : "Light Mode enabled ☀️");
   }
 
   // Dismiss tip when clicking outside

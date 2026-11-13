@@ -21,7 +21,7 @@ acceptance remain.
 | BW-012 Unsafe rendering | P1 | In progress | Passage rendering is escaped; account names and other fields in admin/teacher HTML are not; S15 fails. |
 | BW-013 Tutor mistake fields | P2 | Open | `quiz.js` stores `ch`/`ok`; `tutor.js` reads `userChoice`/`correctChoice`. |
 | BW-014 BasaMesh answer assumption | P2 | Open | `app.js` mesh import sets generated question answer index `0` without evidence. |
-| BW-015 Corrupted UI characters | P2 | Open | Browser shows garbled symbols/text in multiple views; encoding cleanup and visual review needed. |
+| BW-015 Corrupted UI characters | P2 | Ready for QA | Repaired mixed-encoding source strings across app HTML, CSS, and JS; source scan, 19 automated tests, syntax checks, and guest/quiz/teacher/admin browser spot checks passed. Broader visual review remains. |
 
 **Release gate:** P0 items remain open. No real student data, school pilot,
 validated assessment claim, or official report submission is authorized by

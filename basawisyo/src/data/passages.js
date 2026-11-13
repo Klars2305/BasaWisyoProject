@@ -171,7 +171,7 @@ const PRACTICE_DATA = {
       id: "m2",
       t: "The Song of the Bamboo Organ",
       diff: "medium",
-      x: "Constructed between 1816 and 1824 by Spanish missionary Father Diego Cera, the historic Las PiÃ±as Bamboo Organ is a marvel of Philippine craftsmanship. Lacking traditional metal and tin during colonial isolation, Father Cera turned to indigenous bamboo. He buried hundreds of bamboo trunks under coastal beach sand for a full year. This innovative treatment allowed natural sea salt to permeate the wood, preserving the fibers against ravenous termites and tropical moisture. Today, over nine hundred bamboo pipes continue to produce ethereal, flute-like harmonies that echo through the centuries.",
+      x: "Constructed between 1816 and 1824 by Spanish missionary Father Diego Cera, the historic Las Piñas Bamboo Organ is a marvel of Philippine craftsmanship. Lacking traditional metal and tin during colonial isolation, Father Cera turned to indigenous bamboo. He buried hundreds of bamboo trunks under coastal beach sand for a full year. This innovative treatment allowed natural sea salt to permeate the wood, preserving the fibers against ravenous termites and tropical moisture. Today, over nine hundred bamboo pipes continue to produce ethereal, flute-like harmonies that echo through the centuries.",
       qs: [
         {
           q: "Why did Father Diego Cera bury the bamboo trunks under beach sand?",
@@ -215,14 +215,14 @@ const PRACTICE_DATA = {
       id: "m4",
       t: "Whispers of Mount Apo",
       diff: "medium",
-      x: "Rising majestically over Mindanao, Mount Apo is the highest peak in the Philippine archipelago. To the Manobo, Bagobo, and Klata indigenous peoples, the mountain is not an adventure park but Apo Sandawaâ€”a sacred ancestral sanctuary housing guardian spirits. High along its cloud-kissed ridges grows the rare Waling-waling orchid, crowned as the queen of Philippine flowers. In recent years, unregulated trekking and commercial encroachment sparked devastating forest fires. Tribal councils have partnered with environmental biologists to establish cultural boundaries, proving that indigenous ancestral stewardship is vital for ecological conservation.",
+      x: "Rising majestically over Mindanao, Mount Apo is the highest peak in the Philippine archipelago. To the Manobo, Bagobo, and Klata indigenous peoples, the mountain is not an adventure park but Apo Sandawa—a sacred ancestral sanctuary housing guardian spirits. High along its cloud-kissed ridges grows the rare Waling-waling orchid, crowned as the queen of Philippine flowers. In recent years, unregulated trekking and commercial encroachment sparked devastating forest fires. Tribal councils have partnered with environmental biologists to establish cultural boundaries, proving that indigenous ancestral stewardship is vital for ecological conservation.",
       qs: [
         {
           q: "How do indigenous peoples view Mount Apo differently from recreational hikers?",
           o: ["As a profitable commercial hunting ground", "As a sacred spiritual ancestor rather than merely a sporting destination", "As an uninhabitable wasteland", "As a site reserved exclusively for foreign research"],
           a: 1,
           k: "Inference",
-          exp: "The text contrasts 'adventure park' with 'Apo Sandawaâ€”a sacred ancestral sanctuary.'"
+          exp: "The text contrasts 'adventure park' with 'Apo Sandawa—a sacred ancestral sanctuary.'"
         },
         {
           q: "What key conclusion is supported by the final sentence?",
@@ -313,7 +313,7 @@ const PRACTICE_DATA = {
       id: "h2",
       t: "The Architecture of Survival: Batanes Ivatan Stone Houses",
       diff: "hard",
-      x: "Perched where the Pacific Ocean collides with the South China Sea, the Batanes archipelago is battered by annual supertyphoons carrying catastrophic barometric drops and gale-force gusts. To inhabit this tempestuous frontier, the Ivatan developed the sinadumparanâ€”a vernacular stone house engineered for survival. Walls exceeding one meter in thickness are meticulously constructed from coral limestone bonded with slaked lime mortar. Rather than rigid iron, the roof is formed from dense, multi-layered cogon thatch tied with tough rattan reeds. Under howling gales that level concrete towers, these flexible thatched canopies flex without breaking, allowing air pressure to equalize rather than blow off the roof, demonstrating centuries of climate adaptation.",
+      x: "Perched where the Pacific Ocean collides with the South China Sea, the Batanes archipelago is battered by annual supertyphoons carrying catastrophic barometric drops and gale-force gusts. To inhabit this tempestuous frontier, the Ivatan developed the sinadumparan—a vernacular stone house engineered for survival. Walls exceeding one meter in thickness are meticulously constructed from coral limestone bonded with slaked lime mortar. Rather than rigid iron, the roof is formed from dense, multi-layered cogon thatch tied with tough rattan reeds. Under howling gales that level concrete towers, these flexible thatched canopies flex without breaking, allowing air pressure to equalize rather than blow off the roof, demonstrating centuries of climate adaptation.",
       qs: [
         {
           q: "What engineering feature prevents the Ivatan thatch roof from tearing away during supertyphoons?",
@@ -357,7 +357,7 @@ const PRACTICE_DATA = {
       id: "h4",
       t: "The Algorithm and the Ballot",
       diff: "hard",
-      x: "In the contemporary digital landscape, information warfare has shifted from crude censorship to algorithmic hyper-saturation. Social media platforms, architected around maximizing user engagement through emotional outrage, frequently amplify sensationalized falsehoods six times faster than verified facts. Historical revisionism flourishes when synthetic nostalgia and tailored digital micro-targeting persuade youth to discount archival records. Navigating this infodemic demands more than passive literacy; students must practice lateral readingâ€”leaving dubious posts to cross-reference primary sources and evaluate institutional consensus before validating claims. In a participatory democracy, discernment is not merely an academic virtue, but an indispensable civic duty.",
+      x: "In the contemporary digital landscape, information warfare has shifted from crude censorship to algorithmic hyper-saturation. Social media platforms, architected around maximizing user engagement through emotional outrage, frequently amplify sensationalized falsehoods six times faster than verified facts. Historical revisionism flourishes when synthetic nostalgia and tailored digital micro-targeting persuade youth to discount archival records. Navigating this infodemic demands more than passive literacy; students must practice lateral reading—leaving dubious posts to cross-reference primary sources and evaluate institutional consensus before validating claims. In a participatory democracy, discernment is not merely an academic virtue, but an indispensable civic duty.",
       qs: [
         {
           q: "According to the passage, why do algorithmic platforms often prioritize sensationalized falsehoods?",
@@ -368,10 +368,10 @@ const PRACTICE_DATA = {
         },
         {
           q: "What reading habit does the author recommend to combat historical revisionism?",
-          o: ["Accepting whichever post receives the highest number of shares", "Lateral readingâ€”cross-referencing independent primary sources", "Relying exclusively on algorithmically suggested videos", "Avoiding all written materials on the internet"],
+          o: ["Accepting whichever post receives the highest number of shares", "Lateral reading—cross-referencing independent primary sources", "Relying exclusively on algorithmically suggested videos", "Avoiding all written materials on the internet"],
           a: 1,
           k: "Main idea",
-          exp: "The author explicitly advocates 'lateral readingâ€”leaving dubious posts to cross-reference primary sources.'"
+          exp: "The author explicitly advocates 'lateral reading—leaving dubious posts to cross-reference primary sources.'"
         }
       ]
     },
@@ -379,7 +379,7 @@ const PRACTICE_DATA = {
       id: "h5",
       t: "The Living Loom of the T'boli",
       diff: "hard",
-      x: "In the highland mists of Lake Sebu, South Cotabato, the T'boli practice a sacred textile tradition where art and spirituality intertwine. The dreamweavers (fu dalu) do not consult pre-drawn blueprints; their geometric motifs are received directly through dream revelations from Fu Dalu, the spirit guardian of abaca. Weaving T'nalak is a grueling ritual spanning monthsâ€”stripping wild abaca, tie-dyeing fibers in boiling bark extracts, and working wooden backstrap looms in humid conditions to prevent brittle snapping. Yet, this sacred cosmology faces tension from commercial tourist markets that demand quick, mass-produced souvenir swatches, sparking debate over whether commodification preserves living culture or dilutes its sacred essence.",
+      x: "In the highland mists of Lake Sebu, South Cotabato, the T'boli practice a sacred textile tradition where art and spirituality intertwine. The dreamweavers (fu dalu) do not consult pre-drawn blueprints; their geometric motifs are received directly through dream revelations from Fu Dalu, the spirit guardian of abaca. Weaving T'nalak is a grueling ritual spanning months—stripping wild abaca, tie-dyeing fibers in boiling bark extracts, and working wooden backstrap looms in humid conditions to prevent brittle snapping. Yet, this sacred cosmology faces tension from commercial tourist markets that demand quick, mass-produced souvenir swatches, sparking debate over whether commodification preserves living culture or dilutes its sacred essence.",
       qs: [
         {
           q: "Where do T'boli dreamweavers derive the complex patterns for authentic T'nalak cloth?",
@@ -521,7 +521,7 @@ const PRACTICE_DATA = {
       id: "x5",
       t: "Cyber-Feudalism in the Digital Global South",
       diff: "extreme",
-      x: "Beneath the euphoric discourse surrounding artificial intelligence lies an invisible geopolitical supply chain that disproportionately exploits workers across the Global South, particularly in the Philippines. Hundreds of thousands of educated Filipino digital laborers engage in data annotation, content moderation, and algorithmic reinforcement learning to train Silicon Valley models. Trapped in piece-rate platform economies without labor contracts, healthcare, or collective bargaining rights, these digital workers perform grueling cognitive tasksâ€”often filtering traumatizing online material for meager pennies per click. Political economists describe this paradigm as cyber-feudalism: tech monopolies in the metropoles extract immense capital value while offloading psychological precarity and algorithmic surveillance onto outsourced workers in peripheral nations, reproducing historic colonial extractivism within the digital sphere.",
+      x: "Beneath the euphoric discourse surrounding artificial intelligence lies an invisible geopolitical supply chain that disproportionately exploits workers across the Global South, particularly in the Philippines. Hundreds of thousands of educated Filipino digital laborers engage in data annotation, content moderation, and algorithmic reinforcement learning to train Silicon Valley models. Trapped in piece-rate platform economies without labor contracts, healthcare, or collective bargaining rights, these digital workers perform grueling cognitive tasks—often filtering traumatizing online material for meager pennies per click. Political economists describe this paradigm as cyber-feudalism: tech monopolies in the metropoles extract immense capital value while offloading psychological precarity and algorithmic surveillance onto outsourced workers in peripheral nations, reproducing historic colonial extractivism within the digital sphere.",
       qs: [
         {
           q: "Why do political economists characterize the outsourced AI labor market as 'cyber-feudalism'?",
@@ -568,7 +568,7 @@ const PRACTICE_DATA = {
 const PLACEMENT_TEST = [
   {
     id: "pl_easy",
-    t: "Placement 1: A Fisherâ€™s Morning",
+    t: "Placement 1: A Fisher’s Morning",
     diff: "easy",
     x: "Bayani woke up early to help his uncle repair their small wooden banca. They replaced two broken bamboo outriggers and sealed the joints with tree resin. By dawn, the boat floated smoothly on the gentle morning sea.",
     qs: [{

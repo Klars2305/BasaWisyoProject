@@ -248,7 +248,7 @@
   overflow: hidden;
 }
 .share-code-hero::after {
-  content: "Ã°Å¸â€œâ€“";
+  content: "📖";
   position: absolute;
   right: -10px;
   bottom: -20px;

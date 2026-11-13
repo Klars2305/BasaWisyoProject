@@ -31,7 +31,7 @@ function viewTeacher() {
   return `
     <!-- Teacher Header & Share Code Hero Banner -->
     <div class="share-code-hero">
-      <div class="share-code-label">ðŸ‘©â€ðŸ« Teacher Share Code (Class Section: ${teacher.section || "Grade 8"})</div>
+      <div class="share-code-label">👩‍🏫 Teacher Share Code (Class Section: ${teacher.section || "Grade 8"})</div>
       <div style="font-size:14px;color:rgba(255,255,255,0.9);margin-bottom:8px">
         Share this code with your nearby students so they can join your classroom roster:
       </div>
@@ -40,13 +40,13 @@ function viewTeacher() {
       </div>
       <div class="share-code-actions">
         <button class="share-code-btn" data-a="teacher-copy-code">
-          ðŸ“‹ Copy Code
+          📋 Copy Code
         </button>
         <button class="share-code-btn secondary" data-a="teacher-show-projector">
-          ðŸ“¡ Open Projector / Blackboard Mode
+          📡 Open Projector / Blackboard Mode
         </button>
         <button class="share-code-btn secondary" data-a="open-report-sheet">
-          ðŸ–¨ï¸ View DepEd Form 14
+          🖨️ View DepEd Form 14
         </button>
       </div>
     </div>
@@ -77,7 +77,7 @@ function viewTeacher() {
 
     <!-- Targeted Differentiated Assignment Dispatcher -->
     <div class="card" style="margin-bottom:24px">
-      <div class="lab">ðŸŽ¯ Targeted Leveled Assignment Dispatcher</div>
+      <div class="lab">🎯 Targeted Leveled Assignment Dispatcher</div>
       <p class="sub" style="margin-bottom:14px">
         Send tailored reading passages directly to specific Phil-IRI ability groups in your class:
       </p>
@@ -109,7 +109,7 @@ function viewTeacher() {
         </div>
       </div>
       <button class="btn gold" style="margin-top:8px" data-a="teacher-dispatch-assignment">
-        ðŸš€ Dispatch Assignment to Students
+        🚀 Dispatch Assignment to Students
       </button>
 
       <!-- Active Assignments List -->
@@ -120,8 +120,8 @@ function viewTeacher() {
             ${assignments.map(a => `
               <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
                 <div>
-                  <span class="assignment-badge">ðŸ“Œ ${escapeHTML(a.title)}</span>
-                  <span style="font-size:12px;color:var(--sub);margin-left:8px">Target: <b>${escapeHTML(a.targetGroup)}</b> Â· Due: ${escapeHTML(a.dueDate)}</span>
+                  <span class="assignment-badge">📌 ${escapeHTML(a.title)}</span>
+                  <span style="font-size:12px;color:var(--sub);margin-left:8px">Target: <b>${escapeHTML(a.targetGroup)}</b> · Due: ${escapeHTML(a.dueDate)}</span>
                 </div>
                 <div style="font-size:12px;color:var(--teal);font-weight:600">Active in Student Dashboards</div>
               </div>
@@ -133,7 +133,7 @@ function viewTeacher() {
 
     <!-- Connect Nearby Student via Guest Token -->
     <div class="card" style="margin-bottom:24px">
-      <div class="lab">ðŸ“¥ Link Unregistered Student by Guest Token</div>
+      <div class="lab">📥 Link Unregistered Student by Guest Token</div>
       <p class="sub" style="margin-bottom:10px">
         If a student completed a diagnostic test on a shared device without logging in, enter their 6-digit Guest Token (e.g. <b>GUEST-8291</b>) to pull their reading score into your class:
       </p>
@@ -147,12 +147,12 @@ function viewTeacher() {
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
         <div>
-          <h3 style="margin:0;font-size:18px">ðŸ“‹ Connected Students Roster (${teacher.section})</h3>
+          <h3 style="margin:0;font-size:18px">📋 Connected Students Roster (${teacher.section})</h3>
           <p class="sub" style="margin:2px 0 0 0">Real-time sync with student diagnostic tests and reading sessions</p>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn o" style="font-size:12px;padding:5px 12px" data-a="open-report-sheet">ðŸ–¨ï¸ DepEd Form 14</button>
-          <button class="btn o" style="font-size:12px;padding:5px 12px" data-a="download-csv">â¬‡ï¸ Export CSV</button>
+          <button class="btn o" style="font-size:12px;padding:5px 12px" data-a="open-report-sheet">🖨️ DepEd Form 14</button>
+          <button class="btn o" style="font-size:12px;padding:5px 12px" data-a="download-csv">⬇️ Export CSV</button>
         </div>
       </div>
 
@@ -191,8 +191,8 @@ function viewTeacher() {
                   <td>${(s.wordsRead || 0).toLocaleString()} words</td>
                   <td>
                     ${isRemedial 
-                      ? '<span style="color:var(--coral);font-weight:700">âš ï¸ Needs Intervention</span>' 
-                      : '<span style="color:var(--teal)">âœ“ On Track</span>'}
+                      ? '<span style="color:var(--coral);font-weight:700">⚠️ Needs Intervention</span>'
+                      : '<span style="color:var(--teal)">✓ On Track</span>'}
                   </td>
                 </tr>
               `;
