@@ -32,7 +32,8 @@ continue as a guest. `node --check` can check each JavaScript file.
 - `backend/`: reserved structure only; no server implementation exists yet.
 - `tests/`: isolated reproduction tests for BW-006 through BW-009.
 - `docs/`: draft permissions matrix and assessment-specification questions
-  for review before implementing the P0 account and scoring work.
+  for review before implementing the P0 account and scoring work, plus the
+  first-batch smoke report and issue tracker.
 
 ## Current limitations
 
