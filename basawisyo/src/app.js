@@ -7,6 +7,18 @@ function openRegistration() {
   $("#role-card-student")?.click();
 }
 
+function logoutToIndex() {
+  if (!AUTH.logout()) {
+    showToast("Could not sign out in this browser. Please try again.", "warn");
+    return;
+  }
+  GUEST_MODE = false;
+  ACTIVE_QUIZ = null;
+  CURRENT_TAB = "home";
+  $("#auth-modal").hidden = true;
+  window.location.replace("index.html");
+}
+
 /* ==========================================================================
    Global Event Delegations
    ========================================================================== */
@@ -234,11 +246,7 @@ document.addEventListener("click", e => {
     const u = AUTH.currentUser;
     if (u) {
       if (confirm(`Currently signed in as ${u.name} (${u.role.toUpperCase()}). Would you like to sign out?`)) {
-        AUTH.logout();
-        GUEST_MODE = true;
-        CURRENT_TAB = "home";
-        renderApp();
-        showToast("Signed out successfully.");
+        logoutToIndex();
       }
     } else if (v === "register") {
       openRegistration();
@@ -295,12 +303,7 @@ document.addEventListener("click", e => {
     }
   }
   else if (a === "auth-logout") {
-    AUTH.logout();
-    GUEST_MODE = true;
-    $("#auth-modal").hidden = true;
-    CURRENT_TAB = "home";
-    showToast("Signed out.");
-    renderApp();
+    logoutToIndex();
   }
 
   // Teacher Classroom & Share Code Actions

@@ -28,6 +28,7 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
   const alerts = [];
   let exportedJson = null;
   let failNextKey = null;
+  let failNextRemoveKey = null;
   elements.set('#md', { addEventListener() {} });
   elements.set('#ai', { addEventListener() {} });
   elements.set('#auth-modal', { hidden: true, addEventListener() {} });
@@ -52,7 +53,13 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
       }
       storage.set(key, value);
     },
-    removeItem: key => storage.delete(key),
+    removeItem(key) {
+      if (key === failNextRemoveKey) {
+        failNextRemoveKey = null;
+        throw new Error('simulated removal failure');
+      }
+      storage.delete(key);
+    },
   };
   class FileReader {
     readAsText(file) {
@@ -79,8 +86,9 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
     confirm: () => confirmResult,
     window: {
       location: {
-        hash: locationHash, pathname: '/index.html', search: '', assigned: null,
+        hash: locationHash, pathname: '/index.html', search: '', assigned: null, replaced: null,
         assign(url) { this.assigned = url; },
+        replace(url) { this.replaced = url; },
       },
       history: { replaceState() {} },
     },
@@ -97,6 +105,7 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
     storage,
     alerts,
     failNextWrite(key) { failNextKey = key; },
+    failNextRemove(key) { failNextRemoveKey = key; },
     eval: expression => vm.runInContext(expression, context),
     element(selector, value) { elements.set(selector, value); },
     click(action) {
@@ -328,7 +337,7 @@ test('registration link from login page opens registration on the public page', 
   assert.equal(app.eval('AUTH.currentUser'), null);
 });
 
-test('guest entry is explicit and signing out opens Guest Home', () => {
+test('guest entry is explicit and account sign-out returns to index.html', () => {
   const app = loadApp();
   app.click('entry-guest');
   assert.equal(app.eval('GUEST_MODE'), true);
@@ -340,19 +349,35 @@ test('guest entry is explicit and signing out opens Guest Home', () => {
   app.element('#auth-modal', { hidden: true });
   app.click('auth-open');
   assert.equal(app.eval('AUTH.currentUser'), null);
-  assert.equal(app.eval('GUEST_MODE'), true);
+  assert.equal(app.eval('GUEST_MODE'), false);
   assert.equal(app.eval('CURRENT_TAB'), 'home');
+  assert.equal(app.eval('window.location.replaced'), 'index.html');
+  assert.equal(loadApp(app.storage).eval('AUTH.currentUser'), null);
 });
 
-test('logout action opens Guest Home and clears the session', () => {
+test('logout action returns to index.html and clears the session', () => {
   const app = loadApp();
   app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
   app.element('#auth-modal', { hidden: false });
   app.click('auth-logout');
   assert.equal(app.eval('AUTH.currentUser'), null);
-  assert.equal(app.eval('GUEST_MODE'), true);
+  assert.equal(app.eval('GUEST_MODE'), false);
   assert.equal(app.eval('CURRENT_TAB'), 'home');
+  assert.equal(app.eval('window.location.replaced'), 'index.html');
   assert.equal(app.storage.has('basa_wisyo_session_v2'), false);
+  const landing = loadApp(app.storage);
+  assert.equal(landing.eval('AUTH.currentUser'), null);
+  assert.equal(landing.eval('GUEST_MODE'), false);
+});
+
+test('logout stays on the account if the browser cannot clear its session', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  app.failNextRemove('basa_wisyo_session_v2');
+  app.click('auth-logout');
+  assert.equal(app.eval('AUTH.currentUser.role'), 'teacher');
+  assert.equal(app.eval('window.location.replaced'), null);
+  assert.equal(app.storage.has('basa_wisyo_session_v2'), true);
 });
 
 test('quick role controls and one-click demo accounts are absent', () => {

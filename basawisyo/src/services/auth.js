@@ -304,8 +304,14 @@ const AUTH = {
   },
 
   logout() {
+    try {
+      localStorage.removeItem(this.SESSION_KEY);
+      if (localStorage.getItem(this.SESSION_KEY) !== null) return false;
+    } catch(e) {
+      return false;
+    }
     this.currentUser = null;
-    this.saveSession();
+    return true;
   },
 
   // Student Actions
