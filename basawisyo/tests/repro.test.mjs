@@ -22,7 +22,7 @@ const files = [
   'src/app.js',
 ];
 
-function loadApp(storage = new Map(), { confirmResult = true } = {}) {
+function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' } = {}) {
   const elements = new Map();
   const listeners = new Map();
   const alerts = [];
@@ -30,6 +30,8 @@ function loadApp(storage = new Map(), { confirmResult = true } = {}) {
   let failNextKey = null;
   elements.set('#md', { addEventListener() {} });
   elements.set('#ai', { addEventListener() {} });
+  elements.set('#auth-modal', { hidden: true, addEventListener() {} });
+  elements.set('#role-card-student', { click() {} });
 
   const document = {
     querySelector: selector => elements.get(selector) ?? null,
@@ -75,7 +77,13 @@ function loadApp(storage = new Map(), { confirmResult = true } = {}) {
     showToast() {},
     alert(message) { alerts.push(message); },
     confirm: () => confirmResult,
-    window: {},
+    window: {
+      location: {
+        hash: locationHash, pathname: '/index.html', search: '', assigned: null,
+        assign(url) { this.assigned = url; },
+      },
+      history: { replaceState() {} },
+    },
     navigator: {},
     setTimeout() {},
   });
@@ -222,25 +230,42 @@ test('custom passage text is escaped in library and quiz markup', () => {
   assert.ok(!output.innerHTML.includes('<img src=x onerror=alert(1)>'));
 });
 
-test('login entry rejects bad credentials and signs in an existing account', () => {
-  const app = loadApp();
-  const email = { value: 'teacher@basawisyo.ph' };
-  const password = { value: 'incorrect' };
+test('separate login page rejects bad credentials and redirects after sign-in', () => {
+  const storage = new Map();
+  const listeners = new Map();
+  const field = value => ({ value, type: 'text', addEventListener(type, callback) { listeners.set(`${this.id}:${type}`, callback); } });
+  const email = { ...field('teacher@basawisyo.ph'), id: 'email' };
+  const password = { ...field('incorrect'), id: 'password' };
   const error = { textContent: '', hidden: true };
-  app.element('#entry-email', email);
-  app.element('#entry-password', password);
-  app.element('#entry-error', error);
-  app.submit({ id: 'entry-login-form' });
-  assert.equal(app.eval('AUTH.currentUser'), null);
+  const toggle = { id: 'toggle', ...field(''), setAttribute() {} };
+  const form = { id: 'form', ...field('') };
+  const elements = new Map([
+    ['#entry-login-form', form], ['#entry-email', email],
+    ['#entry-password', password], ['#entry-error', error],
+    ['#entry-toggle-password', toggle],
+  ]);
+  const destination = { url: null };
+  const context = vm.createContext({
+    document: { querySelector: selector => elements.get(selector) },
+    localStorage: {
+      getItem: key => storage.get(key) ?? null,
+      setItem: (key, value) => storage.set(key, value),
+      removeItem: key => storage.delete(key),
+    },
+    window: { location: { replace(url) { destination.url = url; } } },
+  });
+  for (const relative of ['src/services/state.js', 'src/services/auth.js', 'src/pages/login.js']) {
+    vm.runInContext(readFileSync(join(appRoot, relative), 'utf8'), context, { filename: relative });
+  }
+
+  listeners.get('form:submit')({ preventDefault() {} });
   assert.equal(error.textContent, 'Invalid email or password.');
-  assert.equal(error.hidden, false);
+  assert.equal(destination.url, null);
 
   password.value = 'teacher123';
-  app.submit({ id: 'entry-login-form' });
-  assert.equal(app.eval('AUTH.currentUser.role'), 'teacher');
-  assert.equal(app.eval('CURRENT_TAB'), 'teacher');
-  assert.equal(app.eval('GUEST_MODE'), false);
-  assert.equal(error.hidden, true);
+  listeners.get('form:submit')({ preventDefault() {} });
+  assert.equal(destination.url, 'index.html#signed-in');
+  assert.equal(JSON.parse(storage.get('basa_wisyo_session_v2')).role, 'teacher');
   assert.equal(password.value, '');
 });
 
@@ -273,40 +298,39 @@ test('teacher and admin reloads clear the local session and open Guest Home', ()
   }
 });
 
-test('public entry offers guest, sign-in, and student registration choices', () => {
-  const html = readFileSync(join(appRoot, 'index.html'), 'utf8');
-  assert.match(html, /data-a="entry-guest">Explore as guest<\/button>/);
-  assert.match(html, /data-a="entry-sign-in">Sign in<\/button>/);
-  assert.match(html, /data-a="auth-open" data-v="register">Create student account<\/button>/);
-  assert.match(html, /id="entry-sign-in-panel" hidden/);
+test('arrival from the login page opens the teacher or admin dashboard once', () => {
+  for (const [email, password, tab] of [
+    ['teacher@basawisyo.ph', 'teacher123', 'teacher'],
+    ['admin@basawisyo.ph', 'admin123', 'admin'],
+  ]) {
+    const storage = new Map();
+    const login = loadApp(storage);
+    login.eval(`AUTH.login(${JSON.stringify(email)}, ${JSON.stringify(password)})`);
+    const arrival = loadApp(storage, { locationHash: '#signed-in' });
+    assert.equal(arrival.eval('CURRENT_TAB'), tab);
+    assert.equal(arrival.eval('AUTH.currentUser.role'), tab);
+    const reload = loadApp(storage);
+    assert.equal(reload.eval('AUTH.currentUser'), null);
+    assert.equal(reload.eval('GUEST_MODE'), true);
+  }
 });
 
-test('public sign-in choice opens and closes the entry form', () => {
-  const app = loadApp();
-  const choices = { hidden: false };
-  const panel = { hidden: true };
-  const email = { focused: false, focus() { this.focused = true; } };
-  const password = { value: 'old password' };
-  const error = { textContent: 'Old error', hidden: false };
-  const signInButton = { focused: false, focus() { this.focused = true; } };
-  app.element('#entry-choices', choices);
-  app.element('#entry-sign-in-panel', panel);
-  app.element('#entry-email', email);
-  app.element('#entry-password', password);
-  app.element('#entry-error', error);
-  app.element("[data-a='entry-sign-in']", signInButton);
+test('public entry links to a separate login page and keeps registration', () => {
+  const html = readFileSync(join(appRoot, 'index.html'), 'utf8');
+  const loginHtml = readFileSync(join(appRoot, 'login.html'), 'utf8');
+  assert.match(html, /data-a="entry-guest">Explore as guest<\/button>/);
+  assert.match(html, /href="login.html">Sign in<\/a>/);
+  assert.match(html, /data-a="auth-open" data-v="register">Create student account<\/button>/);
+  assert.ok(!html.includes('id="entry-login-form"'));
+  assert.ok(!html.includes('id="form-login"'));
+  assert.match(loginHtml, /id="entry-login-form"/);
+  assert.match(loginHtml, /href="index.html#register"/);
+});
 
-  app.click('entry-sign-in');
-  assert.equal(choices.hidden, true);
-  assert.equal(panel.hidden, false);
-  assert.equal(email.focused, true);
-
-  app.click('entry-back');
-  assert.equal(choices.hidden, false);
-  assert.equal(panel.hidden, true);
-  assert.equal(password.value, '');
-  assert.equal(error.hidden, true);
-  assert.equal(signInButton.focused, true);
+test('registration link from login page opens registration on the public page', () => {
+  const app = loadApp(new Map(), { locationHash: '#register' });
+  assert.equal(app.eval('$("#auth-modal").hidden'), false);
+  assert.equal(app.eval('AUTH.currentUser'), null);
 });
 
 test('guest entry is explicit and signing out opens Guest Home', () => {
@@ -314,6 +338,8 @@ test('guest entry is explicit and signing out opens Guest Home', () => {
   app.click('entry-guest');
   assert.equal(app.eval('GUEST_MODE'), true);
   assert.equal(app.eval('AUTH.currentUser'), null);
+  app.click('auth-open');
+  assert.equal(app.eval('window.location.assigned'), 'login.html');
 
   app.eval('AUTH.login("student@basawisyo.ph", "student123")');
   app.element('#auth-modal', { hidden: true });
@@ -337,7 +363,7 @@ test('logout action opens Guest Home and clears the session', () => {
 test('quick role controls and one-click demo accounts are absent', () => {
   const html = readFileSync(join(appRoot, 'index.html'), 'utf8');
   const script = readFileSync(join(appRoot, 'src/app.js'), 'utf8');
-  assert.ok(html.includes('id="login-screen"'));
+  assert.ok(html.includes('id="welcome-screen"'));
   assert.ok(!html.includes('data-a="switch-role"'));
   assert.ok(!html.includes('data-a="auth-quick-fill"'));
   assert.ok(!script.includes('a === "switch-role"'));

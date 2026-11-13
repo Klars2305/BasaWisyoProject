@@ -104,7 +104,8 @@ function viewHome() {
           </div>
           <div style="display:flex;gap:6px">
             <button class="btn gold sm" data-a="start-placement" data-v="guest">⚡ Start Guest Diagnostic</button>
-            <button class="btn o sm" data-a="auth-open">🔐 Sign In / Register</button>
+            <button class="btn o sm" data-a="auth-open">🔐 Sign in</button>
+            <button class="btn o sm" data-a="auth-open" data-v="register">Create account</button>
           </div>
         </div>
       </div>

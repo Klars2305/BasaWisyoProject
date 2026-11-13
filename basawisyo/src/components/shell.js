@@ -5,10 +5,10 @@ function renderApp() {
   document.documentElement.setAttribute("data-theme", S.theme);
   document.documentElement.style.setProperty("--font-scale", S.fontScale);
 
-  const showLogin = !AUTH.currentUser && !GUEST_MODE;
-  document.body.classList.toggle("auth-entry", showLogin);
-  $("#login-screen").hidden = !showLogin;
-  if (showLogin) return;
+  const showWelcome = !AUTH.currentUser && !GUEST_MODE;
+  document.body.classList.toggle("auth-entry", showWelcome);
+  $("#welcome-screen").hidden = !showWelcome;
+  if (showWelcome) return;
 
   const u = AUTH.currentUser;
   const role = u ? u.role : "guest";

@@ -2,23 +2,9 @@ function dashboardTabForRole(role) {
   return role === "teacher" ? "teacher" : role === "admin" ? "admin" : "home";
 }
 
-function showEntryError(message) {
-  const error = $("#entry-error");
-  error.textContent = message;
-  error.hidden = !message;
-}
-
-function signInFromEntry() {
-  const result = AUTH.login($("#entry-email").value, $("#entry-password").value);
-  if (!result.success) {
-    showEntryError(result.message);
-    return;
-  }
-  showEntryError("");
-  $("#entry-password").value = "";
-  GUEST_MODE = false;
-  CURRENT_TAB = dashboardTabForRole(result.user.role);
-  renderApp();
+function openRegistration() {
+  $("#auth-modal").hidden = false;
+  $("#role-card-student")?.click();
 }
 
 /* ==========================================================================
@@ -237,75 +223,32 @@ document.addEventListener("click", e => {
     showToast("Monthly comparison updated!");
   }
   // Entry screen and account modal
-  else if (a === "entry-sign-in") {
-    $("#entry-choices").hidden = true;
-    $("#entry-sign-in-panel").hidden = false;
-    $("#entry-email").focus();
-  }
-  else if (a === "entry-back") {
-    $("#entry-sign-in-panel").hidden = true;
-    $("#entry-choices").hidden = false;
-    $("#entry-password").value = "";
-    showEntryError("");
-    $("[data-a='entry-sign-in']").focus();
-  }
   else if (a === "entry-guest") {
     GUEST_MODE = true;
     CURRENT_TAB = "home";
     renderApp();
   }
-  else if (a === "entry-toggle-password") {
-    const field = $("#entry-password");
-    const show = field.type === "password";
-    field.type = show ? "text" : "password";
-    t.textContent = show ? "Hide" : "Show";
-    t.setAttribute("aria-label", show ? "Hide password" : "Show password");
-    t.setAttribute("aria-pressed", String(show));
-  }
 
   // Auth Modal Opening & Closing
   else if (a === "auth-open") {
-    const modal = $("#auth-modal");
-    if (modal) {
-      const u = AUTH.currentUser;
-      if (u) {
-        if (confirm(`Currently signed in as ${u.name} (${u.role.toUpperCase()}). Would you like to sign out?`)) {
-          AUTH.logout();
-          GUEST_MODE = true;
-          CURRENT_TAB = "home";
-          renderApp();
-          showToast("Signed out successfully.");
-        }
-      } else {
-        modal.hidden = false;
-        if (v === "register") {
-          const studentCard = $("#role-card-student");
-          if (studentCard) studentCard.click();
-          const regTab = $("#tab-btn-register");
-          if (regTab) regTab.click();
-        } else {
-          const logTab = $("#tab-btn-login");
-          if (logTab) logTab.click();
-        }
+    const u = AUTH.currentUser;
+    if (u) {
+      if (confirm(`Currently signed in as ${u.name} (${u.role.toUpperCase()}). Would you like to sign out?`)) {
+        AUTH.logout();
+        GUEST_MODE = true;
+        CURRENT_TAB = "home";
+        renderApp();
+        showToast("Signed out successfully.");
       }
+    } else if (v === "register") {
+      openRegistration();
+    } else {
+      window.location.assign("login.html");
     }
   }
   else if (a === "auth-close") {
     const modal = $("#auth-modal");
     if (modal) modal.hidden = true;
-  }
-  else if (a === "auth-tab") {
-    $$(".auth-tab-btn").forEach(btn => btn.classList.remove("active"));
-    t.classList.add("active");
-    $("#auth-modal-title").textContent = v === "register"
-      ? "Create a BasaWisyo account" : "Sign in to BasaWisyo";
-    if (v === "login") {
-      $("#auth-login-pane").hidden = false;
-      $("#auth-register-pane").hidden = true;
-    } else {
-      $("#auth-login-pane").hidden = true;
-      $("#auth-register-pane").hidden = false;
-    }
   }
   else if (a === "auth-select-role") {
     $$(".role-choice-card").forEach(c => c.classList.remove("selected"));
@@ -320,24 +263,6 @@ document.addEventListener("click", e => {
     if (studGroup) studGroup.hidden = (v !== "student");
     if (teachGroup) teachGroup.hidden = (v !== "teacher");
     if (adminGroup) adminGroup.hidden = (v !== "admin");
-  }
-  else if (a === "auth-login-submit") {
-    const email = $("#login-email")?.value;
-    const pwd = $("#login-password")?.value;
-    if (!email || !pwd) {
-      showToast("Please enter both email and password.", "warn");
-      return;
-    }
-    const res = AUTH.login(email, pwd);
-    if (res.success) {
-      $("#auth-modal").hidden = true;
-      GUEST_MODE = false;
-      showToast(`Welcome back, ${res.user.name}! 👋`);
-      CURRENT_TAB = dashboardTabForRole(res.user.role);
-      renderApp();
-    } else {
-      showToast(res.message, "warn");
-    }
   }
   else if (a === "auth-register-submit") {
     const name = $("#reg-name")?.value;
@@ -617,17 +542,8 @@ document.addEventListener("click", e => {
   }
 });
 
-document.addEventListener("submit", e => {
-  if (e.target.id !== "entry-login-form") return;
-  e.preventDefault();
-  signInFromEntry();
-});
-
 // Search input handling
 document.addEventListener("input", e => {
-  if (e.target.id === "entry-email" || e.target.id === "entry-password") {
-    showEntryError("");
-  }
   if (e.target.id === "lib-search") {
     SEARCH_QUERY = e.target.value;
     renderApp();
@@ -706,10 +622,20 @@ document.addEventListener("change", e => {
 
 // Initial boot
 AUTH.init();
-if (AUTH.currentUser?.role === "teacher" || AUTH.currentUser?.role === "admin") {
+const arrivingFromLogin = window.location?.hash === "#signed-in";
+const openingRegistration = window.location?.hash === "#register";
+if (arrivingFromLogin || openingRegistration) {
+  try {
+    window.history?.replaceState(null, "", window.location.pathname + window.location.search);
+  } catch (error) {
+    // The page can still open when a file URL does not allow history changes.
+  }
+}
+if (!arrivingFromLogin && (AUTH.currentUser?.role === "teacher" || AUTH.currentUser?.role === "admin")) {
   AUTH.logout();
   GUEST_MODE = true;
 } else if (AUTH.currentUser) {
   CURRENT_TAB = dashboardTabForRole(AUTH.currentUser.role);
 }
 renderApp();
+if (openingRegistration && !AUTH.currentUser) openRegistration();

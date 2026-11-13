@@ -14,7 +14,7 @@
 </head>
 <body class="auth-entry">
 
-<section id="login-screen" class="login-screen" aria-label="BasaWisyo welcome">
+<section id="welcome-screen" class="entry-screen" aria-label="BasaWisyo welcome">
   <div class="login-layout">
     <div class="login-story">
       <div class="login-brand">
@@ -32,33 +32,14 @@
     </div>
     <div class="login-panel">
       <div class="login-panel-inner">
-        <div id="entry-choices">
-          <h2 id="entry-heading">Start reading with BasaWisyo</h2>
-          <p class="login-intro">Explore stories now, or use an account to continue your reading journey.</p>
-          <div class="entry-actions">
-            <button type="button" class="btn entry-primary" data-a="entry-guest">Explore as guest</button>
-            <button type="button" class="entry-secondary" data-a="entry-sign-in">Sign in</button>
-            <button type="button" class="entry-secondary" data-a="auth-open" data-v="register">Create student account</button>
-          </div>
-          <p class="entry-note">You can explore without an account. Guest activity stays in this browser.</p>
+        <h2 id="entry-heading">Start reading with BasaWisyo</h2>
+        <p class="login-intro">Explore stories now, or use an account to continue your reading journey.</p>
+        <div class="entry-actions">
+          <button type="button" class="btn entry-primary" data-a="entry-guest">Explore as guest</button>
+          <a class="entry-secondary" href="login.html">Sign in</a>
+          <button type="button" class="entry-secondary" data-a="auth-open" data-v="register">Create student account</button>
         </div>
-        <div id="entry-sign-in-panel" hidden>
-          <button type="button" class="entry-back" data-a="entry-back">Back to choices</button>
-          <h2 id="entry-sign-in-heading">Sign in to BasaWisyo</h2>
-          <p class="login-intro">Students, teachers, and admins can use their existing accounts.</p>
-          <form id="entry-login-form">
-            <label for="entry-email">Email address</label>
-            <input id="entry-email" name="email" type="email" autocomplete="username" required>
-            <label for="entry-password">Password</label>
-            <div class="login-password-field">
-              <input id="entry-password" name="password" type="password" autocomplete="current-password" required>
-              <button type="button" data-a="entry-toggle-password" aria-label="Show password" aria-pressed="false">Show</button>
-            </div>
-            <p id="entry-error" class="login-error" role="alert" hidden></p>
-            <button type="submit" class="btn login-submit">Sign in</button>
-          </form>
-          <p class="login-register">New learner? <button type="button" data-a="auth-open" data-v="register">Create student account</button></p>
-        </div>
+        <p class="entry-note">You can explore without an account. Guest activity stays in this browser.</p>
       </div>
     </div>
   </div>
@@ -96,45 +77,16 @@
      Authentication, Projector & Management Modals
      ========================================================================== -->
 
-<!-- Authentication Modal (Sign In / Register / Guest Diagnostic) -->
+<!-- Account registration modal -->
 <div id="auth-modal" class="app-modal-overlay" hidden>
   <div class="app-modal-card">
     <div class="modal-hdr">
-      <h2 id="auth-modal-title">🔐 Sign In to BasaWisyo</h2>
+      <h2 id="auth-modal-title">Create a BasaWisyo account</h2>
       <button class="modal-close-btn" data-a="auth-close" aria-label="Close">✕</button>
     </div>
 
-    <!-- Quick Guest Diagnostic Callout -->
-    <div class="guest-screener-banner">
-      <h4>📖 Don't have an account yet?</h4>
-      <p>Identify your Phil-IRI reading level in 3 minutes as a Guest. No email or password needed!</p>
-      <button class="btn gold" style="width:100%" data-a="start-placement" data-v="guest">⚡ Take Quick Diagnostic as Guest</button>
-    </div>
-
-    <!-- Auth Tabs -->
-    <div class="auth-tab-bar">
-      <button class="auth-tab-btn active" id="tab-btn-login" data-a="auth-tab" data-v="login">Sign In</button>
-      <button class="auth-tab-btn" id="tab-btn-register" data-a="auth-tab" data-v="register">Create Account</button>
-    </div>
-
-    <!-- Sign In Form -->
-    <div id="auth-login-pane">
-      <form id="form-login" onsubmit="return false;">
-        <div class="auth-form-group">
-          <label>Email Address</label>
-          <input type="email" id="login-email" class="auth-input" placeholder="e.g. student@basawisyo.ph" required>
-        </div>
-        <div class="auth-form-group">
-          <label>Password</label>
-          <input type="password" id="login-password" class="auth-input" placeholder="••••••••" required>
-        </div>
-        <button class="btn" style="width:100%;margin-top:10px" data-a="auth-login-submit">Sign In</button>
-      </form>
-
-    </div>
-
     <!-- Register Form -->
-    <div id="auth-register-pane" hidden>
+    <div id="auth-register-pane">
       <form id="form-register" onsubmit="return false;">
         <div class="lab" style="margin-bottom:6px">Select Account Role:</div>
         <div class="role-picker-grid">
@@ -193,6 +145,7 @@
 
         <button class="btn gold" style="width:100%;margin-top:10px" data-a="auth-register-submit">Create Account</button>
       </form>
+      <p class="login-register">Already have an account? <a href="login.html">Sign in</a></p>
     </div>
   </div>
 </div>

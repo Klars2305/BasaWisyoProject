@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sign in | BasaWisyo</title>
+  <link rel="icon" href="assets/images/wisyo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/styles/base.css">
+  <link rel="stylesheet" href="src/styles/login.css">
+</head>
+<body class="auth-entry">
+  <main class="entry-screen">
+    <div class="login-layout">
+      <div class="login-story">
+        <div class="login-brand">
+          <img src="assets/images/wisyo.png" alt="" aria-hidden="true">
+          <span>BasaWisyo</span>
+        </div>
+        <div class="login-story-content">
+          <div class="login-book-art" aria-hidden="true">
+            <img src="assets/images/wisyo.png" alt="">
+          </div>
+          <h1>Bawat pahina,<br>bagong pag-unlad.</h1>
+          <p>Sign in to continue reading or manage your classroom.</p>
+        </div>
+        <p class="login-story-footer">A reading companion for Filipino learners and teachers.</p>
+      </div>
+      <div class="login-panel">
+        <div class="login-panel-inner">
+          <a class="entry-back" href="index.html">Back to BasaWisyo</a>
+          <h2 id="login-heading">Sign in to BasaWisyo</h2>
+          <p class="login-intro">Use your student, teacher, or admin account.</p>
+          <form id="entry-login-form" aria-labelledby="login-heading">
+            <label for="entry-email">Email address</label>
+            <input id="entry-email" name="email" type="email" autocomplete="username" required>
+            <label for="entry-password">Password</label>
+            <div class="login-password-field">
+              <input id="entry-password" name="password" type="password" autocomplete="current-password" required>
+              <button id="entry-toggle-password" type="button" aria-label="Show password" aria-pressed="false">Show</button>
+            </div>
+            <p id="entry-error" class="login-error" role="alert" hidden></p>
+            <button type="submit" class="btn login-submit">Sign in</button>
+          </form>
+          <p class="login-register">New learner? <a href="index.html#register">Create an account</a></p>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="src/services/state.js"></script>
+  <script src="src/services/auth.js"></script>
+  <script src="src/pages/login.js"></script>
+</body>
+</html>
