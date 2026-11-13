@@ -76,6 +76,55 @@
 .app-modal-card.wide {
   max-width: 760px;
 }
+.practice-question-builder {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+  margin-top: 18px;
+}
+.practice-builder-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.practice-builder-head h3 { margin: 0 0 4px; }
+.practice-builder-head p { margin: 0; }
+.practice-count-field { min-width: 150px; }
+.practice-helper-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+.practice-question-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin: 12px 0;
+  min-width: 0;
+}
+.practice-question-card legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+.practice-question-card label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+.practice-question-card .auth-input { margin-top: 5px; }
+.practice-option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+@media (max-width: 560px) {
+  .practice-option-grid { grid-template-columns: 1fr; }
+  .practice-count-field { width: 100%; }
+}
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 

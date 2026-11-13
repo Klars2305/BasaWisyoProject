@@ -173,51 +173,23 @@
         <textarea id="pass-text" class="auth-input" rows="5" placeholder="Type or paste the reading passage text here..." required></textarea>
       </div>
 
-      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
-        <div class="lab" style="margin-bottom:8px">Comprehension Question #1</div>
-        <div class="auth-form-group">
-          <label>Question Prompt</label>
-          <input type="text" id="pass-q1" class="auth-input" placeholder="e.g. Ano ang ginamit sa pag-aayos ng bangka?" required>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <section class="practice-question-builder" aria-labelledby="practice-questions-heading">
+        <div class="practice-builder-head">
           <div>
-            <label style="font-size:11px">Option 1</label>
-            <input type="text" id="pass-opt-0" class="auth-input" placeholder="Option A" required>
+            <h3 id="practice-questions-heading">Comprehension questions</h3>
+            <p class="sub">Choose 1–20 questions. Write them yourself or ask Wisyo for editable suggestions.</p>
           </div>
-          <div>
-            <label style="font-size:11px">Option 2</label>
-            <input type="text" id="pass-opt-1" class="auth-input" placeholder="Option B" required>
-          </div>
-          <div>
-            <label style="font-size:11px">Option 3</label>
-            <input type="text" id="pass-opt-2" class="auth-input" placeholder="Option C" required>
-          </div>
-          <div>
-            <label style="font-size:11px">Option 4</label>
-            <input type="text" id="pass-opt-3" class="auth-input" placeholder="Option D" required>
+          <div class="auth-form-group practice-count-field">
+            <label for="practice-question-count">Number of questions</label>
+            <input type="number" id="practice-question-count" class="auth-input" min="1" max="20" value="1" inputmode="numeric">
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
-          <div class="auth-form-group">
-            <label>Correct Answer</label>
-            <select id="pass-ans" class="auth-input">
-              <option value="0">Option 1 is correct</option>
-              <option value="1">Option 2 is correct</option>
-              <option value="2">Option 3 is correct</option>
-              <option value="3">Option 4 is correct</option>
-            </select>
-          </div>
-          <div class="auth-form-group">
-            <label>Question Skill Type</label>
-            <select id="pass-skill" class="auth-input">
-              <option value="Literal">Literal (Factual Recall)</option>
-              <option value="Inference">Inferential (Reading between lines)</option>
-              <option value="Critical reading">Critical Reading (Evaluation)</option>
-              <option value="Main idea">Main Idea (Central Theme)</option>
-            </select>
-          </div>
+        <div class="practice-helper-actions">
+          <button type="button" class="btn o" data-a="practice-wisyo-suggest" id="practice-wisyo-suggest">Ask Wisyo to draft questions</button>
+          <span id="practice-wisyo-status" class="sub-sm" role="status" aria-live="polite">Wisyo suggestions need your review before submission.</span>
         </div>
-      </div>
+        <div id="passage-questions"></div>
+      </section>
 
       <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px">
         <button type="button" class="btn o" data-a="passage-modal-close">Cancel</button>
@@ -305,6 +277,7 @@
 <script src="src/pages/services.js"></script>
 <script src="src/services/quiz.js"></script>
 <script src="src/services/tutor.js"></script>
+<script src="src/services/practice-helper.js"></script>
 <script src="src/components/notifications.js"></script>
 <script src="src/services/exports.js"></script>
 <script src="src/services/backup.js"></script>

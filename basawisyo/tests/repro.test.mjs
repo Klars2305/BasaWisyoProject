@@ -18,6 +18,7 @@ const files = [
   'src/utils/reading.js',
   'src/pages/practice.js',
   'src/services/quiz.js',
+  'src/services/practice-helper.js',
   'src/services/backup.js',
   'src/app.js',
 ];
@@ -36,7 +37,7 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
 
   const document = {
     querySelector: selector => elements.get(selector) ?? null,
-    querySelectorAll: () => [],
+    querySelectorAll: selector => elements.get(selector) ?? [],
     addEventListener(type, listener) {
       if (!listeners.has(type)) listeners.set(type, []);
       listeners.get(type).push(listener);
@@ -135,23 +136,31 @@ function restorePayload(app, payload) {
   app.change({ id: 'admin-restore-file', files: [{ text }], value: 'selected' });
 }
 
+function mockQuestionCard({ q, o, a = 0, k = 'Literal' }) {
+  const fields = new Map([
+    ['[data-field="prompt"]', { value: q }],
+    ['[data-field="answer"]', { value: String(a) }],
+    ['[data-field="skill"]', { value: k }],
+    ...Array.from({ length: Math.max(4, o.length) }, (_, index) =>
+      [`[data-field="option-${index}"]`, { value: o[index] ?? '' }]),
+  ]);
+  return { querySelector: selector => fields.get(selector) };
+}
+
 function saveAdminPassage(app, title = 'Regression Passage') {
   app.eval('AUTH.currentUser = AUTH.users.find(user => user.role === "admin")');
   const fields = {
     '#pass-title': title,
     '#pass-diff': 'easy',
     '#pass-text': 'A learner reads a short passage.',
-    '#pass-q1': 'Who reads?',
-    '#pass-opt-0': 'A learner',
-    '#pass-opt-1': 'A teacher',
-    '#pass-opt-2': 'A parent',
-    '#pass-opt-3': 'A friend',
-    '#pass-ans': '0',
-    '#pass-skill': 'Literal',
   };
   for (const [selector, value] of Object.entries(fields)) {
     app.element(selector, { value });
   }
+  app.element('#practice-question-count', { value: '1' });
+  app.element('.practice-question-card', [mockQuestionCard({
+    q: 'Who reads?', o: ['A learner', 'A teacher', 'A parent', 'A friend']
+  })]);
   app.element('#admin-passage-modal', { hidden: false });
   app.click('practice-admin-save');
   assert.equal(app.eval('AUTH.customPassages.length'), 1);
@@ -305,9 +314,7 @@ test('teacher editor submits a practice for admin review', () => {
   app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
   const fields = new Map();
   for (const selector of [
-    '#pass-title', '#pass-diff', '#pass-text', '#pass-q1',
-    '#pass-opt-0', '#pass-opt-1', '#pass-opt-2', '#pass-opt-3',
-    '#pass-ans', '#pass-skill'
+    '#pass-title', '#pass-diff', '#pass-text'
   ]) {
     const field = { value: '', focus() {} };
     fields.set(selector, field);
@@ -317,6 +324,9 @@ test('teacher editor submits a practice for admin review', () => {
   app.element('#admin-passage-modal', modal);
   app.element('#passage-modal-title', { textContent: '' });
   app.element('#passage-modal-hint', { textContent: '' });
+  app.element('#practice-question-count', { value: '1' });
+  app.element('#passage-questions', { innerHTML: '' });
+  app.element('#practice-wisyo-status', { textContent: '' });
   app.element('#practice-save-draft', { hidden: true });
   app.element('#practice-submit', { hidden: true });
   app.element('#practice-admin-save', { hidden: true, textContent: '' });
@@ -326,15 +336,76 @@ test('teacher editor submits a practice for admin review', () => {
   fields.get('#pass-title').value = 'Market Morning';
   fields.get('#pass-diff').value = 'easy';
   fields.get('#pass-text').value = 'The learners visited a morning market.';
-  fields.get('#pass-q1').value = 'Where did the learners go?';
-  fields.get('#pass-opt-0').value = 'Market';
-  fields.get('#pass-opt-1').value = 'River';
-  fields.get('#pass-ans').value = '0';
-  fields.get('#pass-skill').value = 'Literal';
+  app.element('.practice-question-card', [mockQuestionCard({
+    q: 'Where did the learners go?', o: ['Market', 'River']
+  })]);
   app.click('practice-submit');
   assert.equal(modal.hidden, true);
   assert.equal(app.eval('AUTH.customPassages[0].status'), 'pending');
   assert.equal(app.eval('AUTH.customPassages[0].ownerId'), 'usr_teach_1');
+});
+
+test('question editor saves and reopens every selected question', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
+  for (const selector of ['#pass-title', '#pass-diff', '#pass-text']) {
+    app.element(selector, { value: '', focus() {} });
+  }
+  const count = { value: '1' };
+  const questionContainer = { innerHTML: '' };
+  app.element('#practice-question-count', count);
+  app.element('#passage-questions', questionContainer);
+  app.element('#practice-wisyo-status', { textContent: '' });
+  app.element('#admin-passage-modal', { hidden: true });
+  app.element('#passage-modal-title', { textContent: '' });
+  app.element('#passage-modal-hint', { textContent: '' });
+  app.element('#practice-save-draft', { hidden: true });
+  app.element('#practice-submit', { hidden: true });
+  app.element('#practice-admin-save', { hidden: true, textContent: '' });
+  app.click('practice-new');
+  count.value = '3';
+  app.change({ id: 'practice-question-count', value: '3' });
+  assert.match(questionContainer.innerHTML, /Question 3/);
+  app.element('#pass-title', { value: 'Three Questions', focus() {} });
+  app.element('#pass-diff', { value: 'easy' });
+  app.element('#pass-text', { value: 'The class read near the river.' });
+  app.element('.practice-question-card', [
+    mockQuestionCard({ q: 'Who read?', o: ['Class', 'Birds'] }),
+    mockQuestionCard({ q: 'Where did they read?', o: ['River', 'Market'] }),
+    mockQuestionCard({ q: 'What did they do?', o: ['Read', 'Swim'] }),
+  ]);
+  app.click('practice-admin-save');
+  assert.equal(app.eval('AUTH.customPassages[0].qs.length'), 3);
+  const id = app.eval('AUTH.customPassages[0].id');
+  app.click('practice-edit', id);
+  assert.equal(count.value, '3');
+  assert.match(questionContainer.innerHTML, /Where did they read\?/);
+  assert.match(questionContainer.innerHTML, /What did they do\?/);
+  app.element('.practice-question-card', [
+    mockQuestionCard({ q: 'Who read?', o: ['Class', 'Birds', 'Parents', 'Teachers', 'Fish'], a: 4 }),
+    mockQuestionCard({ q: 'Where did they read?', o: ['River', 'Market'] }),
+    mockQuestionCard({ q: 'What did they do?', o: ['Read', 'Swim'] }),
+  ]);
+  app.click('practice-admin-save');
+  assert.equal(app.eval('AUTH.customPassages[0].qs[0].o.length'), 5);
+  assert.equal(app.eval('AUTH.customPassages[0].qs[0].a'), 4);
+  app.click('practice-edit', id);
+  assert.match(questionContainer.innerHTML, /Option 5/);
+});
+
+test('Wisyo offline helper drafts editable questions with valid answer keys', async () => {
+  const app = loadApp();
+  const result = await app.eval(`wisyoPracticeSuggestions(
+    'Munting bangka ang ginamit ni Maria. Dinala niya ang pagkain sa paaralan. Masayang sinalubong siya ng guro.',
+    3, 'easy')`);
+  assert.equal(result.source, 'offline text helper');
+  assert.equal(result.questions.length, 3);
+  for (const question of result.questions) {
+    assert.equal(question.o.length, 4);
+    assert.ok(question.o[question.a]);
+    assert.match(question.q, /____/);
+  }
+  await assert.rejects(app.eval("wisyoPracticeSuggestions('Maikling teksto.', 5, 'easy')"), /more varied passage text/);
 });
 
 test('backup preserves a pending practice and its review metadata', () => {

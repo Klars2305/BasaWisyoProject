@@ -19,6 +19,73 @@ function logoutToIndex() {
 }
 
 let EDITING_PRACTICE_ID = null;
+let PRACTICE_EDITOR_GENERATION = 0;
+
+function practiceQuestionMarkup(question = {}, index = 0) {
+  const optionCount = Math.max(4, Math.min(6, question.o?.length ?? 4));
+  const options = Array.from({ length: optionCount }, (_, optionIndex) => `
+    <label>Option ${optionIndex + 1}
+      <input type="text" class="auth-input" data-field="option-${optionIndex}"
+        value="${escapeHTML(question.o?.[optionIndex] ?? "")}" placeholder="Answer choice ${optionIndex + 1}">
+    </label>`).join("");
+  const skills = ["Literal", "Inference", "Critical reading", "Main idea"];
+  return `<fieldset class="practice-question-card">
+    <legend>Question ${index + 1}</legend>
+    <label>Question prompt
+      <input type="text" class="auth-input" data-field="prompt" maxlength="500"
+        value="${escapeHTML(question.q ?? "")}" placeholder="Write a question about the passage">
+    </label>
+    <div class="practice-option-grid">${options}</div>
+    <div class="practice-option-grid">
+      <label>Correct answer
+        <select class="auth-input" data-field="answer">
+          ${Array.from({ length: optionCount }, (_, optionIndex) => `<option value="${optionIndex}" ${Number(question.a ?? 0) === optionIndex ? "selected" : ""}>Option ${optionIndex + 1}</option>`).join("")}
+        </select>
+      </label>
+      <label>Question skill type
+        <select class="auth-input" data-field="skill">
+          ${skills.map(skill => `<option value="${skill}" ${question.k === skill ? "selected" : ""}>${skill}</option>`).join("")}
+        </select>
+      </label>
+    </div>
+  </fieldset>`;
+}
+
+function readPracticeQuestionDrafts() {
+  return Array.from($$(".practice-question-card"), card => ({
+    q: card.querySelector('[data-field="prompt"]').value,
+    o: Array.from({ length: 6 }, (_, index) => card.querySelector(`[data-field="option-${index}"]`))
+      .filter(Boolean).map(field => field.value),
+    a: Number(card.querySelector('[data-field="answer"]').value),
+    k: card.querySelector('[data-field="skill"]').value
+  }));
+}
+
+function renderPracticeQuestionCards(questions) {
+  $("#passage-questions").innerHTML = questions.map(practiceQuestionMarkup).join("");
+}
+
+function practiceQuestionCount() {
+  const count = Number($("#practice-question-count").value);
+  if (!Number.isInteger(count) || count < 1 || count > 20) {
+    throw new Error("Choose between 1 and 20 questions.");
+  }
+  return count;
+}
+
+function validatedPracticeQuestions() {
+  const questions = readPracticeQuestionDrafts();
+  if (questions.length !== practiceQuestionCount()) {
+    throw new Error("Set the number of questions before saving.");
+  }
+  return questions.map((question, index) => {
+    const firstEmpty = question.o.findIndex(option => !option.trim());
+    if (firstEmpty >= 0 && question.o.slice(firstEmpty + 1).some(option => option.trim())) {
+      throw new Error(`Question ${index + 1}: fill answer options in order, without gaps.`);
+    }
+    return { ...question, o: question.o.filter(option => option.trim()) };
+  });
+}
 
 function openPracticeEditor(id = null) {
   const actor = AUTH.practiceActor();
@@ -30,18 +97,18 @@ function openPracticeEditor(id = null) {
     throw new Error("You can edit only your own draft or rejected practice.");
   }
   EDITING_PRACTICE_ID = passage?.id ?? null;
-  const question = passage?.qs[0];
   const values = {
     "#pass-title": passage?.t ?? "", "#pass-diff": passage?.diff ?? "easy",
-    "#pass-text": passage?.x ?? "", "#pass-q1": question?.q ?? "",
-    "#pass-opt-0": question?.o[0] ?? "", "#pass-opt-1": question?.o[1] ?? "",
-    "#pass-opt-2": question?.o[2] ?? "", "#pass-opt-3": question?.o[3] ?? "",
-    "#pass-ans": String(question?.a ?? 0), "#pass-skill": question?.k ?? "Literal"
+    "#pass-text": passage?.x ?? ""
   };
   for (const [selector, value] of Object.entries(values)) {
     const field = $(selector);
     if (field) field.value = value;
   }
+  PRACTICE_EDITOR_GENERATION++;
+  $("#practice-question-count").value = String(passage?.qs.length ?? 1);
+  renderPracticeQuestionCards(passage?.qs ?? [{}]);
+  $("#practice-wisyo-status").textContent = "Wisyo suggestions need your review before submission.";
   $("#passage-modal-title").textContent = passage ? "Edit reading practice" : "Add reading practice";
   $("#passage-modal-hint").textContent = actor.role === "teacher"
     ? "Save a draft or submit it for admin approval. Only approved work is visible to students."
@@ -55,25 +122,11 @@ function openPracticeEditor(id = null) {
 }
 
 function savePracticeFromEditor(submit) {
-  const previous = EDITING_PRACTICE_ID
-    ? AUTH.customPassages.find(passage => passage?.id === EDITING_PRACTICE_ID) : null;
-  const otherQuestions = previous ? normalizePassage(previous).qs.slice(1) : [];
-  const enteredOptions = [0, 1, 2, 3].map(index => $("#pass-opt-" + index)?.value || "");
-  const firstEmpty = enteredOptions.findIndex(option => !option.trim());
-  if (firstEmpty >= 0 && enteredOptions.slice(firstEmpty + 1).some(option => option.trim())) {
-    throw new Error("Fill answer options in order, without gaps.");
-  }
-  const options = enteredOptions.filter(option => option.trim());
   const passage = AUTH.savePractice({
     t: $("#pass-title")?.value,
     diff: $("#pass-diff")?.value,
     x: $("#pass-text")?.value,
-    qs: [{
-      q: $("#pass-q1")?.value,
-      o: options,
-      a: Number($("#pass-ans")?.value),
-      k: $("#pass-skill")?.value
-    }, ...otherQuestions]
+    qs: validatedPracticeQuestions()
   }, { id: EDITING_PRACTICE_ID, submit });
   EDITING_PRACTICE_ID = null;
   $("#admin-passage-modal").hidden = true;
@@ -524,8 +577,49 @@ document.addEventListener("click", e => {
     }
   }
   else if (a === "passage-modal-close") {
+    PRACTICE_EDITOR_GENERATION++;
     EDITING_PRACTICE_ID = null;
     $("#admin-passage-modal").hidden = true;
+  }
+  else if (a === "practice-wisyo-suggest") {
+    try {
+      AUTH.practiceActor();
+      const count = practiceQuestionCount();
+      const generation = PRACTICE_EDITOR_GENERATION;
+      const passageText = $("#pass-text").value;
+      const button = $("#practice-wisyo-suggest");
+      const status = $("#practice-wisyo-status");
+      button.disabled = true;
+      status.textContent = "Wisyo is drafting questions from your passage…";
+      wisyoPracticeSuggestions(passageText, count, $("#pass-diff").value)
+        .then(result => {
+          if (generation !== PRACTICE_EDITOR_GENERATION || $("#admin-passage-modal").hidden) return;
+          if ($("#pass-text").value !== passageText) {
+            status.textContent = "The passage changed. Ask Wisyo again for suggestions based on the latest text.";
+            return;
+          }
+          const current = readPracticeQuestionDrafts();
+          let filled = 0;
+          const merged = current.map((question, index) => {
+            if (question.q.trim() || question.o.some(option => option.trim())) return question;
+            filled++;
+            return result.questions[index];
+          });
+          renderPracticeQuestionCards(merged);
+          status.textContent = filled
+            ? `Wisyo filled ${filled} blank question${filled === 1 ? "" : "s"} using the ${result.source}. Check each answer before saving.`
+            : "Your existing questions were kept. Clear a question to ask Wisyo for a new draft.";
+        })
+        .catch(error => {
+          if (generation === PRACTICE_EDITOR_GENERATION) {
+            status.textContent = error.message;
+            showToast(error.message, "warn");
+          }
+        })
+        .finally(() => { button.disabled = false; });
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
   }
   else if (["practice-save-draft", "practice-submit", "practice-admin-save"].includes(a)) {
     try {
@@ -657,11 +751,35 @@ $("#projector-modal")?.addEventListener("click", e => {
   if (e.target.id === "projector-modal") $("#projector-modal").hidden = true;
 });
 $("#admin-passage-modal")?.addEventListener("click", e => {
-  if (e.target.id === "admin-passage-modal") $("#admin-passage-modal").hidden = true;
+  if (e.target.id === "admin-passage-modal") {
+    PRACTICE_EDITOR_GENERATION++;
+    EDITING_PRACTICE_ID = null;
+    $("#admin-passage-modal").hidden = true;
+  }
 });
 
 // JSON Backup Restore File Handler
 document.addEventListener("change", e => {
+  if (e.target.id === "practice-question-count") {
+    const previous = readPracticeQuestionDrafts();
+    let count;
+    try { count = practiceQuestionCount(); }
+    catch (error) {
+      e.target.value = String(previous.length);
+      showToast(error.message, "warn");
+      return;
+    }
+    if (count < previous.length && previous.slice(count).some(question =>
+      question.q.trim() || question.o.some(option => option.trim()))
+      && !confirm("Remove the questions above this number? Their unsaved text will be lost.")) {
+      e.target.value = String(previous.length);
+      return;
+    }
+    PRACTICE_EDITOR_GENERATION++;
+    renderPracticeQuestionCards(Array.from({ length: count }, (_, index) => previous[index] ?? {}));
+    $("#practice-wisyo-status").textContent = "Wisyo suggestions need your review before submission.";
+    return;
+  }
   if (e.target.id === "admin-restore-file") {
     const input = e.target;
     const file = e.target.files[0];
