@@ -31,6 +31,8 @@ continue as a guest. `node --check` can check each JavaScript file.
 - `src/app.js`: delegated event handling and initial render call.
 - `backend/`: reserved structure only; no server implementation exists yet.
 - `tests/`: isolated reproduction tests for BW-006 through BW-009.
+- `docs/`: draft permissions matrix and assessment-specification questions
+  for review before implementing the P0 account and scoring work.
 
 ## Current limitations
 
