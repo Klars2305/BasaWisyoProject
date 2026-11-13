@@ -27,7 +27,7 @@ event handlers continue to work. `node --check` can check each JavaScript file.
 - `src/utils/`: common constants, selectors, speech, and reading helpers.
 - `src/app.js`: delegated event handling and initial render call.
 - `backend/`: reserved structure only; no server implementation exists yet.
-- `tests/`: reserved for behavior tests in the next approved plan step.
+- `tests/`: isolated reproduction tests for BW-006 through BW-009.
 
 ## Current limitations
 
