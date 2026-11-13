@@ -11,7 +11,8 @@ From this directory, run `python -m http.server 8765`, then open
 `http://127.0.0.1:8765/index.html` in a modern browser. No build or package
 installation is required. The HTML loads the JavaScript files in their
 original execution order as classic scripts, so the current global state and
-event handlers continue to work. `node --check` can check each JavaScript file.
+event handlers continue to work. The entry screen asks users to sign in or
+continue as a guest. `node --check` can check each JavaScript file.
 
 ## File map
 
@@ -19,7 +20,7 @@ event handlers continue to work. `node --check` can check each JavaScript file.
 - `assets/images/wisyo.png`: one copy of the formerly repeated embedded image.
 - `assets/fonts/`: reserved for bundled fonts; current styles still request
   Bricolage Grotesque, Lexend, and Outfit from Google Fonts.
-- `src/styles/`: base styles and role/dashboard styles.
+- `src/styles/`: base, role/dashboard, and login styles.
 - `src/data/`: dictionary, built-in passages, placement items, and demo roster.
   `src/data/PASSAGE_SCHEMA.md` documents the shared passage contract.
 - `src/components/`: navigation, app shell, and toast rendering.

@@ -86,6 +86,11 @@ function loadApp(storage = new Map()) {
     change(target) {
       for (const listener of listeners.get('change') ?? []) listener({ target });
     },
+    submit(target) {
+      for (const listener of listeners.get('submit') ?? []) {
+        listener({ target, preventDefault() {} });
+      }
+    },
     exportedJson: () => exportedJson,
   };
 }
@@ -193,6 +198,50 @@ test('custom passage text is escaped in library and quiz markup', () => {
   app.eval('renderQuiz()');
   assert.ok(output.innerHTML.includes('&lt;img src=x onerror=alert(1)&gt;'));
   assert.ok(!output.innerHTML.includes('<img src=x onerror=alert(1)>'));
+});
+
+test('login entry rejects bad credentials and signs in an existing account', () => {
+  const app = loadApp();
+  const email = { value: 'teacher@basawisyo.ph' };
+  const password = { value: 'incorrect' };
+  const error = { textContent: '', hidden: true };
+  app.element('#entry-email', email);
+  app.element('#entry-password', password);
+  app.element('#entry-error', error);
+  app.submit({ id: 'entry-login-form' });
+  assert.equal(app.eval('AUTH.currentUser'), null);
+  assert.equal(error.textContent, 'Invalid email or password.');
+  assert.equal(error.hidden, false);
+
+  password.value = 'teacher123';
+  app.submit({ id: 'entry-login-form' });
+  assert.equal(app.eval('AUTH.currentUser.role'), 'teacher');
+  assert.equal(app.eval('CURRENT_TAB'), 'teacher');
+  assert.equal(app.eval('GUEST_MODE'), false);
+  assert.equal(error.hidden, true);
+  assert.equal(password.value, '');
+});
+
+test('guest entry is explicit and signing out returns to login', () => {
+  const app = loadApp();
+  app.click('entry-guest');
+  assert.equal(app.eval('GUEST_MODE'), true);
+  assert.equal(app.eval('AUTH.currentUser'), null);
+
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.element('#auth-modal', { hidden: true });
+  app.click('auth-open');
+  assert.equal(app.eval('AUTH.currentUser'), null);
+  assert.equal(app.eval('GUEST_MODE'), false);
+});
+
+test('quick role controls and one-click demo accounts are absent', () => {
+  const html = readFileSync(join(appRoot, 'index.html'), 'utf8');
+  const script = readFileSync(join(appRoot, 'src/app.js'), 'utf8');
+  assert.ok(html.includes('id="login-screen"'));
+  assert.ok(!html.includes('data-a="switch-role"'));
+  assert.ok(!html.includes('data-a="auth-quick-fill"'));
+  assert.ok(!script.includes('a === "switch-role"'));
 });
 
 test('BW-008: the restore control opens the file input rendered by admin', () => {

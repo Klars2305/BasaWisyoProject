@@ -5,6 +5,11 @@ function renderApp() {
   document.documentElement.setAttribute("data-theme", S.theme);
   document.documentElement.style.setProperty("--font-scale", S.fontScale);
 
+  const showLogin = !AUTH.currentUser && !GUEST_MODE;
+  document.body.classList.toggle("auth-entry", showLogin);
+  $("#login-screen").hidden = !showLogin;
+  if (showLogin) return;
+
   const u = AUTH.currentUser;
   const role = u ? u.role : "guest";
 
@@ -37,14 +42,6 @@ function renderApp() {
       hdrRole.className = "user-role-badge role-guest";
     }
   }
-
-  // Update demo role switcher buttons active state
-  $$(".demo-pill-btn").forEach(btn => {
-    const r = btn.dataset.role;
-    if (!u && r === "guest") btn.classList.add("active");
-    else if (u && u.role === r) btn.classList.add("active");
-    else btn.classList.remove("active");
-  });
 
   // Top subnav pills based on role
   let subnavItems = [

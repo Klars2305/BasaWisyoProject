@@ -10,19 +10,50 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="src/styles/base.css">
 <link rel="stylesheet" href="src/styles/roles.css">
+<link rel="stylesheet" href="src/styles/login.css">
 </head>
-<body>
+<body class="auth-entry">
+
+<section id="login-screen" class="login-screen" aria-labelledby="entry-heading">
+  <div class="login-layout">
+    <div class="login-story">
+      <div class="login-brand">
+        <img src="assets/images/wisyo.png" alt="" aria-hidden="true">
+        <span>BasaWisyo</span>
+      </div>
+      <div class="login-story-content">
+        <div class="login-book-art" aria-hidden="true">
+          <img src="assets/images/wisyo.png" alt="">
+        </div>
+        <h1>Bawat pahina,<br>bagong pag-unlad.</h1>
+        <p>Read stories, practice with purpose, and grow with your classroom.</p>
+      </div>
+      <p class="login-story-footer">A reading companion for Filipino learners and teachers.</p>
+    </div>
+    <div class="login-panel">
+      <div class="login-panel-inner">
+        <h2 id="entry-heading">Welcome to BasaWisyo</h2>
+        <p class="login-intro">Sign in to continue your reading journey or manage your class.</p>
+        <form id="entry-login-form">
+          <label for="entry-email">Email address</label>
+          <input id="entry-email" name="email" type="email" autocomplete="username" required>
+          <label for="entry-password">Password</label>
+          <div class="login-password-field">
+            <input id="entry-password" name="password" type="password" autocomplete="current-password" required>
+            <button type="button" data-a="entry-toggle-password" aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+          <p id="entry-error" class="login-error" role="alert" hidden></p>
+          <button type="submit" class="btn login-submit">Sign in</button>
+        </form>
+        <div class="login-divider"><span>or</span></div>
+        <button type="button" class="login-guest" data-a="entry-guest">Continue as guest</button>
+        <p class="login-register">New to BasaWisyo? <button type="button" data-a="auth-open" data-v="register">Create an account</button></p>
+      </div>
+    </div>
+  </div>
+</section>
 
 <div id="app">
-  <div class="demo-role-bar">
-  <span>⚡ Quick Test Role:</span>
-  <div class="demo-btn-group">
-    <button class="demo-pill-btn" data-a="switch-role" data-v="admin" title="Log in as School Principal / Administrator">🛡️ Admin</button>
-    <button class="demo-pill-btn" data-a="switch-role" data-v="teacher" title="Log in as Teacher (Guro Juan) with Share Code">👩‍🏫 Teacher</button>
-    <button class="demo-pill-btn" data-a="switch-role" data-v="student" title="Log in as Student (Carlo)">🎓 Student</button>
-    <button class="demo-pill-btn" data-a="switch-role" data-v="guest" title="Experience app as Unregistered Student">👤 Guest (No Account)</button>
-  </div>
-</div>
 <header>
     <a href="#" class="brand" data-a="tab" data-v="home">
       <div class="brand-avatar" id="brand-avatar">
@@ -49,6 +80,7 @@
 
   <!-- Main View Area -->
   <main id="v"></main>
+</div>
 <!-- ==========================================================================
      Authentication, Projector & Management Modals
      ========================================================================== -->
@@ -88,21 +120,6 @@
         <button class="btn" style="width:100%;margin-top:10px" data-a="auth-login-submit">Sign In</button>
       </form>
 
-      <!-- Pre-seeded 1-Click Demo Logins -->
-      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px">
-        <div class="lab" style="margin-bottom:8px">âš¡ Quick 1-Click Demo Accounts:</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <button class="btn o" style="font-size:12px;padding:6px 12px;justify-content:flex-start" data-a="auth-quick-fill" data-v="admin">
-            ðŸ›¡ï¸ <b>Admin:</b> admin@basawisyo.ph (Principal Maria Santos)
-          </button>
-          <button class="btn o" style="font-size:12px;padding:6px 12px;justify-content:flex-start" data-a="auth-quick-fill" data-v="teacher">
-            ðŸ‘©â€ðŸ« <b>Teacher:</b> teacher@basawisyo.ph (Guro Juan dela Cruz)
-          </button>
-          <button class="btn o" style="font-size:12px;padding:6px 12px;justify-content:flex-start" data-a="auth-quick-fill" data-v="student">
-            ðŸŽ“ <b>Student:</b> student@basawisyo.ph (Carlo Bautista)
-          </button>
-        </div>
-      </div>
     </div>
 
     <!-- Register Form -->
@@ -277,8 +294,6 @@
       </div>
     </form>
   </div>
-</div>
-
 </div>
 
 <!-- Bottom Navigation Bar -->

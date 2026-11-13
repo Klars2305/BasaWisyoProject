@@ -31,6 +31,7 @@ const save = () => {
 
 // Global App State
 let CURRENT_TAB = "home";
+let GUEST_MODE = false;
 let ACTIVE_QUIZ = null;
 let SEARCH_QUERY = "";
 

@@ -1,3 +1,23 @@
+function showEntryError(message) {
+  const error = $("#entry-error");
+  error.textContent = message;
+  error.hidden = !message;
+}
+
+function signInFromEntry() {
+  const result = AUTH.login($("#entry-email").value, $("#entry-password").value);
+  if (!result.success) {
+    showEntryError(result.message);
+    return;
+  }
+  showEntryError("");
+  $("#entry-password").value = "";
+  GUEST_MODE = false;
+  CURRENT_TAB = result.user.role === "teacher" ? "teacher"
+    : result.user.role === "admin" ? "admin" : "home";
+  renderApp();
+}
+
 /* ==========================================================================
    Global Event Delegations
    ========================================================================== */
@@ -23,6 +43,8 @@ document.addEventListener("click", e => {
 
   // Start placement diagnostic
   else if (a === "start-placement") {
+    if (!AUTH.currentUser) GUEST_MODE = true;
+    $("#auth-modal").hidden = true;
     startQuiz(PLACEMENT_TEST, "pl", "Phil-IRI Diagnostic Placement");
   }
 
@@ -211,47 +233,36 @@ document.addEventListener("click", e => {
     renderApp();
     showToast("Monthly comparison updated!");
   }
-  // Demo Role Bar Switcher
-  else if (a === "switch-role") {
-    const roleToSwitch = v;
-    if (roleToSwitch === "admin") {
-      AUTH.login("admin@basawisyo.ph", "admin123");
-      CURRENT_TAB = "admin";
-      showToast("Switched to Principal Maria Santos (Admin) 🛡️");
-    } else if (roleToSwitch === "teacher") {
-      AUTH.login("teacher@basawisyo.ph", "teacher123");
-      CURRENT_TAB = "teacher";
-      showToast("Switched to Guro Juan dela Cruz (Teacher) 🏫");
-    } else if (roleToSwitch === "student") {
-      AUTH.login("student@basawisyo.ph", "student123");
-      CURRENT_TAB = "home";
-      showToast("Switched to Carlo Bautista (Student) 🎓");
-    } else {
-      AUTH.logout();
-      CURRENT_TAB = "home";
-      showToast("Switched to Guest Mode (No Account) ⚡");
-    }
+  // Entry screen and account modal
+  else if (a === "entry-guest") {
+    GUEST_MODE = true;
+    CURRENT_TAB = "home";
     renderApp();
+  }
+  else if (a === "entry-toggle-password") {
+    const field = $("#entry-password");
+    const show = field.type === "password";
+    field.type = show ? "text" : "password";
+    t.textContent = show ? "Hide" : "Show";
+    t.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    t.setAttribute("aria-pressed", String(show));
   }
 
   // Auth Modal Opening & Closing
   else if (a === "auth-open") {
     const modal = $("#auth-modal");
     if (modal) {
-      modal.hidden = false;
       const u = AUTH.currentUser;
       if (u) {
-        // If logged in, provide quick switch or sign out notice
         if (confirm(`Currently signed in as ${u.name} (${u.role.toUpperCase()}). Would you like to sign out?`)) {
           AUTH.logout();
+          GUEST_MODE = false;
           CURRENT_TAB = "home";
           renderApp();
           showToast("Signed out successfully.");
-        } else {
-          modal.hidden = true;
         }
       } else {
-        // Guest: show login or register
+        modal.hidden = false;
         if (v === "register") {
           const regTab = $("#tab-btn-register");
           if (regTab) regTab.click();
@@ -269,6 +280,8 @@ document.addEventListener("click", e => {
   else if (a === "auth-tab") {
     $$(".auth-tab-btn").forEach(btn => btn.classList.remove("active"));
     t.classList.add("active");
+    $("#auth-modal-title").textContent = v === "register"
+      ? "Create a BasaWisyo account" : "Sign in to BasaWisyo";
     if (v === "login") {
       $("#auth-login-pane").hidden = false;
       $("#auth-register-pane").hidden = true;
@@ -291,21 +304,6 @@ document.addEventListener("click", e => {
     if (teachGroup) teachGroup.hidden = (v !== "teacher");
     if (adminGroup) adminGroup.hidden = (v !== "admin");
   }
-  else if (a === "auth-quick-fill") {
-    const emailInput = $("#login-email");
-    const pwdInput = $("#login-password");
-    if (v === "admin") {
-      if (emailInput) emailInput.value = "admin@basawisyo.ph";
-      if (pwdInput) pwdInput.value = "admin123";
-    } else if (v === "teacher") {
-      if (emailInput) emailInput.value = "teacher@basawisyo.ph";
-      if (pwdInput) pwdInput.value = "teacher123";
-    } else if (v === "student") {
-      if (emailInput) emailInput.value = "student@basawisyo.ph";
-      if (pwdInput) pwdInput.value = "student123";
-    }
-    showToast(`Filled credentials for ${v} 🔑`);
-  }
   else if (a === "auth-login-submit") {
     const email = $("#login-email")?.value;
     const pwd = $("#login-password")?.value;
@@ -316,6 +314,7 @@ document.addEventListener("click", e => {
     const res = AUTH.login(email, pwd);
     if (res.success) {
       $("#auth-modal").hidden = true;
+      GUEST_MODE = false;
       showToast(`Welcome back, ${res.user.name}! 👋`);
       if (res.user.role === "teacher") CURRENT_TAB = "teacher";
       else if (res.user.role === "admin") CURRENT_TAB = "admin";
@@ -347,6 +346,7 @@ document.addEventListener("click", e => {
     const res = AUTH.register({ name, email, password, role, section, teacherCode });
     if (res.success) {
       $("#auth-modal").hidden = true;
+      GUEST_MODE = false;
       showToast(`Account created! Welcome, ${res.user.name} 🎉`);
       if (res.user.role === "teacher") CURRENT_TAB = "teacher";
       else if (res.user.role === "admin") CURRENT_TAB = "admin";
@@ -358,9 +358,10 @@ document.addEventListener("click", e => {
   }
   else if (a === "auth-logout") {
     AUTH.logout();
+    GUEST_MODE = false;
     $("#auth-modal").hidden = true;
     CURRENT_TAB = "home";
-    showToast("Signed out. Switched to Guest mode.");
+    showToast("Signed out.");
     renderApp();
   }
 
@@ -616,8 +617,17 @@ document.addEventListener("click", e => {
   }
 });
 
+document.addEventListener("submit", e => {
+  if (e.target.id !== "entry-login-form") return;
+  e.preventDefault();
+  signInFromEntry();
+});
+
 // Search input handling
 document.addEventListener("input", e => {
+  if (e.target.id === "entry-email" || e.target.id === "entry-password") {
+    showEntryError("");
+  }
   if (e.target.id === "lib-search") {
     SEARCH_QUERY = e.target.value;
     renderApp();
