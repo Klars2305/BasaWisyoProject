@@ -1,7 +1,8 @@
 /* ==========================================================================
    State Management & Persistence
    ========================================================================== */
-let S = {
+function createInitialState() {
+  return {
   lvl: null,          // 0: Frustration, 1: Instructional, 2: Independent, 3: Mastery
   w: 0,               // Cumulative words read
   ss: 0,              // Practice sessions completed
@@ -16,7 +17,10 @@ let S = {
   theme: "light",     // 'light' or 'dark'
   fontScale: 1.0,     // 0.9, 1.0, 1.15, 1.3
   activeDiff: "all"   // 'all', 'easy', 'medium', 'hard', 'extreme'
-};
+  };
+}
+
+let S = createInitialState();
 
 try {
   const loaded = localStorage.getItem("basa_wisyo_state_v2");

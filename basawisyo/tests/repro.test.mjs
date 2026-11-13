@@ -18,13 +18,16 @@ const files = [
   'src/utils/reading.js',
   'src/pages/practice.js',
   'src/services/quiz.js',
+  'src/services/backup.js',
   'src/app.js',
 ];
 
-function loadApp(storage = new Map()) {
+function loadApp(storage = new Map(), { confirmResult = true } = {}) {
   const elements = new Map();
   const listeners = new Map();
+  const alerts = [];
   let exportedJson = null;
+  let failNextKey = null;
   elements.set('#md', { addEventListener() {} });
   elements.set('#ai', { addEventListener() {} });
 
@@ -40,11 +43,18 @@ function loadApp(storage = new Map()) {
   };
   const localStorage = {
     getItem: key => storage.get(key) ?? null,
-    setItem: (key, value) => storage.set(key, value),
+    setItem(key, value) {
+      if (key === failNextKey) {
+        failNextKey = null;
+        throw new Error('simulated storage failure');
+      }
+      storage.set(key, value);
+    },
     removeItem: key => storage.delete(key),
   };
   class FileReader {
     readAsText(file) {
+      if (file.fail) { this.onerror(); return; }
       this.onload({ target: { result: file.text } });
     }
   }
@@ -63,8 +73,8 @@ function loadApp(storage = new Map()) {
     },
     renderApp() {},
     showToast() {},
-    alert() {},
-    confirm: () => true,
+    alert(message) { alerts.push(message); },
+    confirm: () => confirmResult,
     window: {},
     navigator: {},
     setTimeout() {},
@@ -77,6 +87,8 @@ function loadApp(storage = new Map()) {
 
   return {
     storage,
+    alerts,
+    failNextWrite(key) { failNextKey = key; },
     eval: expression => vm.runInContext(expression, context),
     element(selector, value) { elements.set(selector, value); },
     click(action) {
@@ -93,6 +105,16 @@ function loadApp(storage = new Map()) {
     },
     exportedJson: () => exportedJson,
   };
+}
+
+function exportedBackup(app) {
+  app.click('admin-export-backup');
+  return JSON.parse(app.exportedJson());
+}
+
+function restorePayload(app, payload) {
+  const text = typeof payload === 'string' ? payload : JSON.stringify(payload);
+  app.change({ id: 'admin-restore-file', files: [{ text }], value: 'selected' });
 }
 
 function saveAdminPassage(app, title = 'Regression Passage') {
@@ -267,4 +289,105 @@ test('BW-009: restoring an exported backup restores systemState', () => {
   app.change({ id: 'admin-restore-file', files: [{ text: json }] });
   assert.equal(app.eval('S.w'), 1234);
   assert.equal(app.eval('S.theme'), 'dark');
+});
+
+test('versioned backup restores every collection, clears the session, and is repeatable', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123"); S.w = 4321');
+  const backup = exportedBackup(app);
+  assert.equal(backup.format, 'BasaWisyoBackup');
+  assert.equal(backup.version, 1);
+  assert.equal(backup.systemState.w, 4321);
+
+  app.eval('AUTH.users = []; AUTH.assignments = []; AUTH.guestTokens = {}; AUTH.customPassages = []; S.w = 0');
+  restorePayload(app, backup);
+  assert.equal(app.eval('AUTH.users.length'), backup.users.length);
+  assert.equal(app.eval('AUTH.assignments.length'), backup.assignments.length);
+  assert.equal(app.eval('S.w'), 4321);
+  assert.equal(app.eval('AUTH.currentUser'), null);
+  assert.equal(app.storage.get('basa_wisyo_session_v2'), undefined);
+  const reloaded = loadApp(app.storage);
+  assert.equal(reloaded.eval('AUTH.currentUser'), null);
+  assert.equal(reloaded.eval('S.w'), 4321);
+
+  const firstRestore = new Map(app.storage);
+  restorePayload(app, backup);
+  assert.deepEqual(app.storage, firstRestore);
+  assert.equal(app.eval('AUTH.users.length'), backup.users.length);
+});
+
+test('legacy unversioned export still restores supported fields', () => {
+  const app = loadApp();
+  app.eval('S.w = 987');
+  const backup = exportedBackup(app);
+  delete backup.format;
+  delete backup.version;
+  app.eval('S.w = 0');
+  restorePayload(app, backup);
+  assert.equal(app.eval('S.w'), 987);
+  assert.equal(app.alerts.length, 0);
+});
+
+test('empty, malformed, unsupported, and duplicate backups leave data intact', () => {
+  const app = loadApp();
+  const valid = exportedBackup(app);
+  const duplicate = structuredClone(valid);
+  duplicate.users.push(structuredClone(duplicate.users[0]));
+  const missingState = structuredClone(valid);
+  delete missingState.systemState;
+  const unsupported = { ...valid, version: 99 };
+  const oldVersion = { ...valid, version: 0 };
+  const before = new Map(app.storage);
+
+  for (const payload of ['{}', '{broken', unsupported, oldVersion, duplicate, missingState]) {
+    const previousAlerts = app.alerts.length;
+    restorePayload(app, payload);
+    assert.equal(app.alerts.length, previousAlerts + 1);
+    assert.deepEqual(app.storage, before);
+    assert.equal(app.eval('AUTH.users.length'), valid.users.length);
+  }
+  assert.match(app.alerts[2], /Unsupported backup version/);
+  assert.match(app.alerts[3], /Unsupported backup version/);
+  assert.match(app.alerts[4], /duplicate entries/);
+});
+
+test('canceling restore does not change stored or in-memory data', () => {
+  const app = loadApp(new Map(), { confirmResult: false });
+  const backup = exportedBackup(app);
+  backup.systemState.w = 700;
+  const before = new Map(app.storage);
+  restorePayload(app, backup);
+  assert.deepEqual(app.storage, before);
+  assert.equal(app.eval('S.w'), 0);
+  assert.equal(app.alerts.length, 0);
+});
+
+test('failed storage write rolls back the complete restore', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  const backup = exportedBackup(app);
+  backup.systemState.w = 700;
+  const before = new Map(app.storage);
+  app.failNextWrite('basa_wisyo_state_v2');
+  restorePayload(app, backup);
+  assert.deepEqual(app.storage, before);
+  assert.equal(app.eval('AUTH.currentUser.role'), 'student');
+  assert.match(app.alerts[0], /Previous data was restored/);
+});
+
+test('unreadable and oversized files do not touch current data', () => {
+  const app = loadApp();
+  const before = new Map(app.storage);
+  app.change({ id: 'admin-restore-file', files: [{ fail: true }], value: 'selected' });
+  app.change({ id: 'admin-restore-file', files: [{ size: 11 * 1024 * 1024 }], value: 'selected' });
+  assert.deepEqual(app.storage, before);
+  assert.equal(app.alerts.length, 2);
+});
+
+test('student session reloads after state initialization', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  const reloaded = loadApp(app.storage);
+  assert.equal(reloaded.eval('AUTH.currentUser.role'), 'student');
+  assert.equal(reloaded.eval('S.lvl'), 1);
 });

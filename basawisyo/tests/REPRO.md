@@ -2,7 +2,8 @@
 
 Captured against the componentized baseline before behavior fixes. At step 2,
 the suite had one passing built-in passage control and four failing issue
-tests. After step 3, BW-006 and BW-007 pass; BW-008 and BW-009 remain red.
+tests. Step 3 fixed BW-006 and BW-007. Step 4 fixed BW-008 and BW-009 and
+added backup validation and rollback tests. All 19 tests now pass.
 Run `node --test tests/repro.test.mjs` from `basawisyo/`.
 
 ## BW-006 — Admin passage schema
@@ -12,7 +13,7 @@ Run `node --test tests/repro.test.mjs` from `basawisyo/`.
 2. The saved record in `AUTH.customPassages` has `tier`, `q`, and `skill`.
 3. Pass that record to `startQuiz()`.
 
-Observed: `P.qs.forEach` throws because `qs` is undefined. The reader also
+Originally observed: `P.qs.forEach` throws because `qs` is undefined. The reader also
 expects `diff` and question skill `k`. Source: `src/app.js` admin-save-passage
 handler and `src/services/quiz.js` `startQuiz()`.
 
@@ -21,7 +22,7 @@ handler and `src/services/quiz.js` `startQuiz()`.
 1. Save the same admin passage.
 2. Render `viewPractice()`.
 
-Observed: the new title is absent. `viewPractice()` reads built-in passages
+Originally observed: the new title is absent. `viewPractice()` reads built-in passages
 and `S.sh` but not `AUTH.customPassages`. Source: `src/pages/practice.js`.
 
 ## BW-008 — Restore picker
@@ -29,7 +30,7 @@ and `S.sh` but not `AUTH.customPassages`. Source: `src/pages/practice.js`.
 1. Render the admin system tab.
 2. Activate the restore button.
 
-Observed: the view renders file input `admin-backup-file`, while the button
+Originally observed: the view renders file input `admin-backup-file`, while the button
 handler looks up `admin-restore-file`; the picker does not open. The change
 handler also listens for `admin-restore-file`. Source: `src/pages/admin.js`
 and `src/app.js`.
@@ -41,7 +42,7 @@ and `src/app.js`.
 3. Change the in-memory values and feed the exported JSON to the restore
    handler directly (to isolate this issue from BW-008).
 
-Observed: `S.w` and `S.theme` retain the changed values. The restore handler
+Originally observed: `S.w` and `S.theme` retain the changed values. The restore handler
 loads the four `AUTH` collections but never assigns or saves `systemState`.
 Source: `src/app.js` backup export and restore handlers.
 

@@ -17,6 +17,11 @@ const AUTH = {
   customPassages: [],
 
   init() {
+    this.currentUser = null;
+    this.users = [];
+    this.assignments = [];
+    this.guestTokens = {};
+    this.customPassages = [];
     // 1. Load or seed users
     try {
       const storedUsers = localStorage.getItem(this.USERS_KEY);
@@ -62,12 +67,14 @@ const AUTH = {
         const sess = JSON.parse(storedSession);
         // Verify user still exists
         const found = this.users.find(u => u.id === sess.id);
-        if (found) {
+        if (found && found.status !== "suspended") {
           this.currentUser = found;
           // Sync student stats with local S if student
           if (found.role === "student" && found.lvl !== undefined) {
             S.lvl = found.lvl;
           }
+        } else {
+          localStorage.removeItem(this.SESSION_KEY);
         }
       }
     } catch(e) {}
@@ -442,7 +449,4 @@ const AUTH = {
     save();
   }
 };
-
-// Initialize AUTH immediately
-AUTH.init();
 

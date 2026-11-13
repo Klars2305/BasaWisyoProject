@@ -281,7 +281,7 @@ function renderAdminSystemTab() {
         <button class="btn o" data-a="admin-restore-backup-trigger">ðŸ“¥ Restore from JSON File</button>
         <button class="btn o" style="color:var(--coral)" data-a="admin-reset-presets">ðŸ”„ Reset to DepEd Factory Presets</button>
       </div>
-      <input type="file" id="admin-backup-file" style="display:none" accept=".json">
+      <input type="file" id="admin-restore-file" style="display:none" accept=".json,application/json">
     </div>
   `;
 }

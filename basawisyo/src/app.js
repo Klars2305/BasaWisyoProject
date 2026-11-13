@@ -567,25 +567,12 @@ document.addEventListener("click", e => {
     renderApp();
   }
   else if (a === "admin-export-backup") {
-    const backup = {
-      exportDate: new Date().toISOString(),
-      school: "Rizal National High School",
-      users: AUTH.users,
-      assignments: AUTH.assignments,
-      guestTokens: AUTH.guestTokens,
-      customPassages: AUTH.customPassages,
-      systemState: S
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const dlAnchor = document.createElement("a");
-    dlAnchor.href = url;
-    dlAnchor.download = `BasaWisyo_Backup_${new Date().toISOString().split("T")[0]}.json`;
-    document.body.appendChild(dlAnchor);
-    dlAnchor.click();
-    document.body.removeChild(dlAnchor);
-    URL.revokeObjectURL(url);
-    showToast("Complete database backup exported to JSON! 💾");
+    try {
+      downloadBackup();
+      showToast("Backup exported to JSON.");
+    } catch (error) {
+      alert("Backup export failed: " + error.message);
+    }
   }
   else if (a === "admin-restore-backup-trigger") {
     const fileInput = $("#admin-restore-file");
@@ -675,29 +662,35 @@ $("#admin-passage-modal")?.addEventListener("click", e => {
 // JSON Backup Restore File Handler
 document.addEventListener("change", e => {
   if (e.target.id === "admin-restore-file") {
+    const input = e.target;
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Backup could not be restored: File exceeds the 10 MB limit.");
+      input.value = "";
+      return;
+    }
     const reader = new FileReader();
     reader.onload = evt => {
       try {
-        const data = JSON.parse(evt.target.result);
-        if (data.users) AUTH.users = data.users;
-        if (data.assignments) AUTH.assignments = data.assignments;
-        if (data.guestTokens) AUTH.guestTokens = data.guestTokens;
-        if (data.customPassages) AUTH.customPassages = data.customPassages;
-        AUTH.saveUsers();
-        AUTH.saveAssignments();
-        AUTH.saveGuestTokens();
-        AUTH.saveCustomPassages();
-        showToast("Database restored successfully from backup! 🎉");
-        renderApp();
-      } catch(err) {
-        alert("Failed to parse backup file: " + err.message);
+        if (restoreBackupFromText(evt.target.result)) {
+          renderApp();
+          showToast("Backup restored. Sign in to continue.");
+        }
+      } catch (error) {
+        alert("Backup could not be restored: " + error.message);
+      } finally {
+        input.value = "";
       }
+    };
+    reader.onerror = () => {
+      alert("Backup could not be read. Select the file again.");
+      input.value = "";
     };
     reader.readAsText(file);
   }
 });
 
 // Initial boot
+AUTH.init();
 renderApp();
