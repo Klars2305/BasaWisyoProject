@@ -37,7 +37,7 @@
         <div class="entry-actions">
           <button type="button" class="btn entry-primary" data-a="entry-guest">Explore as guest</button>
           <a class="entry-secondary" href="login.html">Sign in</a>
-          <button type="button" class="entry-secondary" data-a="auth-open" data-v="register">Create student account</button>
+          <button type="button" class="entry-secondary" data-a="auth-open" data-v="register">Create an account</button>
         </div>
         <p class="entry-note">You can explore without an account. Guest activity stays in this browser.</p>
       </div>
@@ -81,14 +81,29 @@
 <div id="auth-modal" class="app-modal-overlay" hidden>
   <div class="app-modal-card">
     <div class="modal-hdr">
-      <h2 id="auth-modal-title">Create a student account</h2>
+      <h2 id="auth-modal-title">Create an account</h2>
       <button class="modal-close-btn" data-a="auth-close" aria-label="Close">✕</button>
     </div>
-    <p class="sub">Need teacher or admin access? Ask your school admin to assign it.</p>
+    <p class="sub">Register as a student or teacher. Admin accounts are managed by the school admin.</p>
 
     <!-- Register Form -->
     <div id="auth-register-pane">
       <form id="form-register" onsubmit="return false;">
+        <fieldset class="registration-role-fieldset">
+          <legend>Account type</legend>
+          <div class="role-picker-grid">
+            <label class="role-choice-card">
+              <input type="radio" name="reg-role" value="student" checked>
+              <span class="role-title">Student</span>
+              <span class="role-desc">Read and join a classroom</span>
+            </label>
+            <label class="role-choice-card">
+              <input type="radio" name="reg-role" value="teacher">
+              <span class="role-title">Teacher</span>
+              <span class="role-desc">Create and manage a classroom</span>
+            </label>
+          </div>
+        </fieldset>
         <div class="auth-form-group">
           <label>Full Name</label>
           <input type="text" id="reg-name" class="auth-input" placeholder="e.g. Juan dela Cruz" required>
@@ -109,7 +124,13 @@
           <div class="auth-help">Enter code provided by your teacher to automatically join their class section!</div>
         </div>
 
-        <button class="btn gold" style="width:100%;margin-top:10px" data-a="auth-register-submit">Create Student Account</button>
+        <div class="auth-form-group" id="reg-group-teacher" hidden>
+          <label for="reg-section">Class Section</label>
+          <input type="text" id="reg-section" class="auth-input" placeholder="e.g. Grade 8 - Emerald" maxlength="100">
+          <div class="auth-help">Your classroom share code will be created automatically.</div>
+        </div>
+
+        <button class="btn gold" id="reg-submit" style="width:100%;margin-top:10px" data-a="auth-register-submit">Create Student Account</button>
       </form>
       <p class="login-register">Already have an account? <a href="login.html">Sign in</a></p>
     </div>

@@ -275,37 +275,79 @@ const AUTH = {
   },
 
   register(data) {
-    if (data.role !== "student") {
-      return { success: false, message: "Public registration is for students. Ask an admin to assign a staff role." };
+    if (!data || !["student", "teacher"].includes(data.role)) {
+      return { success: false, message: "Choose a student or teacher account. Admin accounts are assigned by the school admin." };
     }
-    const cleanEmail = (data.email || "").trim().toLowerCase();
+    const cleanEmail = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
+    const name = typeof data.name === "string" ? data.name.trim() : "";
+    const password = typeof data.password === "string" ? data.password : "";
+    const section = typeof data.section === "string" ? data.section.trim() : "";
+    const teacherCode = String(data.teacherCode || "").trim().toUpperCase();
+    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail) || password.length < 6) {
+      return { success: false, message: "Enter a name, valid email, and password of at least 6 characters." };
+    }
     if (this.users.some(u => u.email.toLowerCase() === cleanEmail)) {
       return { success: false, message: "An account with this email already exists." };
     }
+    if (data.role === "teacher" && !section) {
+      return { success: false, message: "Enter the class section for your teacher account." };
+    }
+    const linkedTeacher = teacherCode
+      ? this.users.find(user => user.role === "teacher" && user.status === "active" && user.shareCode === teacherCode)
+      : null;
+    if (data.role === "student" && teacherCode && !linkedTeacher) {
+      return { success: false, message: "Teacher share code was not found. Check the code or leave it blank." };
+    }
 
-    const id = "usr_" + Date.now();
+    let shareCode = null;
+    if (data.role === "teacher") {
+      const start = Math.floor(Math.random() * 9000);
+      for (let offset = 0; offset < 9000; offset++) {
+        const candidate = "BASA-TEACH-" + (1000 + (start + offset) % 9000);
+        if (!this.users.some(user => user.shareCode === candidate)) {
+          shareCode = candidate;
+          break;
+        }
+      }
+      if (!shareCode) return { success: false, message: "No classroom share codes are available right now." };
+    }
+
+    const idSeed = `usr_${Date.now()}`;
+    let id = idSeed;
+    for (let suffix = 1; this.users.some(user => user.id === id); suffix++) {
+      id = `${idSeed}_${suffix}`;
+    }
     const newUser = {
       id,
       email: cleanEmail,
-      password: data.password,
-      name: data.name.trim(),
-      role: "student",
+      password,
+      name,
+      role: data.role,
       school: data.school || "Rizal National High School",
-      section: data.section || "",
-      teacherCode: (data.teacherCode || "").trim().toUpperCase(),
-      shareCode: null,
-      lvl: S.lvl !== null ? S.lvl : 1,
-      wpm: 110,
-      comp: 75,
-      wordsRead: S.w || 0,
+      section: data.role === "teacher" ? section : linkedTeacher?.section || "",
+      teacherCode: data.role === "student" ? teacherCode : "",
+      shareCode,
+      lvl: data.role === "student" ? (S.lvl !== null ? S.lvl : 1) : null,
+      wpm: data.role === "student" ? 110 : null,
+      comp: data.role === "student" ? 75 : null,
+      wordsRead: data.role === "student" ? (S.w || 0) : null,
       status: "active",
       createdAt: new Date().toISOString().split("T")[0]
     };
 
-    this.users.push(newUser);
-    this.saveUsers();
+    const nextUsers = [...this.users, newUser];
+    try {
+      localStorage.setItem(this.USERS_KEY, JSON.stringify(nextUsers));
+    } catch(e) {
+      return { success: false, message: "Account could not be saved in this browser. Check storage and try again." };
+    }
+    this.users = nextUsers;
+    try {
+      localStorage.setItem(this.SESSION_KEY, JSON.stringify(newUser));
+    } catch(e) {
+      return { success: false, message: "Account created, but automatic sign-in failed. Please sign in from the login page." };
+    }
     this.currentUser = newUser;
-    this.saveSession();
 
     return { success: true, user: newUser };
   },

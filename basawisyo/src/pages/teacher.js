@@ -37,12 +37,12 @@ function viewTeacher() {
   return `
     <!-- Teacher Header & Share Code Hero Banner -->
     <div class="share-code-hero">
-      <div class="share-code-label">👩‍🏫 Teacher Share Code (Class Section: ${teacher.section || "Grade 8"})</div>
+      <div class="share-code-label">👩‍🏫 Teacher Share Code (Class Section: ${escapeHTML(teacher.section || "Grade 8")})</div>
       <div style="font-size:14px;color:rgba(255,255,255,0.9);margin-bottom:8px">
         Share this code with your nearby students so they can join your classroom roster:
       </div>
       <div class="share-code-box">
-        <span class="share-code-digits" id="teacher-share-code-val">${teacher.shareCode}</span>
+        <span class="share-code-digits" id="teacher-share-code-val">${escapeHTML(teacher.shareCode)}</span>
       </div>
       <div class="share-code-actions">
         <button class="share-code-btn" data-a="teacher-copy-code">
@@ -185,7 +185,7 @@ function viewTeacher() {
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
         <div>
-          <h3 style="margin:0;font-size:18px">📋 Connected Students Roster (${teacher.section})</h3>
+          <h3 style="margin:0;font-size:18px">📋 Connected Students Roster (${escapeHTML(teacher.section)})</h3>
           <p class="sub" style="margin:2px 0 0 0">Real-time sync with student diagnostic tests and reading sessions</p>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -211,7 +211,7 @@ function viewTeacher() {
             ${students.length === 0 ? `
               <tr>
                 <td colspan="7" style="text-align:center;padding:24px;color:var(--sub)">
-                  No students connected yet. Have students enter your Share Code <b>${teacher.shareCode}</b>!
+                  No students connected yet. Have students enter your Share Code <b>${escapeHTML(teacher.shareCode)}</b>!
                 </td>
               </tr>
             ` : students.map((s, idx) => {
@@ -222,7 +222,7 @@ function viewTeacher() {
               return `
                 <tr>
                   <td>${idx + 1}</td>
-                  <td><b>${s.name}</b></td>
+                  <td><b>${escapeHTML(s.name)}</b></td>
                   <td><span class="level-badge ${lvlClass}">${lvlText}</span></td>
                   <td>${s.wpm || 105} WPM</td>
                   <td><b>${s.comp || 75}%</b></td>

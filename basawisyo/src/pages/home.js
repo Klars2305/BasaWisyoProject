@@ -21,8 +21,8 @@ function viewHome() {
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
             <div>
               <div class="lab" style="color:var(--sky)">🎓 Connected Classroom</div>
-              <h3 style="margin:2px 0 0 0">${teachName} · ${u.section || "Grade 8"}</h3>
-              <p class="sub" style="margin:4px 0 0 0">Classroom Share Code: <b>${u.teacherCode}</b> · Live roster synced</p>
+              <h3 style="margin:2px 0 0 0">${escapeHTML(teachName)} · ${escapeHTML(u.section || "Grade 8")}</h3>
+              <p class="sub" style="margin:4px 0 0 0">Classroom Share Code: <b>${escapeHTML(u.teacherCode)}</b> · Live roster synced</p>
             </div>
             <span class="level-badge level-${S.lvl !== null ? S.lvl : 1}">
               ${currentLvlStr}
@@ -39,7 +39,7 @@ function viewHome() {
                       <b>${escapeHTML(a.title)}</b>
                       <span class="sub-sm" style="margin-left:6px">Due: ${escapeHTML(a.dueDate)}</span>
                     </div>
-                    <button class="btn sm" data-a="read-passage" data-v="${a.passageId}">Read Now</button>
+                    <button class="btn sm" data-a="read-passage" data-v="${escapeHTML(a.passageId)}">Read Now</button>
                   </div>
                 `).join("")}
               </div>
@@ -69,8 +69,8 @@ function viewHome() {
       <div class="card" style="background:linear-gradient(135deg, var(--card), var(--teal-soft));border-left:5px solid var(--teal);margin-bottom:18px">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <div>
-            <div class="lab" style="color:var(--teal)">👩‍🏫 Teacher Workspace · ${u.section}</div>
-            <h3 style="margin:2px 0 0 0">Classroom Share Code: <b>${u.shareCode}</b></h3>
+            <div class="lab" style="color:var(--teal)">👩‍🏫 Teacher Workspace · ${escapeHTML(u.section)}</div>
+            <h3 style="margin:2px 0 0 0">Classroom Share Code: <b>${escapeHTML(u.shareCode)}</b></h3>
             <p class="sub" style="margin:4px 0 0 0">${studCount} students currently connected to your roster</p>
           </div>
           <div style="display:flex;gap:6px">

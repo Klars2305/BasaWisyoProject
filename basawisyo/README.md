@@ -34,7 +34,8 @@ the app. `node --check` can check each JavaScript file.
   or ask Wisyo for drafts. Wisyo uses an on-device browser model when
   available; otherwise its offline helper suggests passage-based word questions.
   Authors should verify every suggested question and answer before submission.
-- Public registration creates student accounts only; staff roles are assigned
+- Public registration creates student or teacher accounts. Teachers provide a
+  class section and receive a unique share code. Admin accounts remain managed
   from the existing admin account-management view in this prototype.
 - `src/services/`: account/storage state, quizzes, tutor, export, and backup
   behavior. `src/services/BACKUP_FORMAT.md` documents backup version 1.

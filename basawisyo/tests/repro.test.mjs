@@ -16,6 +16,7 @@ const files = [
   'src/pages/admin.js',
   'src/services/state.js',
   'src/utils/reading.js',
+  'src/pages/home.js',
   'src/pages/practice.js',
   'src/services/quiz.js',
   'src/services/practice-helper.js',
@@ -560,7 +561,9 @@ test('public entry links to a separate login page and keeps registration', () =>
   const loginHtml = readFileSync(join(appRoot, 'login.html'), 'utf8');
   assert.match(html, /data-a="entry-guest">Explore as guest<\/button>/);
   assert.match(html, /href="login.html">Sign in<\/a>/);
-  assert.match(html, /data-a="auth-open" data-v="register">Create student account<\/button>/);
+  assert.match(html, /data-a="auth-open" data-v="register">Create an account<\/button>/);
+  assert.match(html, /name="reg-role" value="student" checked/);
+  assert.match(html, /name="reg-role" value="teacher"/);
   assert.ok(!html.includes('id="entry-login-form"'));
   assert.ok(!html.includes('id="form-login"'));
   assert.ok(!html.includes('id="role-card-admin"'));
@@ -569,16 +572,115 @@ test('public entry links to a separate login page and keeps registration', () =>
   assert.match(loginHtml, /href="index.html#register"/);
 });
 
-test('public registration cannot create a teacher or admin account', () => {
+test('public registration creates teacher accounts with distinct classroom codes but never admin accounts', () => {
   const app = loadApp();
   const before = app.eval('AUTH.users.length');
+  app.eval('Math.random = () => 0');
   assert.equal(app.eval(`AUTH.register({
-    name: 'New Teacher', email: 'newteacher@school.test', password: 'test123', role: 'teacher'
-  }).success`), false);
+    name: 'New Teacher', email: 'newteacher@school.test', password: 'test123', role: 'teacher',
+    section: 'Grade 7 - Luna'
+  }).success`), true);
+  assert.equal(app.eval(`AUTH.register({
+    name: 'Second Teacher', email: 'secondteacher@school.test', password: 'test123', role: 'teacher',
+    section: 'Grade 8 - Rizal'
+  }).success`), true);
+  assert.equal(app.eval('AUTH.users.at(-2).shareCode'), 'BASA-TEACH-1000');
+  assert.equal(app.eval('AUTH.users.at(-1).shareCode'), 'BASA-TEACH-1001');
+  assert.equal(app.eval('AUTH.users.at(-1).section'), 'Grade 8 - Rizal');
+  assert.equal(app.eval('AUTH.users.at(-1).lvl'), null);
+  assert.equal(app.eval('AUTH.users.at(-1).id !== AUTH.users.at(-2).id'), true);
   assert.equal(app.eval(`AUTH.register({
     name: 'New Admin', email: 'newadmin@school.test', password: 'test123', role: 'admin'
   }).success`), false);
+  assert.equal(app.eval('AUTH.users.length'), before + 2);
+  assert.equal(loadApp(app.storage).eval('AUTH.users.at(-1).role'), 'teacher');
+});
+
+test('teacher registration needs a section and student share codes link to that section', () => {
+  const app = loadApp();
+  const before = app.eval('AUTH.users.length');
+  assert.equal(app.eval(`AUTH.register({
+    name: 'No Section', email: 'nosection@school.test', password: 'test123', role: 'teacher'
+  }).success`), false);
   assert.equal(app.eval('AUTH.users.length'), before);
+  const student = app.eval(`AUTH.register({
+    name: 'New Student', email: 'newstudent@school.test', password: 'test123', role: 'student',
+    teacherCode: 'basa-teach-8492'
+  })`);
+  assert.equal(student.success, true);
+  assert.equal(student.user.teacherCode, 'BASA-TEACH-8492');
+  assert.equal(student.user.section, 'Grade 8 - Emerald');
+  assert.equal(app.eval(`AUTH.register({
+    name: 'Bad Code', email: 'badcode@school.test', password: 'test123', role: 'student',
+    teacherCode: 'BASA-TEACH-9999'
+  }).success`), false);
+});
+
+test('registration form switches fields and creates the chosen teacher role', () => {
+  const app = loadApp();
+  const studentFields = { hidden: false };
+  const teacherFields = { hidden: true };
+  const button = { textContent: '' };
+  app.element('input[name="reg-role"]:checked', { value: 'teacher' });
+  app.element('#reg-group-student', studentFields);
+  app.element('#reg-group-teacher', teacherFields);
+  app.element('#reg-submit', button);
+  app.change({ name: 'reg-role' });
+  assert.equal(studentFields.hidden, true);
+  assert.equal(teacherFields.hidden, false);
+  assert.equal(button.textContent, 'Create Teacher Account');
+  for (const [selector, value] of Object.entries({
+    '#reg-name': 'Guro Lea', '#reg-email': 'lea@school.test', '#reg-password': 'test123',
+    '#reg-section': 'Grade 9 - Sampaguita', '#reg-teacher-code': 'SHOULD-NOT-COPY'
+  })) app.element(selector, { value });
+  app.click('auth-register-submit');
+  assert.equal(app.eval('AUTH.currentUser.role'), 'teacher');
+  assert.equal(app.eval('AUTH.currentUser.teacherCode'), '');
+  assert.equal(app.eval('CURRENT_TAB'), 'teacher');
+});
+
+test('registration reports storage failure without claiming an unsaved account', () => {
+  const app = loadApp();
+  const before = app.eval('AUTH.users.length');
+  app.failNextWrite('basa_wisyo_users_v2');
+  const result = app.eval(`AUTH.register({
+    name: 'Storage Test', email: 'storage@school.test', password: 'test123', role: 'teacher',
+    section: 'Grade 7 - Test'
+  })`);
+  assert.equal(result.success, false);
+  assert.match(result.message, /could not be saved/);
+  assert.equal(app.eval('AUTH.users.length'), before);
+  assert.equal(app.eval('AUTH.currentUser'), null);
+  app.failNextWrite('basa_wisyo_session_v2');
+  const sessionResult = app.eval(`AUTH.register({
+    name: 'Saved Teacher', email: 'saved@school.test', password: 'test123', role: 'teacher',
+    section: 'Grade 7 - Test'
+  })`);
+  assert.equal(sessionResult.success, false);
+  assert.match(sessionResult.message, /Account created, but automatic sign-in failed/);
+  assert.equal(app.eval('AUTH.currentUser'), null);
+  assert.equal(loadApp(app.storage).eval('AUTH.users.at(-1).email'), 'saved@school.test');
+});
+
+test('new teacher and student names render safely in role dashboards', () => {
+  const app = loadApp();
+  const teacher = app.eval(`AUTH.register({
+    name: '<img src=x onerror=alert(1)>', email: 'safe@school.test',
+    password: 'test123', role: 'teacher', section: '<b>Grade 7</b>'
+  })`);
+  assert.equal(teacher.success, true);
+  assert.match(app.eval('viewTeacher()'), /&lt;b&gt;Grade 7&lt;\/b&gt;/);
+  assert.match(app.eval('viewHome()'), /&lt;b&gt;Grade 7&lt;\/b&gt;/);
+  assert.ok(!app.eval('viewTeacher()').includes('<b>Grade 7</b>'));
+  app.eval(`AUTH.register({
+    name: '<svg onload=alert(1)>', email: 'safestudent@school.test', password: 'test123',
+    role: 'student', teacherCode: AUTH.users.at(-1).shareCode
+  })`);
+  assert.match(app.eval('viewHome()'), /&lt;img src=x onerror=alert\(1\)&gt;/);
+  app.eval('AUTH.login("safe@school.test", "test123")');
+  assert.match(app.eval('viewTeacher()'), /&lt;svg onload=alert\(1\)&gt;/);
+  app.eval('AUTH.login("admin@basawisyo.ph", "admin123")');
+  assert.match(app.eval('viewAdmin()'), /&lt;img src=x onerror=alert\(1\)&gt;/);
 });
 
 test('a guest cannot invoke admin account controls through a forged UI action', () => {

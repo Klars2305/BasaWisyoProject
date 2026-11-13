@@ -217,9 +217,20 @@
 }
 
 /* Role Selection Grid */
+.registration-role-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+  min-width: 0;
+}
+.registration-role-fieldset legend {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
 .role-picker-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -236,6 +247,13 @@
   border-color: var(--sky);
   background: var(--card);
 }
+.role-choice-card:has(input:checked) {
+  border-color: var(--sky);
+  background: var(--sky-soft);
+  box-shadow: 0 0 0 1px var(--sky);
+}
+.role-choice-card:focus-within { outline: 2px solid var(--sky); outline-offset: 2px; }
+.role-choice-card input { accent-color: var(--sky); margin-bottom: 5px; }
 .role-choice-card.selected {
   border-color: var(--sky);
   background: var(--sky-soft);
@@ -246,11 +264,13 @@
   margin-bottom: 4px;
 }
 .role-choice-card .role-title {
+  display: block;
   font-weight: 700;
   font-size: 13px;
   color: var(--text);
 }
 .role-choice-card .role-desc {
+  display: block;
   font-size: 10px;
   color: var(--sub);
   margin-top: 2px;

@@ -2,8 +2,23 @@ function dashboardTabForRole(role) {
   return role === "teacher" ? "teacher" : role === "admin" ? "admin" : "home";
 }
 
+function selectedRegistrationRole() {
+  return $('input[name="reg-role"]:checked')?.value || "student";
+}
+
+function updateRegistrationRole() {
+  const role = selectedRegistrationRole();
+  const studentFields = $("#reg-group-student");
+  const teacherFields = $("#reg-group-teacher");
+  const submit = $("#reg-submit");
+  if (studentFields) studentFields.hidden = role !== "student";
+  if (teacherFields) teacherFields.hidden = role !== "teacher";
+  if (submit) submit.textContent = role === "teacher" ? "Create Teacher Account" : "Create Student Account";
+}
+
 function openRegistration() {
   $("#auth-modal").hidden = false;
+  updateRegistrationRole();
 }
 
 function logoutToIndex() {
@@ -414,14 +429,16 @@ document.addEventListener("click", e => {
     const name = $("#reg-name")?.value;
     const email = $("#reg-email")?.value;
     const password = $("#reg-password")?.value;
-    const teacherCode = $("#reg-teacher-code")?.value;
+    const role = selectedRegistrationRole();
+    const teacherCode = role === "student" ? $("#reg-teacher-code")?.value : "";
+    const section = role === "teacher" ? $("#reg-section")?.value : "";
 
     if (!name || !email || !password) {
       showToast("Please fill in your name, email, and password.", "warn");
       return;
     }
 
-    const res = AUTH.register({ name, email, password, role: "student", teacherCode });
+    const res = AUTH.register({ name, email, password, role, teacherCode, section });
     if (res.success) {
       $("#auth-modal").hidden = true;
       GUEST_MODE = false;
@@ -796,6 +813,10 @@ document.addEventListener("input", e => {
 });
 
 document.addEventListener("change", e => {
+  if (e.target.name === "reg-role") {
+    updateRegistrationRole();
+    return;
+  }
   if (e.target.id === "practice-question-count") {
     const previous = readPracticeQuestionDrafts();
     let count;

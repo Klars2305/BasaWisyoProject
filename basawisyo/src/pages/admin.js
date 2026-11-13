@@ -33,7 +33,7 @@ function viewAdmin() {
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px">
       <div>
         <h2 style="margin:0">🛡️ DepEd School Admin Console</h2>
-        <p class="sub" style="margin:4px 0 0 0">${admin.school} · Master Oversight & Curriculum Control</p>
+        <p class="sub" style="margin:4px 0 0 0">${escapeHTML(admin.school)} · Master Oversight & Curriculum Control</p>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn gold" data-a="practice-new">➕ Add Practice</button>
@@ -112,14 +112,14 @@ function renderAdminUsersTab(users) {
           <tbody>
             ${users.map(u => `
               <tr>
-                <td><b>${u.name}</b></td>
-                <td><code>${u.email}</code></td>
+                <td><b>${escapeHTML(u.name)}</b></td>
+                <td><code>${escapeHTML(u.email)}</code></td>
                 <td>
-                  <span class="user-role-badge role-${u.role}">${u.role}</span>
+                  <span class="user-role-badge role-${escapeHTML(u.role)}">${escapeHTML(u.role)}</span>
                 </td>
                 <td>
-                  ${u.role === 'teacher' ? `<b>${u.shareCode}</b> (${u.section || 'General'})` : ''}
-                  ${u.role === 'student' ? (u.teacherCode ? `Linked: <b>${u.teacherCode}</b>` : '<span style="color:var(--sub)">Unlinked</span>') : ''}
+                  ${u.role === 'teacher' ? `<b>${escapeHTML(u.shareCode || '')}</b> (${escapeHTML(u.section || 'General')})` : ''}
+                  ${u.role === 'student' ? (u.teacherCode ? `Linked: <b>${escapeHTML(u.teacherCode)}</b>` : '<span style="color:var(--sub)">Unlinked</span>') : ''}
                   ${u.role === 'admin' ? 'System Administrator' : ''}
                 </td>
                 <td>
@@ -129,11 +129,11 @@ function renderAdminUsersTab(users) {
                 </td>
                 <td>
                   <div style="display:flex;gap:4px">
-                    <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="admin-edit-role" data-v="${u.id}">Role</button>
-                    <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="admin-toggle-status" data-v="${u.id}">
+                    <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="admin-edit-role" data-v="${escapeHTML(u.id)}">Role</button>
+                    <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="admin-toggle-status" data-v="${escapeHTML(u.id)}">
                       ${u.status === 'active' ? 'Suspend' : 'Activate'}
                     </button>
-                    <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="admin-reset-pwd" data-v="${u.id}">Reset PW</button>
+                    <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="admin-reset-pwd" data-v="${escapeHTML(u.id)}">Reset PW</button>
                   </div>
                 </td>
               </tr>
