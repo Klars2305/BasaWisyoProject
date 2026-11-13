@@ -271,7 +271,7 @@ document.addEventListener("click", e => {
       if (u) {
         if (confirm(`Currently signed in as ${u.name} (${u.role.toUpperCase()}). Would you like to sign out?`)) {
           AUTH.logout();
-          GUEST_MODE = false;
+          GUEST_MODE = true;
           CURRENT_TAB = "home";
           renderApp();
           showToast("Signed out successfully.");
@@ -371,7 +371,7 @@ document.addEventListener("click", e => {
   }
   else if (a === "auth-logout") {
     AUTH.logout();
-    GUEST_MODE = false;
+    GUEST_MODE = true;
     $("#auth-modal").hidden = true;
     CURRENT_TAB = "home";
     showToast("Signed out.");
@@ -706,5 +706,10 @@ document.addEventListener("change", e => {
 
 // Initial boot
 AUTH.init();
-if (AUTH.currentUser) CURRENT_TAB = dashboardTabForRole(AUTH.currentUser.role);
+if (AUTH.currentUser?.role === "teacher" || AUTH.currentUser?.role === "admin") {
+  AUTH.logout();
+  GUEST_MODE = true;
+} else if (AUTH.currentUser) {
+  CURRENT_TAB = dashboardTabForRole(AUTH.currentUser.role);
+}
 renderApp();

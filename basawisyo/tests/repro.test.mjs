@@ -244,19 +244,32 @@ test('login entry rejects bad credentials and signs in an existing account', () 
   assert.equal(password.value, '');
 });
 
-test('returning local sessions open the matching role dashboard', () => {
-  for (const [email, password, role, tab] of [
-    ['student@basawisyo.ph', 'student123', 'student', 'home'],
-    ['teacher@basawisyo.ph', 'teacher123', 'teacher', 'teacher'],
-    ['admin@basawisyo.ph', 'admin123', 'admin', 'admin'],
+test('fresh visits show the landing page and returning students open Student Home', () => {
+  const storage = new Map();
+  const firstVisit = loadApp(storage);
+  assert.equal(firstVisit.eval('AUTH.currentUser'), null);
+  assert.equal(firstVisit.eval('GUEST_MODE'), false);
+
+  assert.equal(firstVisit.eval('AUTH.login("student@basawisyo.ph", "student123").success'), true);
+  const returningVisit = loadApp(storage);
+  assert.equal(returningVisit.eval('AUTH.currentUser.role'), 'student');
+  assert.equal(returningVisit.eval('CURRENT_TAB'), 'home');
+  assert.equal(returningVisit.eval('GUEST_MODE'), false);
+});
+
+test('teacher and admin reloads clear the local session and open Guest Home', () => {
+  for (const [email, password] of [
+    ['teacher@basawisyo.ph', 'teacher123'],
+    ['admin@basawisyo.ph', 'admin123'],
   ]) {
     const storage = new Map();
     const firstVisit = loadApp(storage);
     assert.equal(firstVisit.eval(`AUTH.login(${JSON.stringify(email)}, ${JSON.stringify(password)}).success`), true);
     const returningVisit = loadApp(storage);
-    assert.equal(returningVisit.eval('AUTH.currentUser.role'), role);
-    assert.equal(returningVisit.eval('CURRENT_TAB'), tab);
-    assert.equal(returningVisit.eval('GUEST_MODE'), false);
+    assert.equal(returningVisit.eval('AUTH.currentUser'), null);
+    assert.equal(returningVisit.eval('CURRENT_TAB'), 'home');
+    assert.equal(returningVisit.eval('GUEST_MODE'), true);
+    assert.equal(storage.has('basa_wisyo_session_v2'), false);
   }
 });
 
@@ -296,7 +309,7 @@ test('public sign-in choice opens and closes the entry form', () => {
   assert.equal(signInButton.focused, true);
 });
 
-test('guest entry is explicit and signing out returns to login', () => {
+test('guest entry is explicit and signing out opens Guest Home', () => {
   const app = loadApp();
   app.click('entry-guest');
   assert.equal(app.eval('GUEST_MODE'), true);
@@ -306,7 +319,19 @@ test('guest entry is explicit and signing out returns to login', () => {
   app.element('#auth-modal', { hidden: true });
   app.click('auth-open');
   assert.equal(app.eval('AUTH.currentUser'), null);
-  assert.equal(app.eval('GUEST_MODE'), false);
+  assert.equal(app.eval('GUEST_MODE'), true);
+  assert.equal(app.eval('CURRENT_TAB'), 'home');
+});
+
+test('logout action opens Guest Home and clears the session', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  app.element('#auth-modal', { hidden: false });
+  app.click('auth-logout');
+  assert.equal(app.eval('AUTH.currentUser'), null);
+  assert.equal(app.eval('GUEST_MODE'), true);
+  assert.equal(app.eval('CURRENT_TAB'), 'home');
+  assert.equal(app.storage.has('basa_wisyo_session_v2'), false);
 });
 
 test('quick role controls and one-click demo accounts are absent', () => {
