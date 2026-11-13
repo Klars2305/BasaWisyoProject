@@ -7,7 +7,11 @@ function showToast(msg) {
 
   const d = document.createElement("div");
   d.className = "toast";
-  d.innerHTML = `<span>ðŸ’¬</span><span>${msg}</span>`;
+  const icon = document.createElement("span");
+  icon.textContent = "ðŸ’¬";
+  const message = document.createElement("span");
+  message.textContent = msg;
+  d.append(icon, message);
   document.body.appendChild(d);
   setTimeout(() => d.remove(), 3200);
 }

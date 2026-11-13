@@ -421,12 +421,18 @@ const AUTH = {
   },
 
   addCustomPassage(p) {
-    p.id = "cust_" + Date.now();
-    this.customPassages.push(p);
+    const passage = normalizePassage({
+      ...p,
+      id: p.id || "cust_" + Date.now(),
+      status: p.status ?? "published"
+    });
+    if (getPublishedPassages().some(existing => existing.id === passage.id)
+        || this.customPassages.some(existing => existing?.id === passage.id)) {
+      throw new Error("Passage ID already exists.");
+    }
+    this.customPassages.push(passage);
     this.saveCustomPassages();
-    // Also attach to S.sh so reader picks it up
-    S.sh.push(p);
-    save();
+    return passage;
   },
 
   deleteCustomPassage(id) {

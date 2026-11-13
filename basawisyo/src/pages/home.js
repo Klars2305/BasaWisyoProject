@@ -35,8 +35,8 @@ function viewHome() {
                 ${myAsgs.map(a => `
                   <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
                     <div>
-                      <b>${a.title}</b>
-                      <span class="sub-sm" style="margin-left:6px">Due: ${a.dueDate}</span>
+                      <b>${escapeHTML(a.title)}</b>
+                      <span class="sub-sm" style="margin-left:6px">Due: ${escapeHTML(a.dueDate)}</span>
                     </div>
                     <button class="btn sm" data-a="read-passage" data-v="${a.passageId}">Read Now</button>
                   </div>

@@ -10,7 +10,9 @@ const files = [
   'src/utils/core.js',
   'src/data/dictionary.js',
   'src/data/passages.js',
+  'src/data/passage-schema.js',
   'src/services/auth.js',
+  'src/pages/teacher.js',
   'src/pages/admin.js',
   'src/services/state.js',
   'src/utils/reading.js',
@@ -19,10 +21,9 @@ const files = [
   'src/app.js',
 ];
 
-function loadApp() {
+function loadApp(storage = new Map()) {
   const elements = new Map();
   const listeners = new Map();
-  const storage = new Map();
   let exportedJson = null;
   elements.set('#md', { addEventListener() {} });
   elements.set('#ai', { addEventListener() {} });
@@ -75,6 +76,7 @@ function loadApp() {
   }
 
   return {
+    storage,
     eval: expression => vm.runInContext(expression, context),
     element(selector, value) { elements.set(selector, value); },
     click(action) {
@@ -88,9 +90,9 @@ function loadApp() {
   };
 }
 
-function saveAdminPassage(app) {
+function saveAdminPassage(app, title = 'Regression Passage') {
   const fields = {
-    '#pass-title': 'Regression Passage',
+    '#pass-title': title,
     '#pass-diff': 'easy',
     '#pass-text': 'A learner reads a short passage.',
     '#pass-q1': 'Who reads?',
@@ -111,6 +113,7 @@ function saveAdminPassage(app) {
 
 test('control: a built-in passage renders and starts a quiz', () => {
   const app = loadApp();
+  assert.equal(app.eval('getPublishedPassages().length'), 24);
   assert.ok(app.eval('viewPractice()').includes('Tala and the Morning Catch'));
   assert.doesNotThrow(() => app.eval(
     'startQuiz([PRACTICE_DATA.easy[0]], "pr", "Built-in Passage")',
@@ -127,6 +130,11 @@ test('BW-006: an admin-created passage runs through the reader quiz contract', (
   assert.equal(app.eval('ACTIVE_QUIZ.steps.length'), 1);
   assert.equal(app.eval('AUTH.customPassages[0].diff'), 'easy');
   assert.equal(app.eval('AUTH.customPassages[0].qs[0].k'), 'Literal');
+  app.element('#quiz-feedback', { innerHTML: '' });
+  app.eval('handleAnswer(0); handleQuizNext()');
+  assert.equal(app.eval('S.ss'), 1);
+  assert.equal(app.eval('S.done.includes(AUTH.customPassages[0].id)'), true);
+  assert.equal(app.eval('S.w'), 6);
 });
 
 test('BW-007: an admin-created passage appears in the reading library', () => {
@@ -136,6 +144,55 @@ test('BW-007: an admin-created passage appears in the reading library', () => {
     app.eval('viewPractice()').includes('Regression Passage'),
     'saved admin passage is missing from the reading library',
   );
+  const reloaded = loadApp(app.storage);
+  assert.ok(reloaded.eval('viewPractice()').includes('Regression Passage'));
+});
+
+test('legacy admin fields normalize without rewriting stored records', () => {
+  const app = loadApp();
+  app.eval(`AUTH.customPassages.push({
+    id: 'cust_legacy', t: 'Legacy Passage', tier: 'hard', x: 'Legacy body.',
+    q: [{ q: 'What is this?', o: ['A passage', 'A note'], a: 0, skill: 'Literal' }]
+  })`);
+  assert.equal(app.eval("getPublishedPassageById('cust_legacy').diff"), 'hard');
+  assert.equal(app.eval("getPublishedPassageById('cust_legacy').qs[0].k"), 'Literal');
+  assert.equal(app.eval('AUTH.customPassages[0].diff'), undefined);
+});
+
+test('draft and invalid custom records stay out of the published collection', () => {
+  const app = loadApp();
+  app.eval(`AUTH.customPassages.push({
+    id: 'cust_draft', t: 'Draft Passage', diff: 'easy', x: 'Draft body.',
+    qs: [{ q: 'Question?', o: ['Yes', 'No'], a: 0, k: 'Literal' }],
+    status: 'draft'
+  })`);
+  assert.equal(app.eval("getPublishedPassageById('cust_draft')"), undefined);
+  assert.throws(() => app.eval(`AUTH.addCustomPassage({
+    t: 'Invalid Passage', diff: 'easy', x: 'Body.',
+    qs: [{ q: 'Question?', o: ['Yes', 'No'], a: 3, k: 'Literal' }]
+  })`), /valid correct-answer option/);
+  assert.equal(app.eval('AUTH.customPassages.length'), 1);
+});
+
+test('teacher assignment choices include the published admin passage', () => {
+  const app = loadApp();
+  saveAdminPassage(app);
+  app.eval('AUTH.currentUser = AUTH.users.find(user => user.role === "teacher")');
+  const id = app.eval('AUTH.customPassages[0].id');
+  assert.ok(app.eval('viewTeacher()').includes(`<option value="${id}">Regression Passage</option>`));
+});
+
+test('custom passage text is escaped in library and quiz markup', () => {
+  const app = loadApp();
+  saveAdminPassage(app, '<img src=x onerror=alert(1)>');
+  const library = app.eval('viewPractice()');
+  assert.ok(library.includes('&lt;img src=x onerror=alert(1)&gt;'));
+  const output = { innerHTML: '' };
+  app.element('#v', output);
+  app.eval('startQuiz([AUTH.customPassages[0]], "pr", AUTH.customPassages[0].t)');
+  app.eval('renderQuiz()');
+  assert.ok(output.innerHTML.includes('&lt;img src=x onerror=alert(1)&gt;'));
+  assert.ok(!output.innerHTML.includes('<img src=x onerror=alert(1)>'));
 });
 
 test('BW-008: the restore control opens the file input rendered by admin', () => {

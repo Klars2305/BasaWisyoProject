@@ -1,11 +1,5 @@
 function viewPractice() {
-  let allPassages = [
-    ...PRACTICE_DATA.easy,
-    ...PRACTICE_DATA.medium,
-    ...PRACTICE_DATA.hard,
-    ...PRACTICE_DATA.extreme,
-    ...S.sh
-  ];
+  let allPassages = getPublishedPassages();
 
   // Filter by difficulty
   if (S.activeDiff && S.activeDiff !== "all") {
@@ -41,7 +35,7 @@ function viewPractice() {
     <!-- Search Bar -->
     <div class="search-row">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="lib-search" placeholder="Search topics (e.g. coral, history, tarsier, science)..." value="${SEARCH_QUERY}">
+      <input type="text" id="lib-search" placeholder="Search topics (e.g. coral, history, tarsier, science)..." value="${escapeHTML(SEARCH_QUERY)}">
     </div>
 
     <!-- Passages Grid -->
@@ -64,12 +58,12 @@ function viewPractice() {
               <div>
                 <span class="badge-diff ${diffClass}">${diffLabel}</span>
                 <span class="sub-sm" style="margin-left:6px">${wc} words Â· ~${estMin} min</span>
-                <h3 style="margin-top:4px">${p.t}</h3>
+                <h3 style="margin-top:4px">${escapeHTML(p.t)}</h3>
               </div>
               <span class="pill ${isDone ? 'ok' : ''}">${isDone ? 'Done âœ“' : 'New'}</span>
             </div>
             <p class="sub" style="font-size:0.82rem;margin-bottom:10px">
-              ${p.x.slice(0, 110)}â€¦
+              ${escapeHTML(p.x.slice(0, 110))}â€¦
             </p>
             <div class="row">
               <span class="sub-sm">${p.qs.length} comprehension questions</span>

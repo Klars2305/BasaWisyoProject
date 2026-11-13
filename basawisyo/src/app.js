@@ -28,14 +28,7 @@ document.addEventListener("click", e => {
 
   // Read specific passage in practice
   else if (a === "read-passage") {
-    const all = [
-      ...PRACTICE_DATA.easy,
-      ...PRACTICE_DATA.medium,
-      ...PRACTICE_DATA.hard,
-      ...PRACTICE_DATA.extreme,
-      ...S.sh
-    ];
-    const found = all.find(p => p.id === v);
+    const found = getPublishedPassageById(v);
     if (found) {
       startQuiz([found], "pr", `Practice: ${found.t}`);
     }
@@ -541,26 +534,25 @@ document.addEventListener("click", e => {
       return;
     }
 
-    const newPassage = {
-      id: "cust_" + Date.now(),
-      t: title.trim(),
-      tier: diff,
-      x: text.trim(),
-      q: [
-        {
-          q: q1.trim(),
-          o: [opt0.trim(), opt1.trim(), opt2 ? opt2.trim() : "None", opt3 ? opt3.trim() : "None"],
+    try {
+      AUTH.addCustomPassage({
+        t: title,
+        diff,
+        x: text,
+        qs: [{
+          q: q1,
+          o: [opt0, opt1, opt2, opt3].filter(option => typeof option === "string" && option.trim()),
           a: ans,
-          skill: skill
-        }
-      ],
-      wc: wordCount(text.trim()),
-      author: (AUTH.currentUser && AUTH.currentUser.name) || "Curriculum Admin",
-      createdAt: new Date().toISOString().split("T")[0]
-    };
-
-    AUTH.customPassages.push(newPassage);
-    AUTH.saveCustomPassages();
+          k: skill
+        }],
+        status: "published",
+        author: (AUTH.currentUser && AUTH.currentUser.name) || "Curriculum Admin",
+        createdAt: new Date().toISOString().split("T")[0]
+      });
+    } catch (error) {
+      showToast(error.message, "warn");
+      return;
+    }
     $("#admin-passage-modal").hidden = true;
     showToast(`Custom passage "${title}" added to curriculum! 📚`);
     renderApp();

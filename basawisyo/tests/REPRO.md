@@ -1,8 +1,9 @@
 # BW-006 to BW-009 reproduction evidence
 
-Captured against the componentized baseline, before behavior fixes. Run
-`node --test tests/repro.test.mjs` from `basawisyo/`. Expected result at this
-step: one passing built-in passage control and four failing issue tests.
+Captured against the componentized baseline before behavior fixes. At step 2,
+the suite had one passing built-in passage control and four failing issue
+tests. After step 3, BW-006 and BW-007 pass; BW-008 and BW-009 remain red.
+Run `node --test tests/repro.test.mjs` from `basawisyo/`.
 
 ## BW-006 — Admin passage schema
 

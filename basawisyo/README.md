@@ -21,6 +21,7 @@ event handlers continue to work. `node --check` can check each JavaScript file.
   Bricolage Grotesque, Lexend, and Outfit from Google Fonts.
 - `src/styles/`: base styles and role/dashboard styles.
 - `src/data/`: dictionary, built-in passages, placement items, and demo roster.
+  `src/data/PASSAGE_SCHEMA.md` documents the shared passage contract.
 - `src/components/`: navigation, app shell, and toast rendering.
 - `src/pages/`: guest, student, teacher, admin, and supporting page views.
 - `src/services/`: account/storage state, quizzes, tutor, and export behavior.
@@ -31,8 +32,7 @@ event handlers continue to work. `node --check` can check each JavaScript file.
 
 ## Current limitations
 
-This extraction does not resolve the issues recorded in `PLAN.md` or
-`BASELINE.md`. Authentication and authorization are still browser-side demo
-behavior; browser storage is shared at the origin level; admin-created passage
-and restore mismatches remain; reports can include sample values. Do not use
-real student accounts or records with this build.
+The passage schema and library fixes cover BW-006 and BW-007. Authentication
+and authorization are still browser-side demo behavior; browser storage is
+shared at the origin level; backup restore issues remain; reports can include
+sample values. Do not use real student accounts or records with this build.

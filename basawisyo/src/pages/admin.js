@@ -145,12 +145,23 @@ function renderAdminUsersTab(users) {
 }
 
 function renderAdminCurriculumTab() {
+  const customRows = (Array.isArray(AUTH.customPassages) ? AUTH.customPassages : []).map(raw => {
+    try {
+      const passage = normalizePassage(raw);
+      return { ...passage, tier: `Custom (${passage.diff})`, isCustom: true };
+    } catch (error) {
+      return {
+        id: String(raw?.id ?? "unknown"), t: `Invalid passage: ${error.message}`,
+        x: "", qs: [], tier: "Needs repair", status: "invalid", isCustom: true
+      };
+    }
+  });
   const allPassages = [
     ...PRACTICE_DATA.easy.map(p => ({ ...p, tier: "Madali (Easy)" })),
     ...PRACTICE_DATA.medium.map(p => ({ ...p, tier: "Katamtaman (Medium)" })),
     ...PRACTICE_DATA.hard.map(p => ({ ...p, tier: "Mahirap (Hard)" })),
     ...PRACTICE_DATA.extreme.map(p => ({ ...p, tier: "Matindi (Extreme)" })),
-    ...AUTH.customPassages.map(p => ({ ...p, tier: `Custom (${p.diff})` }))
+    ...customRows
   ];
 
   return `
@@ -158,7 +169,7 @@ function renderAdminCurriculumTab() {
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
         <div>
           <div class="lab">Leveled Reading Curriculum</div>
-          <p class="sub" style="margin:2px 0 0 0">All passages available to students for practice and teachers for assignments</p>
+          <p class="sub" style="margin:2px 0 0 0">Built-in and custom passage records; only published valid passages appear to readers.</p>
         </div>
         <button class="btn gold" data-a="admin-open-add-passage">âž• Add New Passage</button>
       </div>
@@ -172,24 +183,27 @@ function renderAdminCurriculumTab() {
               <th>Passage Title</th>
               <th>Word Count</th>
               <th>Questions</th>
+              <th>Status</th>
               <th>Origin</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             ${allPassages.map(p => {
-              const isCustom = p.id.startsWith("cust_");
+              const isCustom = Boolean(p.isCustom);
               return `
                 <tr>
-                  <td><code>${p.id}</code></td>
-                  <td><b>${p.tier}</b></td>
-                  <td>${p.t}</td>
+                  <td><code>${escapeHTML(p.id)}</code></td>
+                  <td><b>${escapeHTML(p.tier)}</b></td>
+                  <td>${escapeHTML(p.t)}</td>
                   <td>${wordCount(p.x)} words</td>
-                  <td>${p.qs ? p.qs.length : 1} questions</td>
+                  <td>${p.qs.length} questions</td>
+                  <td>${escapeHTML(p.status || "published")}</td>
                   <td>${isCustom ? '<span style="color:var(--gold);font-weight:700">Admin Custom</span>' : 'Standard Core'}</td>
                   <td>
                     ${isCustom ? `
-                      <button class="btn o" style="font-size:11px;padding:2px 8px;color:var(--coral)" data-a="admin-delete-passage" data-v="${p.id}">Delete</button>
+                      ${p.status === "published" ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="read-passage" data-v="${escapeHTML(p.id)}">Preview</button>` : ""}
+                      <button class="btn o" style="font-size:11px;padding:2px 8px;color:var(--coral)" data-a="admin-delete-passage" data-v="${escapeHTML(p.id)}">Delete</button>
                     ` : `
                       <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="read-passage" data-v="${p.id}">Preview</button>
                     `}

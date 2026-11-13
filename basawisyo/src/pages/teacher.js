@@ -26,6 +26,7 @@ function viewTeacher() {
     : 0;
 
   const assignments = AUTH.assignments.filter(a => a.teacherCode === teacher.shareCode);
+  const assignablePassages = getPublishedPassages();
 
   return `
     <!-- Teacher Header & Share Code Hero Banner -->
@@ -84,24 +85,12 @@ function viewTeacher() {
         <div class="auth-form-group">
           <label>Select Reading Passage</label>
           <select id="asg-passage-select" class="auth-input">
-            <optgroup label="Madali (Easy - Frustration Intervention)">
-              <option value="easy_1">A Fisher's Morning (Easy)</option>
-              <option value="easy_2">The Mango Tree (Easy)</option>
-              <option value="easy_3">Weaving Inabel (Easy)</option>
-            </optgroup>
-            <optgroup label="Katamtaman (Medium - Instructional)">
-              <option value="med_1">The Coral Patrol (Medium)</option>
-              <option value="med_2">Tarsier Sanctuary (Medium)</option>
-              <option value="med_3">Solar Schoolhouse (Medium)</option>
-            </optgroup>
-            <optgroup label="Mahirap (Hard - Independent)">
-              <option value="hard_1">The Ink of Liberty (Hard)</option>
-              <option value="hard_2">Forest Canopy Survey (Hard)</option>
-            </optgroup>
-            <optgroup label="Matindi (Extreme - Mastery)">
-              <option value="extreme_1">Intergenerational Ecology (Extreme)</option>
-              <option value="extreme_2">Ancient Baybayin Epigraphy (Extreme)</option>
-            </optgroup>
+            ${DIFF_KEYS.map(diff => {
+              const options = assignablePassages.filter(passage => passage.diff === diff);
+              return options.length ? `<optgroup label="${escapeHTML(DIFF_NAMES[diff])}">
+                ${options.map(passage => `<option value="${escapeHTML(passage.id)}">${escapeHTML(passage.t)}</option>`).join("")}
+              </optgroup>` : "";
+            }).join("")}
           </select>
         </div>
         <div class="auth-form-group">
@@ -131,8 +120,8 @@ function viewTeacher() {
             ${assignments.map(a => `
               <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
                 <div>
-                  <span class="assignment-badge">ðŸ“Œ ${a.title}</span>
-                  <span style="font-size:12px;color:var(--sub);margin-left:8px">Target: <b>${a.targetGroup}</b> Â· Due: ${a.dueDate}</span>
+                  <span class="assignment-badge">ðŸ“Œ ${escapeHTML(a.title)}</span>
+                  <span style="font-size:12px;color:var(--sub);margin-left:8px">Target: <b>${escapeHTML(a.targetGroup)}</b> Â· Due: ${escapeHTML(a.dueDate)}</span>
                 </div>
                 <div style="font-size:12px;color:var(--teal);font-weight:600">Active in Student Dashboards</div>
               </div>

@@ -33,7 +33,7 @@ function renderQuiz() {
 
   $("#v").innerHTML = `
     <div class="row" style="margin-bottom:6px">
-      <div class="sub-sm">${qz.title} Â· Question ${qz.idx + 1} of ${qz.steps.length}</div>
+      <div class="sub-sm">${escapeHTML(qz.title)} Â· Question ${qz.idx + 1} of ${qz.steps.length}</div>
       <button class="btn sm o" data-a="quit-quiz" style="padding:4px 10px;font-size:0.75rem">Exit Quiz</button>
     </div>
     <div class="bar"><i style="width:${progressPct}%"></i></div>
@@ -54,7 +54,7 @@ function renderQuiz() {
       <div class="reading-passage-col">
         <!-- Passage Card -->
         <div class="card" style="margin-bottom:0">
-          <div class="lab">Passage: ${P.t}</div>
+          <div class="lab">Passage: ${escapeHTML(P.t)}</div>
           <div class="ps" id="active-ps">${tapMarkup(P.x)}</div>
           <div class="sub-sm" style="margin-top:10px;font-style:italic;color:var(--sky)">ðŸ’¡ Tip: Tap any dotted word to see Filipino, Bisaya, & English meanings.</div>
         </div>
@@ -63,14 +63,14 @@ function renderQuiz() {
       <div class="reading-sidebar-col">
         <!-- Question Card -->
         <div class="card" style="margin-bottom:0">
-          <div class="lab">${q.k || "Comprehension"} Question</div>
-          <p class="q">${q.q}</p>
+          <div class="lab">${escapeHTML(q.k || "Comprehension")} Question</div>
+          <p class="q">${escapeHTML(q.q)}</p>
 
           <div id="options-list">
             ${q.o.map((opt, i) => `
               <button class="opt" data-a="submit-answer" data-v="${i}">
                 <span class="opt-letter">${String.fromCharCode(65 + i)}</span>
-                <span>${opt}</span>
+                <span>${escapeHTML(opt)}</span>
               </button>
             `).join("")}
           </div>
@@ -126,8 +126,8 @@ function handleAnswer(choiceIdx) {
   fb.innerHTML = `
     <div class="fb ${isCorrect ? 'ok' : 'no'}">
       <b>${isCorrect ? 'Tama! Correct!' : 'Not quite.'}</b>
-      <div>${isCorrect ? 'Great job analyzing the text evidence.' : `Correct answer: <b>${q.o[q.a]}</b>`}</div>
-      ${q.exp ? `<div class="sub-sm" style="margin-top:4px">${q.exp}</div>` : ''}
+      <div>${isCorrect ? 'Great job analyzing the text evidence.' : `Correct answer: <b>${escapeHTML(q.o[q.a])}</b>`}</div>
+      ${q.exp ? `<div class="sub-sm" style="margin-top:4px">${escapeHTML(q.exp)}</div>` : ''}
     </div>
 
     <div style="display:flex;gap:8px;margin-top:10px">
@@ -163,15 +163,7 @@ function finishQuiz() {
 
   // Calculate unique words read
   const passageIds = [...new Set(qz.steps.map(s => s.P.id))];
-  const allKnown = [
-    ...PLACEMENT_TEST,
-    ...PRACTICE_DATA.easy,
-    ...PRACTICE_DATA.medium,
-    ...PRACTICE_DATA.hard,
-    ...PRACTICE_DATA.extreme,
-    ...AUTH.customPassages,
-    ...S.sh
-  ];
+  const allKnown = [...PLACEMENT_TEST, ...getPublishedPassages()];
 
   let totalWords = 0;
   passageIds.forEach(id => {

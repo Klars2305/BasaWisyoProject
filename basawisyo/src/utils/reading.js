@@ -13,14 +13,25 @@ const speak = text => {
 // Word counter and tap-word markup generator
 const wordCount = s => s.trim().split(/\s+/).filter(Boolean).length;
 
+const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+})[char]);
+
 const tapMarkup = text => {
-  return text.replace(/[A-Za-zâ€™'-]+/g, w => {
+  let markup = "";
+  let lastIndex = 0;
+  for (const match of text.matchAll(/[A-Za-zâ€™'-]+/g)) {
+    markup += escapeHTML(text.slice(lastIndex, match.index));
+    const w = match[0];
     const clean = w.toLowerCase().replace(/[^a-z]/g, "");
     if (D[clean]) {
-      return `<b class="w" data-a="tip" data-v="${clean}">${w}</b>`;
+      markup += `<b class="w" data-a="tip" data-v="${clean}">${escapeHTML(w)}</b>`;
+    } else {
+      markup += escapeHTML(w);
     }
-    return w;
-  });
+    lastIndex = match.index + w.length;
+  }
+  return markup + escapeHTML(text.slice(lastIndex));
 };
 
 // Navigation icons
