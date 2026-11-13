@@ -1,3 +1,7 @@
+function dashboardTabForRole(role) {
+  return role === "teacher" ? "teacher" : role === "admin" ? "admin" : "home";
+}
+
 function showEntryError(message) {
   const error = $("#entry-error");
   error.textContent = message;
@@ -13,8 +17,7 @@ function signInFromEntry() {
   showEntryError("");
   $("#entry-password").value = "";
   GUEST_MODE = false;
-  CURRENT_TAB = result.user.role === "teacher" ? "teacher"
-    : result.user.role === "admin" ? "admin" : "home";
+  CURRENT_TAB = dashboardTabForRole(result.user.role);
   renderApp();
 }
 
@@ -234,6 +237,18 @@ document.addEventListener("click", e => {
     showToast("Monthly comparison updated!");
   }
   // Entry screen and account modal
+  else if (a === "entry-sign-in") {
+    $("#entry-choices").hidden = true;
+    $("#entry-sign-in-panel").hidden = false;
+    $("#entry-email").focus();
+  }
+  else if (a === "entry-back") {
+    $("#entry-sign-in-panel").hidden = true;
+    $("#entry-choices").hidden = false;
+    $("#entry-password").value = "";
+    showEntryError("");
+    $("[data-a='entry-sign-in']").focus();
+  }
   else if (a === "entry-guest") {
     GUEST_MODE = true;
     CURRENT_TAB = "home";
@@ -264,6 +279,8 @@ document.addEventListener("click", e => {
       } else {
         modal.hidden = false;
         if (v === "register") {
+          const studentCard = $("#role-card-student");
+          if (studentCard) studentCard.click();
           const regTab = $("#tab-btn-register");
           if (regTab) regTab.click();
         } else {
@@ -316,9 +333,7 @@ document.addEventListener("click", e => {
       $("#auth-modal").hidden = true;
       GUEST_MODE = false;
       showToast(`Welcome back, ${res.user.name}! 👋`);
-      if (res.user.role === "teacher") CURRENT_TAB = "teacher";
-      else if (res.user.role === "admin") CURRENT_TAB = "admin";
-      else CURRENT_TAB = "home";
+      CURRENT_TAB = dashboardTabForRole(res.user.role);
       renderApp();
     } else {
       showToast(res.message, "warn");
@@ -348,9 +363,7 @@ document.addEventListener("click", e => {
       $("#auth-modal").hidden = true;
       GUEST_MODE = false;
       showToast(`Account created! Welcome, ${res.user.name} 🎉`);
-      if (res.user.role === "teacher") CURRENT_TAB = "teacher";
-      else if (res.user.role === "admin") CURRENT_TAB = "admin";
-      else CURRENT_TAB = "home";
+      CURRENT_TAB = dashboardTabForRole(res.user.role);
       renderApp();
     } else {
       showToast(res.message, "warn");
@@ -693,4 +706,5 @@ document.addEventListener("change", e => {
 
 // Initial boot
 AUTH.init();
+if (AUTH.currentUser) CURRENT_TAB = dashboardTabForRole(AUTH.currentUser.role);
 renderApp();

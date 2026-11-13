@@ -89,6 +89,15 @@ body.auth-entry > #aib { display: none; }
 .login-panel-inner { width: min(360px, 100%); }
 .login-panel h2 { font: 800 clamp(1.8rem, 2.5vw, 2.35rem)/1.16 var(--font-display); color: #0d1b3e; margin: 0 0 10px; }
 .login-intro { color: #4c5c82; font-size: 0.92rem; line-height: 1.55; margin: 0 0 30px; }
+.entry-actions { display: grid; gap: 12px; }
+.entry-actions button { width: 100%; min-height: 52px; justify-content: center; }
+.entry-primary { background: #0d1b3e; color: #fff; font-size: 0.95rem; }
+.entry-primary:hover { background: #1a356d; }
+.entry-secondary { border: 1px solid #b9c8df; border-radius: 10px; background: #fff; color: #0d1b3e; font: 700 0.9rem var(--font-body); cursor: pointer; }
+.entry-secondary:hover { background: #e9f4ff; border-color: #2589e6; }
+.entry-note { color: #4c5c82; font-size: 0.8rem; line-height: 1.5; margin: 24px 0 0; }
+.entry-back { border: 0; background: none; color: #175c9f; font: 700 0.82rem var(--font-body); cursor: pointer; padding: 0; margin: 0 0 24px; }
+.entry-back::before { content: "← "; }
 #entry-login-form { display: flex; flex-direction: column; }
 #entry-login-form label { color: #203052; font-size: 0.84rem; font-weight: 700; margin: 0 0 7px; }
 #entry-login-form input {

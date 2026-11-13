@@ -244,6 +244,58 @@ test('login entry rejects bad credentials and signs in an existing account', () 
   assert.equal(password.value, '');
 });
 
+test('returning local sessions open the matching role dashboard', () => {
+  for (const [email, password, role, tab] of [
+    ['student@basawisyo.ph', 'student123', 'student', 'home'],
+    ['teacher@basawisyo.ph', 'teacher123', 'teacher', 'teacher'],
+    ['admin@basawisyo.ph', 'admin123', 'admin', 'admin'],
+  ]) {
+    const storage = new Map();
+    const firstVisit = loadApp(storage);
+    assert.equal(firstVisit.eval(`AUTH.login(${JSON.stringify(email)}, ${JSON.stringify(password)}).success`), true);
+    const returningVisit = loadApp(storage);
+    assert.equal(returningVisit.eval('AUTH.currentUser.role'), role);
+    assert.equal(returningVisit.eval('CURRENT_TAB'), tab);
+    assert.equal(returningVisit.eval('GUEST_MODE'), false);
+  }
+});
+
+test('public entry offers guest, sign-in, and student registration choices', () => {
+  const html = readFileSync(join(appRoot, 'index.html'), 'utf8');
+  assert.match(html, /data-a="entry-guest">Explore as guest<\/button>/);
+  assert.match(html, /data-a="entry-sign-in">Sign in<\/button>/);
+  assert.match(html, /data-a="auth-open" data-v="register">Create student account<\/button>/);
+  assert.match(html, /id="entry-sign-in-panel" hidden/);
+});
+
+test('public sign-in choice opens and closes the entry form', () => {
+  const app = loadApp();
+  const choices = { hidden: false };
+  const panel = { hidden: true };
+  const email = { focused: false, focus() { this.focused = true; } };
+  const password = { value: 'old password' };
+  const error = { textContent: 'Old error', hidden: false };
+  const signInButton = { focused: false, focus() { this.focused = true; } };
+  app.element('#entry-choices', choices);
+  app.element('#entry-sign-in-panel', panel);
+  app.element('#entry-email', email);
+  app.element('#entry-password', password);
+  app.element('#entry-error', error);
+  app.element("[data-a='entry-sign-in']", signInButton);
+
+  app.click('entry-sign-in');
+  assert.equal(choices.hidden, true);
+  assert.equal(panel.hidden, false);
+  assert.equal(email.focused, true);
+
+  app.click('entry-back');
+  assert.equal(choices.hidden, false);
+  assert.equal(panel.hidden, true);
+  assert.equal(password.value, '');
+  assert.equal(error.hidden, true);
+  assert.equal(signInButton.focused, true);
+});
+
 test('guest entry is explicit and signing out returns to login', () => {
   const app = loadApp();
   app.click('entry-guest');

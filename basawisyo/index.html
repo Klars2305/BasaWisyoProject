@@ -14,7 +14,7 @@
 </head>
 <body class="auth-entry">
 
-<section id="login-screen" class="login-screen" aria-labelledby="entry-heading">
+<section id="login-screen" class="login-screen" aria-label="BasaWisyo welcome">
   <div class="login-layout">
     <div class="login-story">
       <div class="login-brand">
@@ -32,22 +32,33 @@
     </div>
     <div class="login-panel">
       <div class="login-panel-inner">
-        <h2 id="entry-heading">Welcome to BasaWisyo</h2>
-        <p class="login-intro">Sign in to continue your reading journey or manage your class.</p>
-        <form id="entry-login-form">
-          <label for="entry-email">Email address</label>
-          <input id="entry-email" name="email" type="email" autocomplete="username" required>
-          <label for="entry-password">Password</label>
-          <div class="login-password-field">
-            <input id="entry-password" name="password" type="password" autocomplete="current-password" required>
-            <button type="button" data-a="entry-toggle-password" aria-label="Show password" aria-pressed="false">Show</button>
+        <div id="entry-choices">
+          <h2 id="entry-heading">Start reading with BasaWisyo</h2>
+          <p class="login-intro">Explore stories now, or use an account to continue your reading journey.</p>
+          <div class="entry-actions">
+            <button type="button" class="btn entry-primary" data-a="entry-guest">Explore as guest</button>
+            <button type="button" class="entry-secondary" data-a="entry-sign-in">Sign in</button>
+            <button type="button" class="entry-secondary" data-a="auth-open" data-v="register">Create student account</button>
           </div>
-          <p id="entry-error" class="login-error" role="alert" hidden></p>
-          <button type="submit" class="btn login-submit">Sign in</button>
-        </form>
-        <div class="login-divider"><span>or</span></div>
-        <button type="button" class="login-guest" data-a="entry-guest">Continue as guest</button>
-        <p class="login-register">New to BasaWisyo? <button type="button" data-a="auth-open" data-v="register">Create an account</button></p>
+          <p class="entry-note">You can explore without an account. Guest activity stays in this browser.</p>
+        </div>
+        <div id="entry-sign-in-panel" hidden>
+          <button type="button" class="entry-back" data-a="entry-back">Back to choices</button>
+          <h2 id="entry-sign-in-heading">Sign in to BasaWisyo</h2>
+          <p class="login-intro">Students, teachers, and admins can use their existing accounts.</p>
+          <form id="entry-login-form">
+            <label for="entry-email">Email address</label>
+            <input id="entry-email" name="email" type="email" autocomplete="username" required>
+            <label for="entry-password">Password</label>
+            <div class="login-password-field">
+              <input id="entry-password" name="password" type="password" autocomplete="current-password" required>
+              <button type="button" data-a="entry-toggle-password" aria-label="Show password" aria-pressed="false">Show</button>
+            </div>
+            <p id="entry-error" class="login-error" role="alert" hidden></p>
+            <button type="submit" class="btn login-submit">Sign in</button>
+          </form>
+          <p class="login-register">New learner? <button type="button" data-a="auth-open" data-v="register">Create student account</button></p>
+        </div>
       </div>
     </div>
   </div>
