@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en" data-type="software">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-type" content="software">
+  <meta name="site-kind" content="software">
+  <title>BasaWisyo · Class Board Home concept</title>
+  <style>
+    :root{font-family:Arial,Helvetica,sans-serif;color:#0d1b3e;background:#f3f6fc}
+    *{box-sizing:border-box}
+    body{margin:0;padding:28px 24px 38px}
+    .canvas{max-width:1100px;margin:0 auto}
+    .eyebrow{margin:0 0 14px;color:#526c9c;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:18px;align-items:start}
+    .column{min-width:0;display:grid;gap:14px}
+    .card{background:#fff;border:1px solid #d5e0f2;border-radius:18px;padding:20px}
+    .lab{color:#49689c;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:26px;line-height:1.16;letter-spacing:-.04em}
+    h2{font-size:22px;line-height:1.2;letter-spacing:-.035em}
+    h3{font-size:18px;line-height:1.25;letter-spacing:-.025em}
+    p{color:#52627f;font-size:13px;line-height:1.5}
+    .quest{padding:24px}
+    .quest-head,.head-row,.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .quest-head{align-items:start}
+    .quest-head p{margin-top:6px}
+    .quest-progress{margin:22px 0 14px}
+    .track{height:8px;border-radius:99px;background:#e4eafa;overflow:hidden}
+    .track>span{display:block;width:67%;height:100%;border-radius:99px;background:#2589e6}
+    .quest-progress small{display:block;margin-top:7px;color:#52627f;font-size:11px}
+    .task{display:flex;align-items:center;gap:10px;padding:11px 12px;margin-top:8px;border:1px solid #dce8f5;border-radius:11px;background:#f7faff;font-size:12px;font-weight:700}
+    .task i{display:grid;place-items:center;flex:0 0 21px;height:21px;border-radius:50%;background:#def4ec;color:#0e7c66;font-style:normal}
+    .task span{margin-left:auto;color:#0e7c66;font-size:11px}
+    .journey{padding:24px}
+    .journey h3{margin:7px 0 8px}
+    .journey .levels{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}
+    .level{padding:7px 9px;border-radius:999px;border:1px solid #d5e0f2;color:#647899;font-size:10px;font-weight:800}
+    .level.current{background:#fff2d7;border-color:#f6d788;color:#855000}
+    .next{padding:14px;border-radius:12px;background:#e9f4ff}
+    .next b{display:block;color:#145d9f;font-size:12px}
+    .next span{display:block;margin-top:4px;color:#52627f;font-size:11px}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .stat{min-width:0;padding:17px}
+    .stat strong{display:block;margin-top:7px;font-size:21px;line-height:1.2}
+    .stat p{margin-top:3px;font-size:11px}
+    .board{overflow:hidden;padding:0;border-color:#b9d0f8;box-shadow:0 8px 24px rgba(31,80,162,.06)}
+    .board-head{padding:20px 20px 16px;background:linear-gradient(112deg,#f6faff 2%,#e8f2ff 100%);border-bottom:1px solid #d5e5fb}
+    .head-row{align-items:start}
+    .board-head h2{margin:5px 0 4px}
+    .period{flex:none;padding:7px 10px;border-radius:999px;border:1px solid #bbd4ff;background:#fff;color:#145d9f;font-size:11px;font-weight:800}
+    .board-head p{max-width:41ch;font-size:12px}
+    .board-list{display:grid;gap:7px;list-style:none;margin:0;padding:13px}
+    .entry{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:42px;padding:7px 11px;border:1px solid #e1e9f7;border-radius:11px;background:#fff}
+    .entry.first{background:#fff8e8;border-color:#f6dfad}
+    .entry.own{background:#eaf4ff;border-color:#a8d0ff}
+    .place{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#eef3fb;color:#254a83;font-size:12px;font-weight:800}
+    .entry.first .place{background:#f5ab1d;color:#0d1b3e}
+    .entry.own .place{background:#2589e6;color:#fff}
+    .reader{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:750}
+    .reader em{margin-left:5px;color:#145d9f;font-size:10px;font-style:normal}
+    .xp{color:#0d1b3e;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+    .board-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 17px 16px;border-top:1px solid #e4ecf9}
+    .board-foot small{max-width:22ch;color:#61718d;font-size:10px;line-height:1.35}
+    .action{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:8px 12px;border-radius:10px;background:#2589e6;color:#fff;font-size:11px;font-weight:800;text-decoration:none}
+    .tiers{padding:16px 20px}
+    .tiers h3{margin-top:5px}
+    .tier-preview{margin-top:12px;padding:11px 12px;border:1px solid #cfe8da;border-radius:11px;color:#0e7c66;background:#f1fbf5;font-size:12px;font-weight:700}
+    @media(max-width:700px){body{padding:20px 16px 30px}.grid{grid-template-columns:1fr}.column{gap:12px}.card{padding:16px}.board{padding:0}.board-head{padding:18px 16px 14px}.board-list{padding:11px}.board-foot{padding:12px}.quest,.journey{padding:18px}.eyebrow{font-size:10px}}
+    @media(max-width:360px){.board-foot{align-items:stretch;flex-direction:column}.action{justify-content:center}.period{padding:6px 8px}}
+  </style>
+</head>
+<body>
+  <main class="canvas">
+    <p class="eyebrow">Student Home concept · student not linked yet · no sample scores</p>
+    <div class="grid">
+      <div class="column">
+        <section class="card quest" aria-label="Existing daily quest placement">
+          <div class="quest-head"><div><div class="lab">Daily quest</div><h1>Daily Reading Quest</h1><p>2 of 3 tasks completed</p></div><span class="period">1 day</span></div>
+          <div class="quest-progress"><div class="track"><span></span></div><small>67% complete</small></div>
+          <div class="task"><i>✓</i>Read one story<span>Complete</span></div>
+          <div class="task"><i>✓</i>Review vocabulary<span>Complete</span></div>
+        </section>
+        <section class="card journey" aria-label="Existing reading journey placement">
+          <div class="lab">Your reading journey</div><h3>Current path: Medium (Katamtaman)</h3>
+          <p>Keep reading at your pace. Your next story stays the main action.</p>
+          <div class="levels"><span class="level">Easy</span><span class="level current">Medium</span><span class="level">Hard</span><span class="level">Extreme</span></div>
+          <div class="next"><b>Next recommended: The Song of the Bamboo Organ</b><span>Continue reading from your current tier</span></div>
+        </section>
+      </div>
+      <div class="column">
+        <div class="stats" aria-label="Existing home stats">
+          <div class="card stat"><div class="lab">Your reading level</div><strong>Frustration</strong><p>5 sessions completed</p></div>
+          <div class="card stat"><div class="lab">Words read</div><strong>2,714</strong><p>Contributed to class quest</p></div>
+        </div>
+        <section class="card board" aria-label="Proposed Class Board preview before joining">
+          <div class="board-head"><div class="lab">Local classroom</div><h2>Class Board</h2><p>Celebrate practice with classmates who choose to join.</p></div>
+          <div style="padding:22px 20px 24px">
+            <div style="display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#e9f4ff;color:#145d9f;font-size:24px;font-weight:800">#</div>
+            <h3 style="margin:14px 0 7px">Connect your class first</h3>
+            <p>Use your teacher's share code above. You can then choose whether to share an anonymous reader label on the board.</p>
+          </div>
+          <div class="board-foot"><small>No class scores are shown before you join.</small><span class="action">View Class Board <span aria-hidden="true">→</span></span></div>
+        </section>
+        <section class="card tiers" aria-label="Existing difficulty tiers follow the board"><div class="lab">Leveled reading tiers</div><h3>Choose Your Difficulty</h3><div class="tier-preview">Easy (Madali) · 7 passages</div></section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

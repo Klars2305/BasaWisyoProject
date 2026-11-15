@@ -1,7 +1,5 @@
 AUTH.init();
-if (AUTH.currentUser) {
-  window.location.replace("index.html");
-}
+if (AUTH.currentUser) window.location.replace("index.html");
 
 const loginForm = document.querySelector("#entry-login-form");
 const loginEmail = document.querySelector("#entry-email");

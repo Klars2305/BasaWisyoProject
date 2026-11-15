@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Radiant Passage Card Design Preview | BasaWisyo</title>
+  <link rel="icon" href="assets/images/wisyo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #0d1b3e;
+      --navy-light: #152857;
+      --gold: #f5ab1d;
+      --sky: #1a73e8;
+      --sky-ink: #0f52ba;
+      --sky-soft: #eef5fe;
+      --teal: #0e7c66;
+      --teal-ink: #096653;
+      --teal-soft: #e2f8f2;
+      --coral: #d84035;
+      --purple: #6e3bc7;
+      --bg: #f3f6fc;
+      --card: #ffffff;
+      --border: #d5e0f2;
+      --text: #0d1838;
+      --sub: #4c5c82;
+      --font-body: 'Lexend', system-ui, sans-serif;
+      --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg: #090f24;
+      --card: #101a3a;
+      --border: #1d2c5a;
+      --text: #eaf0ff;
+      --sub: #9ab0dc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      padding: 32px 20px;
+      line-height: 1.5;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .preview-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header Demo Controls */
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .preview-title h1 {
+      font: 800 1.8rem/1.2 var(--font-display);
+      color: var(--navy);
+    }
+    [data-theme="dark"] .preview-title h1 { color: #fff; }
+    .preview-title p {
+      font-size: 0.92rem;
+      color: var(--sub);
+      margin-top: 4px;
+    }
+    .preview-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font: 600 0.85rem var(--font-body);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(13,27,62,0.06);
+    }
+
+    /* Comparison section */
+    .compare-section {
+      margin-bottom: 36px;
+    }
+    .compare-label {
+      font: 700 0.85rem var(--font-body);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--sky-ink);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 20px;
+    }
+
+    /* ==========================================================================
+       THE NEW RADIANT PASSAGE CARD SPECIFICATION
+       No images used: purely crafted with radiant gradients, tactile depth,
+       tier radiance halos, and luminous borders.
+       ========================================================================== */
+
+    .radiant-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,251,255,0.85) 100%);
+      border: 1.5px solid var(--border);
+      padding: 20px 20px 18px;
+      min-width: 0;
+      isolation: isolate;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(13, 27, 62, 0.04), 0 1px 3px rgba(13, 27, 62, 0.02);
+      transition: transform 0.22s var(--ease-out-expo), box-shadow 0.22s var(--ease-out-expo), border-color 0.22s ease;
+    }
+
+    [data-theme="dark"] .radiant-card {
+      background: linear-gradient(180deg, #131f44 0%, #0d1633 100%);
+      border-color: #1f3162;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Ambient radiant light on top of the card */
+    .radiant-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 110px;
+      background: radial-gradient(ellipse 90% 100% at 50% -20%, var(--tier-glow, rgba(26,115,232,0.12)) 0%, transparent 80%);
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.6;
+      transition: opacity 0.25s ease;
+    }
+
+    .radiant-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px -8px var(--tier-shadow, rgba(13, 27, 62, 0.12)), 0 4px 12px rgba(13, 27, 62, 0.04);
+      border-color: var(--tier-border, #a8c6f8);
+    }
+    .radiant-card:hover::before {
+      opacity: 1;
+    }
+
+    /* --- Tier Personality Definitions --- */
+    /* Easy / Madali (Mint Emerald Radiance) */
+    .tier-easy {
+      --tier-glow: rgba(14, 124, 102, 0.16);
+      --tier-border: rgba(14, 124, 102, 0.35);
+      --tier-shadow: rgba(14, 124, 102, 0.18);
+      --tier-accent: #0e7c66;
+    }
+    /* Medium / Katamtaman (Sunlit Gold Radiance) */
+    .tier-medium {
+      --tier-glow: rgba(245, 171, 29, 0.22);
+      --tier-border: rgba(245, 171, 29, 0.45);
+      --tier-shadow: rgba(245, 171, 29, 0.22);
+      --tier-accent: #d97706;
+    }
+    /* Hard / Mahirap (Sunset Coral Radiance) */
+    .tier-hard {
+      --tier-glow: rgba(216, 64, 53, 0.18);
+      --tier-border: rgba(216, 64, 53, 0.4);
+      --tier-shadow: rgba(216, 64, 53, 0.2);
+      --tier-accent: #d84035;
+    }
+    /* Extreme / Sukdulan (Astral Violet Radiance) */
+    .tier-extreme {
+      --tier-glow: rgba(110, 59, 199, 0.2);
+      --tier-border: rgba(110, 59, 199, 0.45);
+      --tier-shadow: rgba(110, 59, 199, 0.24);
+      --tier-accent: #7c3aed;
+    }
+
+    /* Top Strip: Badges & Status */
+    .radiant-top-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .radiant-tier-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font: 800 0.72rem/1 var(--font-body);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 9px;
+      border-radius: 999px;
+    }
+    .tier-easy .radiant-tier-chip {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .tier-medium .radiant-tier-chip {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .tier-hard .radiant-tier-chip {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .tier-extreme .radiant-tier-chip {
+      background: #f5f3ff;
+      color: #5b21b6;
+      border: 1px solid #ddd6fe;
+    }
+
+    [data-theme="dark"] .tier-easy .radiant-tier-chip { background: rgba(14,124,102,0.22); color: #8ae0c0; border-color: rgba(14,124,102,0.4); }
+    [data-theme="dark"] .tier-medium .radiant-tier-chip { background: rgba(245,171,29,0.22); color: #fde68a; border-color: rgba(245,171,29,0.4); }
+    [data-theme="dark"] .tier-hard .radiant-tier-chip { background: rgba(216,64,53,0.22); color: #fca5a5; border-color: rgba(216,64,53,0.4); }
+    [data-theme="dark"] .tier-extreme .radiant-tier-chip { background: rgba(110,59,199,0.22); color: #c4b5fd; border-color: rgba(110,59,199,0.4); }
+
+    .radiant-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font: 700 0.74rem/1 var(--font-body);
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+    .status-done {
+      background: #e6f9f3;
+      color: #0d725d;
+      border: 1px solid #b7edd9;
+    }
+    [data-theme="dark"] .status-done {
+      background: rgba(14,124,102,0.25);
+      color: #8ae0c0;
+      border-color: rgba(14,124,102,0.5);
+    }
+    .status-new {
+      background: #edf6ff;
+      color: #075fd6;
+      border: 1px solid #b8daff;
+    }
+    [data-theme="dark"] .status-new {
+      background: rgba(26,115,232,0.25);
+      color: #90c2ff;
+      border-color: rgba(26,115,232,0.5);
+    }
+    .status-locked {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+    }
+    [data-theme="dark"] .status-locked {
+      background: rgba(255,255,255,0.06);
+      color: #94a3b8;
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    /* Meta: words and time */
+    .radiant-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--sub);
+      font-size: 0.77rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .radiant-meta-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.5;
+    }
+
+    /* Story Title */
+    .radiant-title {
+      font: 800 1.22rem/1.26 var(--font-display);
+      color: #0a193d;
+      margin: 0 0 10px;
+      letter-spacing: -0.02em;
+      transition: color 0.18s ease;
+    }
+    [data-theme="dark"] .radiant-title { color: #f1f7ff; }
+    .radiant-card:hover .radiant-title {
+      color: var(--tier-accent, #075fd6);
+    }
+    [data-theme="dark"] .radiant-card:hover .radiant-title {
+      color: #ffffff;
+      text-shadow: 0 0 16px var(--tier-glow);
+    }
+
+    /* Excerpt with clamp */
+    .radiant-excerpt {
+      flex: 1;
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: #4b6188;
+      margin: 0 0 16px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .radiant-excerpt { color: #9bb2db; }
+
+    /* Footer & Questions count */
+    .radiant-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid rgba(13,27,62,0.07);
+    }
+    [data-theme="dark"] .radiant-footer {
+      border-top-color: rgba(255,255,255,0.08);
+    }
+    .radiant-question-count {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--sub);
+      font-weight: 500;
+    }
+    .radiant-question-count svg {
+      width: 14px;
+      height: 14px;
+      color: var(--sky);
+      flex: none;
+    }
+
+    /* Buttons */
+    .radiant-btn {
+      width: 100%;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font: 700 0.92rem var(--font-body);
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+    .btn-radiant-primary {
+      background: linear-gradient(180deg, #1c88ff 0%, #0057ce 100%);
+      color: #ffffff;
+      border: 1px solid #0057ce;
+      box-shadow: 0 4px 12px rgba(0, 87, 206, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+    .btn-radiant-primary:hover {
+      background: linear-gradient(180deg, #127ded 0%, #004ab0 100%);
+      transform: translateY(-1.5px);
+      box-shadow: 0 8px 18px rgba(0, 87, 206, 0.32);
+    }
+    .btn-radiant-primary:active {
+      transform: translateY(1px);
+    }
+
+    .btn-radiant-secondary {
+      background: #f4f8fe;
+      color: #075fd6;
+      border: 1.5px solid #c2d8fa;
+    }
+    .btn-radiant-secondary:hover {
+      background: #e8f2ff;
+      border-color: #075fd6;
+      transform: translateY(-1.5px);
+      box-shadow: 0 4px 12px rgba(7, 95, 214, 0.12);
+    }
+    [data-theme="dark"] .btn-radiant-secondary {
+      background: rgba(255,255,255,0.06);
+      color: #8cc8ff;
+      border-color: rgba(140,200,255,0.25);
+    }
+    [data-theme="dark"] .btn-radiant-secondary:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: #8cc8ff;
+    }
+
+    .btn-radiant-locked {
+      background: #f1f5f9;
+      color: #94a3b8;
+      border: 1px solid #e2e8f0;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    [data-theme="dark"] .btn-radiant-locked {
+      background: rgba(255,255,255,0.04);
+      color: #64748b;
+      border-color: rgba(255,255,255,0.08);
+    }
+    .radiant-card-locked {
+      opacity: 0.82;
+    }
+    .radiant-card-locked:hover {
+      transform: none;
+      box-shadow: 0 4px 20px rgba(13, 27, 62, 0.04);
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-container">
+    <header class="preview-header">
+      <div class="preview-title">
+        <h1>Radiant Card Design Showcase</h1>
+        <p>Aesthetic, glowing, tactile story cards without images — driven by typography, luminous halos, and tier radiance.</p>
+      </div>
+      <div class="preview-actions">
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()">
+          <span id="theme-icon">🌙</span> <span id="theme-text">Toggle Dark Theme</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="compare-section">
+      <div class="compare-label">✦ Live Radiant Cards (Interactive Hover States)</div>
+      <div class="compare-grid">
+
+        <!-- Card 1: Easy, Completed (Read Again) -->
+        <article class="radiant-card tier-easy">
+          <div class="radiant-top-strip">
+            <span class="radiant-tier-chip">Easy</span>
+            <span class="radiant-status-pill status-done">Done ✓</span>
+          </div>
+          <div class="radiant-meta-row">
+            <span>72 words</span>
+            <span class="radiant-meta-dot"></span>
+            <span>~1 min read</span>
+          </div>
+          <h3 class="radiant-title">Tala and the Morning Catch</h3>
+          <p class="radiant-excerpt">Tala woke up before sunrise on Samal Island. The air smelled of salt and morning dew. Down at the shore, her father untied the yellow wooden outrigger banca…</p>
+          <div class="radiant-footer">
+            <div class="radiant-question-count">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>2 comprehension questions</span>
+            </div>
+            <button class="radiant-btn btn-radiant-secondary">Read Again</button>
+          </div>
+        </article>
+
+        <!-- Card 2: Medium, New (Read & Answer) -->
+        <article class="radiant-card tier-medium">
+          <div class="radiant-top-strip">
+            <span class="radiant-tier-chip">Medium</span>
+            <span class="radiant-status-pill status-new">New</span>
+          </div>
+          <div class="radiant-meta-row">
+            <span>88 words</span>
+            <span class="radiant-meta-dot"></span>
+            <span>~1 min read</span>
+          </div>
+          <h3 class="radiant-title">The Song of the Bamboo Organ</h3>
+          <p class="radiant-excerpt">Constructed between 1816 and 1824 by Spanish missionary Father Diego Cera, the historic Las Piñas Bamboo Organ resonates with an earthy, resonant flute-like melody…</p>
+          <div class="radiant-footer">
+            <div class="radiant-question-count">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>2 comprehension questions</span>
+            </div>
+            <button class="radiant-btn btn-radiant-primary">Read & Answer</button>
+          </div>
+        </article>
+
+        <!-- Card 3: Hard, New (Read & Answer) -->
+        <article class="radiant-card tier-hard">
+          <div class="radiant-top-strip">
+            <span class="radiant-tier-chip">Hard</span>
+            <span class="radiant-status-pill status-new">New</span>
+          </div>
+          <div class="radiant-meta-row">
+            <span>115 words</span>
+            <span class="radiant-meta-dot"></span>
+            <span>~1 min read</span>
+          </div>
+          <h3 class="radiant-title">Tubbataha’s Midnight Sanctuary</h3>
+          <p class="radiant-excerpt">Isolated in the heart of the Sulu Sea, Tubbataha Reefs Natural Park forms an oceanic crucible of biodiversity, where deep pelagic currents nourish kaleidoscopic coral walls…</p>
+          <div class="radiant-footer">
+            <div class="radiant-question-count">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>3 comprehension questions</span>
+            </div>
+            <button class="radiant-btn btn-radiant-primary">Read & Answer</button>
+          </div>
+        </article>
+
+        <!-- Card 4: Extreme, Locked -->
+        <article class="radiant-card tier-extreme radiant-card-locked">
+          <div class="radiant-top-strip">
+            <span class="radiant-tier-chip">Extreme</span>
+            <span class="radiant-status-pill status-locked">Locked 🔒</span>
+          </div>
+          <div class="radiant-meta-row">
+            <span>140 words</span>
+            <span class="radiant-meta-dot"></span>
+            <span>~2 min read</span>
+          </div>
+          <h3 class="radiant-title">Geothermal Veins of Mount Apo</h3>
+          <p class="radiant-excerpt">Ascending past primordial mossy cloud forests, the sulfurous fumaroles of Mount Apo whisper ancient Manobo mythology while powering clean turbine micro-grids below…</p>
+          <div class="radiant-footer">
+            <div class="radiant-question-count">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>4 comprehension questions</span>
+            </div>
+            <button class="radiant-btn btn-radiant-locked" disabled>Complete earlier tiers</button>
+          </div>
+        </article>
+
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        document.getElementById('theme-icon').textContent = '🌙';
+        document.getElementById('theme-text').textContent = 'Toggle Dark Theme';
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.getElementById('theme-icon').textContent = '☀️';
+        document.getElementById('theme-text').textContent = 'Toggle Light Theme';
+      }
+    }
+  </script>
+</body>
+</html>

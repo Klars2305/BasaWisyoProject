@@ -327,10 +327,19 @@ const AUTH = {
       section: data.role === "teacher" ? section : linkedTeacher?.section || "",
       teacherCode: data.role === "student" ? teacherCode : "",
       shareCode,
-      lvl: data.role === "student" ? (S.lvl !== null ? S.lvl : 1) : null,
+      lvl: data.role === "student" ? (GUEST_MODE && S.lvl !== null ? S.lvl : 1) : null,
       wpm: data.role === "student" ? 110 : null,
       comp: data.role === "student" ? 75 : null,
       wordsRead: data.role === "student" ? (S.w || 0) : null,
+      journey: data.role === "student"
+        ? (GUEST_MODE && journeyValid(S.guestJourney)
+          ? { baseTier: S.guestJourney.baseTier,
+              results: Object.fromEntries(Object.entries(S.guestJourney.results)
+                .map(([id, result]) => [id, { ...result }])),
+              skillEvidence: Object.fromEntries(Object.entries(S.guestJourney.skillEvidence || {})
+                .map(([skill, keys]) => [skill, [...keys]])),
+              frame: S.guestJourney.frame || "none", boardOptIn: false }
+          : journeyEmpty()) : undefined,
       status: "active",
       createdAt: new Date().toISOString().split("T")[0]
     };
@@ -348,6 +357,10 @@ const AUTH = {
       return { success: false, message: "Account created, but automatic sign-in failed. Please sign in from the login page." };
     }
     this.currentUser = newUser;
+    if (data.role === "student" && GUEST_MODE) {
+      S.guestJourney = journeyEmpty();
+      save();
+    }
 
     return { success: true, user: newUser };
   },

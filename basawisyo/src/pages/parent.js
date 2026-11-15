@@ -17,7 +17,7 @@ function viewParent() {
       ${S.sub ? `
         <span class="pill ok" style="background:#fff;color:var(--teal)">Subscribed ✓ (Demo Mode Active)</span>
       ` : `
-        <button class="btn gold sm" data-a="sub-toggle">
+        <button class="btn blue sm" data-a="sub-toggle">
           Unlock Parent Hub · ₱99/month (Demo)
         </button>
       `}
@@ -61,7 +61,7 @@ function viewParent() {
       <div class="speech-bubble" id="ofw-msg">
         "Kamusta po! Update lang po sa pagbasa ni anak sa BasaWisyo: Nasa level na po siya ng ${currentLevelStr}! Nakatapos na po siya ng ${S.ss} reading sessions at nakabasa ng ${S.w.toLocaleString()} salita. Tuloy-tuloy po ang pagpupursigi!"
       </div>
-      <button class="btn sm o" data-a="copy-ofw-msg">📋 Copy Message for Messenger / SMS</button>
+      <button class="btn sm o" data-a="copy-ofw-msg">${uiIcon("copy")} Copy Message for Messenger / SMS</button>
     </div>
 
     <!-- Tutoring Cost Comparison -->
@@ -69,13 +69,13 @@ function viewParent() {
       <div class="lab">Budget Comparison: Private Tutor vs BasaWisyo</div>
       <p class="sub">See how much you save while giving your child consistent daily reading practice:</p>
       
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="parent-choice-grid">
         <div>
-          <label class="sub-sm">Rate per session (₱)</label>
+          <label class="sub-sm" for="tutor-rate">Rate per session (₱)</label>
           <input type="number" id="tutor-rate" value="${S.pay || ''}" placeholder="e.g. 250">
         </div>
         <div>
-          <label class="sub-sm">Sessions / month</label>
+          <label class="sub-sm" for="tutor-sessions">Sessions / month</label>
           <input type="number" id="tutor-sessions" value="${S.pm || ''}" placeholder="e.g. 8">
         </div>
       </div>

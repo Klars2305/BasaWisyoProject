@@ -1,0 +1,90 @@
+/* ==========================================================================
+   BasaWisyo Reading Studio Styles
+   Responsive styling for Student My Reading Studio and Teacher Reading Studio
+   ========================================================================== */
+
+.reading-studio-page,
+.teacher-reading-studio-page {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.studio-grid,
+.teacher-studio-grid {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+
+.teacher-meta-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 900px) {
+  .studio-grid,
+  .teacher-studio-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .teacher-meta-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card-header.teacher-step-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .card-header.teacher-step-header > div:last-child,
+  .card-header.teacher-step-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.studio-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 18px 14px;
+  text-align: center;
+  transition: border-color var(--transition), background-color var(--transition);
+}
+
+.studio-dropzone:hover {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.studio-policy-card {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+}
+
+.teacher-questions-list .card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.teacher-questions-list .card:focus-within {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px var(--teal-soft);
+}
+
+.studio-materials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--section-gap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reading-studio-page,
+  .teacher-reading-studio-page {
+    animation: none;
+  }
+}

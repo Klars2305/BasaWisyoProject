@@ -59,6 +59,12 @@ function normalizePassage(raw) {
     throw new Error("Passage status must be draft, pending, rejected, or published.");
   }
   const result = { id, t, diff, x, qs, status };
+  if (raw.lang != null && raw.lang !== "") {
+    if (!["en-US", "fil-PH", "ceb-PH"].includes(raw.lang)) {
+      throw new Error("Choose English, Filipino, or Cebuano for the passage language.");
+    }
+    result.lang = raw.lang;
+  }
   if (raw.ownerId != null && raw.ownerId !== "") {
     result.ownerId = passageText(raw.ownerId, "Owner ID", 80);
   }

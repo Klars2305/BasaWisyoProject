@@ -42,6 +42,7 @@ function validateBackupState(raw) {
   backupRequire(Array.isArray(state.done) && state.done.every(id => typeof id === "string"),
     "systemState.done must be a list of passage IDs.");
   backupUnique(state.done, "systemState.done", id => id);
+  backupRequire(journeyValid(state.guestJourney), "systemState.guestJourney is invalid.");
   backupRequire(backupIsObject(state.sk), "systemState.sk must be an object.");
   for (const counts of Object.values(state.sk)) {
     backupRequire(Array.isArray(counts) && counts.length === 2
@@ -85,6 +86,10 @@ function validateBackup(raw) {
     backupRequire(["student", "teacher", "admin"].includes(user.role), "User role is invalid.");
     backupRequire(user.status === undefined || ["active", "suspended"].includes(user.status),
       "User status is invalid.");
+    backupRequire(user.journey === undefined || journeyValid(user.journey), "User journey is invalid.");
+    backupRequire(user.journeyOverride === undefined || user.journeyOverride === null
+      || (Number.isInteger(user.journeyOverride) && user.journeyOverride >= 0 && user.journeyOverride < DIFF_KEYS.length),
+      "User journey override is invalid.");
   }
   backupUnique(raw.users, "users", user => user.id);
   backupUnique(raw.users, "users email", user => user.email.trim().toLowerCase());

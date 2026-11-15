@@ -4,23 +4,31 @@ function viewAssess() {
 
   if (S.lvl === null) {
     return `
-      <h2>Phil-IRI Diagnostic Placement</h2>
-      <p class="sub">
-        Discover your reading comprehension level. You will read 4 calibrated passages (Easy, Medium, Hard, and Extreme) with one question each. Works completely offline!
-      </p>
-
-      <div class="card">
-        <div class="lab">${isGuest ? "Guest Screener Mode (No Account Needed)" : "Student Diagnostic"}</div>
-        <p class="sub">
-          • 4 calibrated passages testing literal, inferential, and critical reading<br>
-          • Tap any dotted word for Filipino, Bisaya, and English translations<br>
-          • Takes only 3 to 4 minutes<br>
-          • Accurately classifies into: <b>Frustration, Instructional, Independent, or Mastery</b>
-        </p>
-        <button class="btn gold" data-a="start-placement">
-          ${isGuest ? "⚡ Start Quick Diagnostic as Guest" : "Start Placement Test"}
-        </button>
+      <div class="assessment-page">
+      <div class="assessment-intro">
+        <div class="lab">Reading placement</div>
+        <h2>Find a comfortable place to start reading</h2>
+        <p class="sub">Try four short passages, one question each. Your result suggests a starting level for practice in this browser. The activity works offline.</p>
       </div>
+      <section class="card assessment-start-card" aria-label="What to expect from placement">
+        <div class="assessment-start-head">
+          <div>
+            <div class="lab">${isGuest ? "Guest Screener Mode (No Account Needed)" : "Student Diagnostic"}</div>
+            <h3>Four small steps</h3>
+          </div>
+          <span class="pill">About 3–4 minutes</span>
+        </div>
+        <ol class="assessment-steps">
+          <li><b>Read</b><span>Easy, Medium, Hard, and Extreme passages</span></li>
+          <li><b>Explore</b><span>Tap dotted words for Filipino, Bisaya, and English meanings</span></li>
+          <li><b>Answer</b><span>One comprehension question after each passage</span></li>
+          <li><b>Continue</b><span>Use the suggested level to choose your next story</span></li>
+        </ol>
+        <p class="assessment-note">This is a prototype practice placement, not an official Phil-IRI assessment.</p>
+        <button class="btn blue assessment-start-button" data-a="start-placement">
+          ${uiIcon("assess")} ${isGuest ? "Start Quick Diagnostic as Guest" : "Start Placement Test"}
+        </button>
+      </section></div>
     `;
   }
 
@@ -36,20 +44,20 @@ function viewAssess() {
   if (isGuest) {
     const token = S.guestToken || "GUEST-READY";
     guestActions = `
-      <div class="card" style="background:linear-gradient(135deg, var(--gold-soft), var(--card));border:2px solid var(--gold);margin-top:16px">
-        <div class="lab" style="color:var(--gold-hover)">🌟 Save or Share Your Diagnosed Level</div>
+      <div class="card assessment-guest-card">
+        <div class="lab" style="color:var(--gold-ink)">${uiIcon("sparkles")} Save or Share Your Suggested Level</div>
         <h3 style="margin:4px 0">Your Temporary Guest Token: <code>${token}</code></h3>
         <p class="sub" style="margin:4px 0 14px 0">
           You don't have an account, but your reading level is saved locally! Choose how you would like to proceed:
         </p>
         <div style="display:flex;flex-direction:column;gap:10px">
-          <button class="btn gold" data-a="guest-save-profile">
-            💾 Save Profile (Create Permanent Student Account)
+          <button class="btn blue" data-a="guest-save-profile">
+            ${uiIcon("profile")} Save Profile (Create Permanent Student Account)
           </button>
           
           <div style="border-top:1px dashed var(--border);padding-top:10px">
-            <label style="font-size:12px;font-weight:700">Link directly to a Teacher:</label>
-            <div style="display:flex;gap:8px;margin-top:4px">
+            <label for="guest-teacher-code" style="font-size:12px;font-weight:700">Link directly to a Teacher:</label>
+            <div class="guest-link-row" style="display:flex;gap:8px;margin-top:4px">
               <input type="text" id="guest-teacher-code" class="auth-input" placeholder="Enter Teacher Share Code (e.g. BASA-TEACH-8492)" style="text-transform:uppercase;font-family:monospace">
               <button class="btn" data-a="guest-connect-teacher">Send to Teacher</button>
             </div>
@@ -60,15 +68,17 @@ function viewAssess() {
   }
 
   return `
-    <h2>Your Phil-IRI Reading Profile</h2>
-    <div class="card">
-      <div class="lab">Official Diagnostic Level</div>
-      <div class="big" style="color:var(--navy);margin-top:6px">
+    <div class="assessment-page assessment-complete">
+    <div class="assessment-intro"><div class="lab">Practice placement</div><h2>Your Reading Profile</h2>
+      <p class="sub">This result suggests where to start practicing. It is not an official Phil-IRI classification.</p></div>
+    <div class="card assessment-result-card">
+      <div class="lab">Suggested Reading Level</div>
+      <div class="big assessment-level-value">
         ${PHIL_IRI_LEVELS[S.lvl]} Reader
       </div>
-      <p class="sub" style="margin-top:8px">${desc[S.lvl]}</p>
+      <p class="sub">${desc[S.lvl]}</p>
 
-      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+      <div class="assessment-result-actions">
         <button class="btn" data-a="tab" data-v="practice">Go to Recommended Practice</button>
         <button class="btn o" data-a="start-placement">Retake Placement Test</button>
       </div>
@@ -77,8 +87,10 @@ function viewAssess() {
     ${guestActions}
 
     <!-- Phil-IRI Rubric Breakdown -->
-    <div class="card" style="margin-top:16px">
+    <div class="card assessment-scale-card">
       <div class="lab">DepEd Phil-IRI Scale</div>
+      <p class="sub-sm">Reference labels are shown for learning context. This four-question activity does not measure reading speed or produce an official score.</p>
+      <div class="responsive-table-wrap" tabindex="0" role="region" aria-label="Reading level scale; scroll horizontally for more columns">
       <table style="margin-top:8px">
         <thead>
           <tr>
@@ -115,7 +127,8 @@ function viewAssess() {
           </tr>
         </tbody>
       </table>
-    </div>
+      </div>
+    </div></div>
   `;
 }
 

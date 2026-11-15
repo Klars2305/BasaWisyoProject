@@ -1,0 +1,140 @@
+/* Learner and classroom dashboards share the same compact reading rhythm. */
+.profile-page, .assessment-page, .teacher-page, .admin-page { min-width: 0; }
+.profile-page { max-width: 1100px; margin: 0 auto; }
+.profile-page > .card, .profile-page > .journey-panel { margin-bottom: var(--section-gap); }
+.profile-page .profile-heading { gap: var(--space-3); padding: var(--surface-pad); margin: 0 0 var(--section-gap); background: var(--sky-soft); box-shadow: none; }
+.profile-page .profile-avatar { width: 56px; height: 56px; font-size: 1.4rem; }
+.profile-page .profile-heading h2 { font-size: clamp(1.35rem, 3.5vw, 1.8rem); }
+.profile-page .profile-heading .sub-sm { font-size: .86rem; }
+.profile-page .profile-account { display: grid; gap: 4px; }
+.profile-page .profile-account .lab { margin-bottom: 4px; }
+.profile-page .profile-account p { margin: 0; line-height: 1.55; }
+.profile-page .profile-guest-note { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.profile-page .profile-guest-note p { flex: 1 1 100%; margin: 0; }
+.profile-page .profile-guest-note .btn { width: auto; margin: 0; }
+.profile-page .profile-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin: 0 0 var(--section-gap); }
+.profile-page .profile-stat { display: flex; flex-direction: column; justify-content: space-between; gap: 6px; padding: var(--space-3); background: var(--card); }
+.profile-page .profile-stat b { margin: 0; font: 700 clamp(1.18rem, 3vw, 1.5rem) / 1.25 var(--font-display); }
+.profile-page .profile-stat b { overflow-wrap: anywhere; }
+.profile-page .profile-stat:last-child { grid-column: 1 / -1; }
+.profile-page .profile-stat .sub-sm { font-size: .76rem; }
+.profile-page .profile-xp-value { color: var(--gold-ink); }
+.profile-page .journey-panel { border-left: 1px solid var(--border); }
+.profile-page .journey-next { padding: 12px; }
+.profile-page .rewards-panel h3 { margin: 4px 0 8px; }
+.profile-page .rewards-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.profile-page .reward-badge { align-items: flex-start; gap: var(--space-2); padding: var(--space-3); }
+.profile-page .reward-badge.locked { opacity: 1; background: var(--bg); }
+.profile-page .reward-badge .sub-sm { line-height: 1.5; }
+.profile-page .reward-status { margin-left: auto; }
+.profile-page .frame-choices { gap: 10px; }
+.profile-page .frame-choice { min-height: var(--control-height); }
+.profile-page .profile-next-badges h3, .profile-page .profile-mastery-section h3 { margin: 4px 0 8px; }
+.profile-badge-targets { display: grid; gap: 8px; margin-top: 12px; }
+.profile-badge-target { min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+.profile-badge-target-head { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.profile-badge-target-head b { flex: 1; min-width: 120px; }
+.profile-badge-target-head .pill { max-width: 100%; white-space: normal; }
+.profile-badge-target-next { margin-top: 6px; color: var(--sky-ink); }
+.profile-page .profile-stories li { padding: 14px 0; }
+.profile-page .profile-stories li .btn { width: auto; }
+.profile-page .profile-mastery-section .mastery-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.profile-page .mastery-disclaimer-card { box-shadow: none; }
+
+/* Placement is a short, low-pressure entry to practice. */
+.assessment-page { max-width: 920px; margin: 0 auto; }
+.assessment-intro { margin: 0 0 14px; }
+.assessment-intro h2 { max-width: 26ch; font-size: clamp(1.45rem, 3.5vw, 2.05rem); line-height: 1.18; }
+.assessment-intro .sub { max-width: 65ch; margin-top: 12px; font-size: 1rem; }
+.assessment-start-card, .assessment-result-card, .assessment-scale-card { padding: var(--feature-pad); box-shadow: none; }
+.assessment-start-head { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+.assessment-start-head h3 { margin: 4px 0; font-size: 1.25rem; }
+.assessment-steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 12px 0; padding: 0; list-style: none; counter-reset: placement; }
+.assessment-steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); counter-increment: placement; }
+.assessment-steps li::before { content: counter(placement); grid-row: 1 / span 2; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--sky-soft); color: var(--sky-ink); font-weight: 700; }
+.assessment-steps li b { line-height: 1.35; }
+.assessment-steps li span { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+.assessment-note { margin: 10px 0 18px; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--sky-soft); color: var(--sky-ink); font-size: .86rem; }
+.assessment-start-button { min-height: var(--control-height); }
+.assessment-level-value { margin: 10px 0; color: var(--text) !important; font-size: clamp(1.6rem, 4vw, 2.35rem); line-height: 1.2; }
+.assessment-result-actions { display: grid; gap: 10px; margin-top: 20px; }
+.assessment-page .assessment-guest-card { margin-top: 16px; background: var(--gold-soft); border: 1px solid var(--gold); }
+.assessment-page .assessment-scale-card { margin-top: 16px; }
+.assessment-scale-card .sub-sm { display: block; margin: 8px 0 12px; }
+.assessment-page .responsive-table-wrap { margin-bottom: 0; }
+
+/* Teacher and admin controls retain their full local data views. */
+.teacher-page, .admin-page { max-width: 1240px; margin: 0 auto; }
+.teacher-page .share-code-hero { padding: var(--feature-pad); margin-bottom: var(--section-gap); background: #142b5f; box-shadow: none; }
+.teacher-page .share-code-label { letter-spacing: .02em; text-transform: none; font-size: .88rem; }
+.teacher-share-help { max-width: 60ch; margin: 8px 0; color: #e3edff; font-size: .9rem; }
+.teacher-page .share-code-box { max-width: 100%; margin: 10px 0 4px; border: 1px solid rgba(255,255,255,.42); background: rgba(0,0,0,.14); }
+.teacher-page .share-code-digits { max-width: 100%; font-size: clamp(1.4rem, 5vw, 2rem); letter-spacing: .06em; overflow-wrap: anywhere; text-shadow: none; }
+.teacher-page .share-code-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.teacher-page .share-code-btn { justify-content: center; min-height: var(--control-height); border-radius: var(--radius-sm); font-size: var(--text-label); text-align: center; }
+.teacher-page .metric-grid, .admin-page .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin-bottom: var(--section-gap); }
+.teacher-page .metric-box, .admin-page .metric-box { min-width: 0; padding: var(--space-3); text-align: left; box-shadow: none; border-radius: var(--radius-md); }
+.teacher-page .metric-value, .admin-page .metric-value { font-size: clamp(1.4rem, 3.5vw, 1.85rem); color: var(--text); }
+.teacher-page .metric-title, .admin-page .metric-title { margin-top: 6px; font-size: var(--text-label); line-height: 1.4; letter-spacing: 0; text-transform: none; }
+.teacher-page .metric-box:last-child, .admin-page .metric-box:last-child { grid-column: 1 / -1; }
+.teacher-section-card, .admin-section-card { margin-bottom: var(--section-gap); box-shadow: none; }
+.teacher-section-head, .admin-card-head { display: flex; align-items: flex-start; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.teacher-section-head h3 { margin: 0 0 4px; font-size: var(--text-card); }
+.teacher-section-head .sub { margin-bottom: 0; }
+.teacher-section-head > .btn, .admin-card-head > .btn { width: 100%; }
+.teacher-practice-list { display: grid; gap: 10px; margin-top: 16px; }
+.teacher-practice-row { min-width: 0; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+.teacher-practice-row .btn { min-height: 44px; }
+.teacher-empty-state { margin-top: 16px; }
+.teacher-dispatch-button { margin-top: 8px; }
+.teacher-roster-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.teacher-roster-actions .btn { flex: 1 1 150px; min-height: 44px; }
+.table-scroll-hint { display: block; margin: 0 0 8px; color: var(--sub); }
+.teacher-page .responsive-table-wrap, .admin-page .responsive-table-wrap { margin-bottom: 0; box-shadow: none; }
+.teacher-page .data-table th, .admin-page .data-table th { font-size: .8rem; }
+.teacher-page .data-table td, .admin-page .data-table td { font-size: .85rem; line-height: 1.45; }
+.teacher-page .data-table select { min-width: 190px; margin: 6px 0 0; }
+.admin-page .admin-intro { gap: var(--space-3); margin-bottom: var(--space-4); }
+.admin-page .admin-intro h2 { margin: 4px 0; }
+.admin-page .admin-intro-actions, .admin-page .dashboard-intro-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-page .dashboard-intro-actions .btn { flex: 1 1 160px; min-height: 44px; }
+.admin-page .admin-section-tabs { display: flex; gap: var(--space-2); margin: 0 0 var(--section-gap); padding: 0 0 var(--space-2); border-bottom: 0; overflow-x: auto; }
+.admin-page .admin-section-tabs .auth-tab-btn { min-height: var(--control-height); padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text); font-size: var(--text-label); }
+.admin-page .admin-section-tabs .auth-tab-btn.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+.admin-page .admin-section-tabs .auth-tab-btn.active::after { display: none; }
+.admin-page .admin-section-tabs .auth-tab-btn:hover:not(.active) { border-color: var(--sky); background: var(--sky-soft); }
+.admin-page .admin-card-head .lab { margin: 0; }
+.admin-page .admin-row-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); min-width: 0; }
+.admin-page .admin-row-actions .btn, .admin-page .data-table td .btn { width: auto; min-height: var(--control-height); padding: 8px 12px; font-size: var(--text-label); }
+.admin-page .btn.danger, .admin-page .btn.danger:hover { color: var(--coral-ink); }
+.admin-page .data-table td { vertical-align: middle; }
+
+@media (min-width: 640px) {
+  .profile-page .profile-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .profile-page .profile-stat:last-child { grid-column: auto; }
+  .profile-page .profile-account { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-page .profile-account .lab { grid-column: 1 / -1; }
+  .profile-page .profile-account p:last-child { grid-column: 1 / -1; }
+  .profile-badge-targets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .assessment-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
+  .assessment-result-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .teacher-page .share-code-actions { display: flex; flex-wrap: wrap; }
+  .teacher-page .metric-grid, .admin-page .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .teacher-page .metric-box:last-child, .admin-page .metric-box:last-child { grid-column: auto; }
+  .teacher-section-head > .btn, .admin-card-head > .btn { width: auto; }
+  .teacher-roster-actions { width: auto; }
+}
+@media (min-width: 900px) {
+  .profile-page .rewards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-page .profile-mastery-section .mastery-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .teacher-page .metric-grid, .admin-page .metric-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .teacher-page .assignment-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 359px) {
+  .profile-page .profile-summary, .teacher-page .metric-grid, .admin-page .metric-grid { grid-template-columns: minmax(0, 1fr); }
+  .teacher-page .metric-box:last-child, .admin-page .metric-box:last-child { grid-column: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .teacher-page .share-code-btn, .admin-page .admin-section-tabs .auth-tab-btn { transition: none; }
+  .teacher-page .share-code-btn:hover { transform: none; }
+}

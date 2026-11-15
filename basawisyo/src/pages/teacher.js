@@ -2,6 +2,117 @@
    Teacher Interface Views
    ========================================================================== */
 
+function teacherOverviewStudentProgress(student, passageById) {
+  const journey = journeyValid(student.journey) ? student.journey : journeyEmpty(student.lvl);
+  const results = Object.entries(journey.results).flatMap(([id, result]) => {
+    const passage = passageById.get(id);
+    if (!passage || result.total !== passage.qs.length || result.attempts < 1) return [];
+    return [{ passage, result }];
+  });
+  const tier = journeyUnlockedTier({ ...journey, baseTier: Math.max(journey.baseTier, journeyStartingTier(student.lvl)) }, student.journeyOverride);
+  const best = [...results].sort((a, b) =>
+    b.result.correct / b.result.total - a.result.correct / a.result.total
+    || b.result.correct - a.result.correct)[0] || null;
+  return { student, tier, completed: results.length, best };
+}
+
+function viewTeacherOverview() {
+  const teacher = AUTH.currentUser;
+  if (!teacher || teacher.role !== "teacher") {
+    return `<section class="card"><h2>Class Overview</h2><p class="sub">Teacher account required.</p></section>`;
+  }
+  const students = AUTH.getTeacherStudents(teacher.shareCode);
+  const passages = getPublishedPassages();
+  const passageById = new Map(passages.map(passage => [passage.id, passage]));
+  const progress = students.map(student => teacherOverviewStudentProgress(student, passageById));
+  const completed = progress.reduce((sum, item) => sum + item.completed, 0);
+  const assignments = AUTH.assignments.filter(assignment => assignment.teacherCode === teacher.shareCode);
+  const practices = AUTH.customPassages.flatMap(raw => {
+    if (raw?.ownerId !== teacher.id) return [];
+    try { return [normalizePassage(raw)]; } catch (error) { return []; }
+  });
+  const pending = practices.filter(passage => passage.status === "pending").length;
+  const drafts = practices.filter(passage => ["draft", "rejected"].includes(passage.status)).length;
+  const learnersWithoutResults = progress.filter(item => item.completed === 0).length;
+
+  return `<div class="teacher-overview">
+    <div class="teacher-overview-intro">
+      <div><div class="lab">Teacher workspace · ${escapeHTML(teacher.section || "Classroom")}</div>
+        <h2>Class Overview</h2>
+        <p class="sub">See your class at a glance, then open the Classroom Hub for detailed management.</p></div>
+      <button class="btn o" data-a="tab" data-v="teacher-preview">${uiIcon("home")} Preview learner experience</button>
+    </div>
+
+    <section class="card teacher-overview-code" aria-label="Classroom share code">
+      <div><div class="lab">Classroom share code</div>
+        <strong>${escapeHTML(teacher.shareCode || "No code available")}</strong>
+        <p class="sub-sm">Students enter this code to link their account to your class in this browser.</p></div>
+      <button class="btn blue" data-a="teacher-copy-code">${uiIcon("copy")} Copy code</button>
+    </section>
+
+    <section class="teacher-overview-metrics" aria-label="Local classroom summary">
+      <div class="card"><span class="lab">Linked students</span><b>${students.length}</b><span class="sub-sm">In this browser</span></div>
+      <div class="card"><span class="lab">Passage results</span><b>${completed}</b><span class="sub-sm">Completed student-passage pairs</span></div>
+      <div class="card"><span class="lab">Active assignments</span><b>${assignments.length}</b><span class="sub-sm">Completion is not tracked per assignment</span></div>
+      <div class="card"><span class="lab">Awaiting admin review</span><b>${pending}</b><span class="sub-sm">Your submitted practices</span></div>
+    </section>
+
+    ${students.length ? `<div class="teacher-overview-grid">
+      <section class="card teacher-overview-panel">
+        <div class="teacher-overview-panel-head"><div><div class="lab">Learner progress</div><h3>Student snapshot</h3>
+          <p class="sub-sm">${learnersWithoutResults} of ${students.length} ${learnersWithoutResults === 1 ? "student has" : "students have"} no completed passage results recorded here.</p></div>
+          <button class="btn o sm" data-a="tab" data-v="teacher">Open full roster</button></div>
+        <div class="teacher-overview-students">${progress.slice(0, 5).map(item => `<div class="teacher-overview-student">
+          <div><b>${escapeHTML(item.student.name)}</b><span class="sub-sm">Current path: ${escapeHTML(DIFF_NAMES[DIFF_KEYS[item.tier]])}</span></div>
+          <div class="teacher-overview-student-score"><strong>${item.completed} ${item.completed === 1 ? "passage" : "passages"}</strong>
+            <span class="sub-sm">${item.best ? `Best: ${item.best.result.correct}/${item.best.result.total} · ${escapeHTML(item.best.passage.t)}` : "No score yet"}</span></div>
+        </div>`).join("")}</div>
+        ${students.length > 5 ? `<p class="sub-sm teacher-overview-more">Showing 5 of ${students.length} students. Open the full roster for everyone.</p>` : ""}
+      </section>
+
+      <section class="card teacher-overview-panel">
+        <div class="teacher-overview-panel-head"><div><div class="lab">Classroom activity</div><h3>Assigned passages</h3></div>
+          <button class="btn o sm" data-a="tab" data-v="teacher">Manage assignments</button></div>
+        ${assignments.length ? `<ul class="teacher-overview-assignments">${assignments.slice(0, 3).map(assignment => `<li>
+          <b>${escapeHTML(assignment.title)}</b>
+          <span class="sub-sm">${escapeHTML(assignment.targetGroup || "Class")} · ${escapeHTML(assignment.dueDate || "No due date")}</span>
+        </li>`).join("")}</ul>${assignments.length > 3 ? `<p class="sub-sm">${assignments.length - 3} more in Classroom Hub.</p>` : ""}`
+          : `<p class="sub">No passages assigned yet. Open Classroom Hub to assign an approved practice.</p>`}
+        <div class="teacher-overview-practice-status"><span>${drafts} ${drafts === 1 ? "draft or rejected practice" : "draft or rejected practices"}</span>
+          <button class="btn o sm" data-a="tab" data-v="practice">Manage passages</button></div>
+      </section>
+    </div>` : `<section class="card teacher-overview-empty"><div class="lab">First step</div><h3>Invite students to your class</h3>
+      <p class="sub">No student accounts are linked to this share code in this browser yet. Share the code above, then their local reading results can appear here.</p>
+      <div class="teacher-overview-empty-actions"><button class="btn blue" data-a="teacher-copy-code">${uiIcon("copy")} Copy share code</button>
+        <button class="btn o" data-a="tab" data-v="teacher">Open Classroom Hub</button></div></section>`}
+
+    <p class="sub-sm teacher-overview-disclaimer">This overview uses account data saved in this browser. Scores are formative practice results, not official Phil-IRI assessments or live cross-device submissions.</p>
+  </div>`;
+}
+
+function viewTeacherLearnerPreview() {
+  if (AUTH.currentUser?.role !== "teacher") {
+    return `<section class="card"><h2>Learner preview</h2><p class="sub">Teacher account required.</p></section>`;
+  }
+  const samples = getPublishedPassages().slice(0, 3);
+  return `<div class="teacher-preview-page">
+    <div class="teacher-overview-intro"><div><div class="lab">Read-only preview</div><h2>What learners see</h2>
+      <p class="sub">Students start with placement, follow a reading journey, and practice with approved stories. Their progress appears only when signed in as that student.</p></div>
+      <button class="btn o" data-a="tab" data-v="home">Back to Class Overview</button></div>
+    <section class="teacher-preview-grid" aria-label="Learner experience preview">
+      <div class="card"><div class="lab">1 · Start</div><h3>Placement activity</h3><p class="sub">A short practice placement suggests a reading level. It is not an official Phil-IRI result.</p></div>
+      <div class="card"><div class="lab">2 · Practice</div><h3>Reading journey</h3><p class="sub">Learners read approved passages, answer questions, and progress at their own pace.</p></div>
+      <div class="card"><div class="lab">3 · Reflect</div><h3>Profile and rewards</h3><p class="sub">Their profile shows best scores, badges, and the next reading step.</p></div>
+    </section>
+    <section class="card teacher-overview-panel"><div class="lab">Available stories</div><h3>Sample approved passages</h3>
+      ${samples.length ? `<ul class="teacher-overview-assignments">${samples.map(passage => `<li><b>${escapeHTML(passage.t)}</b>
+        <span class="sub-sm">${escapeHTML(DIFF_NAMES[passage.diff])} · ${passage.qs.length} questions</span></li>`).join("")}</ul>`
+        : `<p class="sub">No approved passages are available yet.</p>`}
+    </section>
+    <p class="sub-sm">Preview only. Teacher accounts do not answer learner quizzes or create learner progress.</p>
+  </div>`;
+}
+
 function viewTeacher() {
   const teacher = AUTH.currentUser;
   if (!teacher || teacher.role !== "teacher") {
@@ -34,25 +145,26 @@ function viewTeacher() {
     })
     .filter(Boolean);
 
-  return `
+  return `<div class="teacher-page">
     <!-- Teacher Header & Share Code Hero Banner -->
     <div class="share-code-hero">
-      <div class="share-code-label">👩‍🏫 Teacher Share Code (Class Section: ${escapeHTML(teacher.section || "Grade 8")})</div>
-      <div style="font-size:14px;color:rgba(255,255,255,0.9);margin-bottom:8px">
+      <h2>Classroom Hub</h2>
+      <div class="share-code-label">${uiIcon("teacher")} Teacher Share Code (Class Section: ${escapeHTML(teacher.section || "Grade 8")})</div>
+      <p class="teacher-share-help">
         Share this code with your nearby students so they can join your classroom roster:
-      </div>
+      </p>
       <div class="share-code-box">
         <span class="share-code-digits" id="teacher-share-code-val">${escapeHTML(teacher.shareCode)}</span>
       </div>
       <div class="share-code-actions">
         <button class="share-code-btn" data-a="teacher-copy-code">
-          📋 Copy Code
+          ${uiIcon("copy")} Copy Code
         </button>
         <button class="share-code-btn secondary" data-a="teacher-show-projector">
-          📡 Open Projector / Blackboard Mode
+          ${uiIcon("projector")} Open Projector / Blackboard Mode
         </button>
         <button class="share-code-btn secondary" data-a="open-report-sheet">
-          🖨️ View DepEd Form 14
+          ${uiIcon("print")} View DepEd Form 14
         </button>
       </div>
     </div>
@@ -68,7 +180,7 @@ function viewTeacher() {
         <div class="metric-title">Frustration (Intervention)</div>
       </div>
       <div class="metric-box">
-        <div class="metric-value" style="color:#b7791f">${instCount}</div>
+        <div class="metric-value" style="color:var(--gold-ink)">${instCount}</div>
         <div class="metric-title">Instructional</div>
       </div>
       <div class="metric-box">
@@ -81,17 +193,17 @@ function viewTeacher() {
       </div>
     </div>
 
-    <div class="card" style="margin-bottom:24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <section class="card teacher-section-card">
+      <div class="teacher-section-head">
         <div>
           <h3>My reading practices</h3>
-          <p class="sub">Create a passage and question. An admin reviews submissions before students can read or receive them.</p>
+          <p class="sub">Create custom passages or draft questions with Wisyo AI. An admin reviews submissions before students can read or receive them.</p>
         </div>
-        <button class="btn gold" data-a="practice-new">Add practice</button>
+        <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add practice</button>
       </div>
-      ${myPractices.length ? `<div style="display:grid;gap:10px;margin-top:16px">
+      ${myPractices.length ? `<div class="teacher-practice-list">
         ${myPractices.map(passage => `
-          <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px">
+          <div class="teacher-practice-row">
             <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
               <div><b>${escapeHTML(passage.t)}</b><div class="sub-sm">${escapeHTML(DIFF_NAMES[passage.diff])} · ${wordCount(passage.x)} words</div></div>
               <span class="pill">${escapeHTML(passage.status)}</span>
@@ -107,18 +219,18 @@ function viewTeacher() {
             </div>
           </div>
         `).join("")}
-      </div>` : `<p class="sub" style="margin-top:14px">No practices yet. Add one to start the admin review process.</p>`}
-    </div>
+      </div>` : `<p class="sub teacher-empty-state">No practices yet. Add one to start the admin review process.</p>`}
+    </section>
 
     <!-- Targeted Differentiated Assignment Dispatcher -->
-    <div class="card" style="margin-bottom:24px">
-      <div class="lab">🎯 Targeted Leveled Assignment Dispatcher</div>
+    <section class="card teacher-section-card">
+      <div class="lab">${uiIcon("target")} Targeted Leveled Assignment Dispatcher</div>
       <p class="sub" style="margin-bottom:14px">
         Send tailored reading passages directly to specific Phil-IRI ability groups in your class:
       </p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px">
+      <div class="assignment-fields">
         <div class="auth-form-group">
-          <label>Select Reading Passage</label>
+          <label for="asg-passage-select">Select Reading Passage</label>
           <select id="asg-passage-select" class="auth-input">
             ${DIFF_KEYS.map(diff => {
               const options = assignablePassages.filter(passage => passage.diff === diff);
@@ -129,7 +241,7 @@ function viewTeacher() {
           </select>
         </div>
         <div class="auth-form-group">
-          <label>Assign To Group</label>
+          <label for="asg-target-select">Assign To Group</label>
           <select id="asg-target-select" class="auth-input">
             <option value="all">Entire Class (${totalStudents} students)</option>
             <option value="level-0">Frustration Learners Only (${frustCount} students - Remedial)</option>
@@ -139,12 +251,12 @@ function viewTeacher() {
           </select>
         </div>
         <div class="auth-form-group">
-          <label>Due Date / Note</label>
+          <label for="asg-note-input">Due Date / Note</label>
           <input type="text" id="asg-note-input" class="auth-input" placeholder="e.g. Due Friday, complete quiz">
         </div>
       </div>
-      <button class="btn gold" style="margin-top:8px" data-a="teacher-dispatch-assignment">
-        🚀 Dispatch Assignment to Students
+      <button class="btn blue teacher-dispatch-button" data-a="teacher-dispatch-assignment">
+        ${uiIcon("send")} Dispatch Assignment to Students
       </button>
 
       <!-- Active Assignments List -->
@@ -155,7 +267,7 @@ function viewTeacher() {
             ${assignments.map(a => `
               <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
                 <div>
-                  <span class="assignment-badge">📌 ${escapeHTML(a.title)}</span>
+                  <span class="assignment-badge">${uiIcon("practice")} ${escapeHTML(a.title)}</span>
                   <span style="font-size:12px;color:var(--sub);margin-left:8px">Target: <b>${escapeHTML(a.targetGroup)}</b> · Due: ${escapeHTML(a.dueDate)}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px">
@@ -167,34 +279,35 @@ function viewTeacher() {
           </div>
         </div>
       ` : ''}
-    </div>
+    </section>
 
     <!-- Connect Nearby Student via Guest Token -->
-    <div class="card" style="margin-bottom:24px">
-      <div class="lab">📥 Link Unregistered Student by Guest Token</div>
+    <section class="card teacher-section-card">
+      <div class="lab">${uiIcon("upload")} Link Unregistered Student by Guest Token</div>
       <p class="sub" style="margin-bottom:10px">
         If a student completed a diagnostic test on a shared device without logging in, enter their 6-digit Guest Token (e.g. <b>GUEST-8291</b>) to pull their reading score into your class:
       </p>
-      <div style="display:flex;gap:8px;max-width:440px">
-        <input type="text" id="guest-token-input" class="auth-input" placeholder="GUEST-XXXX" style="text-transform:uppercase;font-family:monospace">
+      <div class="guest-token-row" style="display:flex;gap:8px;max-width:440px">
+        <input type="text" id="guest-token-input" class="auth-input" aria-label="Guest token" placeholder="GUEST-XXXX" style="text-transform:uppercase;font-family:monospace">
         <button class="btn" data-a="teacher-import-guest">Link Student</button>
       </div>
-    </div>
+    </section>
 
     <!-- Connected Students Live Roster -->
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <section class="card teacher-section-card teacher-roster-card">
+      <div class="teacher-section-head">
         <div>
-          <h3 style="margin:0;font-size:18px">📋 Connected Students Roster (${escapeHTML(teacher.section)})</h3>
-          <p class="sub" style="margin:2px 0 0 0">Real-time sync with student diagnostic tests and reading sessions</p>
+          <h3>${uiIcon("users")} Connected Students Roster (${escapeHTML(teacher.section)})</h3>
+          <p class="sub" style="margin:2px 0 0 0">Roster and journey access are stored in this browser. Use the selector to open a higher tier for a student.</p>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn o" style="font-size:12px;padding:5px 12px" data-a="open-report-sheet">🖨️ DepEd Form 14</button>
-          <button class="btn o" style="font-size:12px;padding:5px 12px" data-a="download-csv">⬇️ Export CSV</button>
+        <div class="teacher-roster-actions">
+          <button class="btn o" data-a="open-report-sheet">${uiIcon("print")} DepEd Form 14</button>
+          <button class="btn o" data-a="download-csv">${uiIcon("download")} Export CSV</button>
         </div>
       </div>
 
-      <div class="responsive-table-wrap">
+      <p class="table-scroll-hint sub-sm">Scroll the table sideways to see every student detail and access control.</p>
+      <div class="responsive-table-wrap" tabindex="0" role="region" aria-label="Connected students roster; scroll horizontally for more columns">
         <table class="data-table">
           <thead>
             <tr>
@@ -204,13 +317,14 @@ function viewTeacher() {
               <th>Reading Speed</th>
               <th>Comprehension</th>
               <th>Words Read</th>
+              <th>Reading Journey Access</th>
               <th>Status / Intervention</th>
             </tr>
           </thead>
           <tbody>
             ${students.length === 0 ? `
               <tr>
-                <td colspan="7" style="text-align:center;padding:24px;color:var(--sub)">
+                <td colspan="8" style="text-align:center;padding:24px;color:var(--sub)">
                   No students connected yet. Have students enter your Share Code <b>${escapeHTML(teacher.shareCode)}</b>!
                 </td>
               </tr>
@@ -228,6 +342,13 @@ function viewTeacher() {
                   <td><b>${s.comp || 75}%</b></td>
                   <td>${(s.wordsRead || 0).toLocaleString()} words</td>
                   <td>
+                    <label class="sub-sm" for="journey-override-${escapeHTML(s.id)}">Extra tier access</label>
+                    <select id="journey-override-${escapeHTML(s.id)}" class="auth-input" data-a="teacher-journey-override" data-v="${escapeHTML(s.id)}" aria-label="Extra reading tier access for ${escapeHTML(s.name)}">
+                      <option value="" ${s.journeyOverride == null ? "selected" : ""}>Automatic path</option>
+                      ${DIFF_KEYS.slice(1).map((key, index) => `<option value="${index + 1}" ${s.journeyOverride === index + 1 ? "selected" : ""}>Open through ${escapeHTML(DIFF_NAMES[key])}</option>`).join("")}
+                    </select>
+                  </td>
+                  <td>
                     ${isRemedial 
                       ? '<span style="color:var(--coral);font-weight:700">⚠️ Needs Intervention</span>'
                       : '<span style="color:var(--teal)">✓ On Track</span>'}
@@ -238,7 +359,7 @@ function viewTeacher() {
           </tbody>
         </table>
       </div>
-    </div>
+    </section></div>
   `;
 }
 

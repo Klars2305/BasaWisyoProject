@@ -10,8 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="src/styles/base.css">
   <link rel="stylesheet" href="src/styles/login.css">
+  <link rel="stylesheet" href="src/styles/visual-system.css">
+  <link rel="stylesheet" href="src/styles/login-redesign.css">
 </head>
-<body class="auth-entry">
+<body class="auth-entry login-page">
   <main class="entry-screen">
     <div class="login-layout">
       <div class="login-story">
@@ -20,32 +22,34 @@
           <span>BasaWisyo</span>
         </div>
         <div class="login-story-content">
-          <div class="login-book-art" aria-hidden="true">
+          <div class="login-mascot-card" aria-hidden="true">
             <img src="assets/images/wisyo.png" alt="">
           </div>
-          <h1>Bawat pahina,<br>bagong pag-unlad.</h1>
-          <p>Sign in to continue reading or manage your classroom.</p>
+          <h1>Bawat pahina,<br><span>bagong pag-unlad.</span></h1>
+          <p>Read stories, practice with purpose, and grow with your classroom.</p>
+          <img class="login-reading-art" src="assets/images/welcome-book.svg" alt="" aria-hidden="true">
         </div>
-        <p class="login-story-footer">A reading companion for Filipino learners and teachers.</p>
+        <p class="login-story-footer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C9.6 4.7 6.4 4.1 3 5v13c3.4-.9 6.6-.3 9 1.5 2.4-1.8 5.6-2.4 9-1.5V5c-3.4-.9-6.6-.3-9 1.5Z"/><path d="M12 6.5v13"/></svg>A reading companion for Filipino learners and teachers.</p>
       </div>
       <div class="login-panel">
         <div class="login-panel-inner">
-          <a class="entry-back" href="index.html">Back to BasaWisyo</a>
-          <h2 id="login-heading">Sign in to BasaWisyo</h2>
+          <a class="entry-back" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H4m6-6-6 6 6 6"/></svg>Back to BasaWisyo</a>
+          <h2 id="login-heading">Sign in to <span>BasaWisyo</span></h2>
           <p class="login-intro">Use your student, teacher, or admin account.</p>
           <form id="entry-login-form" aria-labelledby="login-heading">
-            <label for="entry-email">Email address</label>
-            <input id="entry-email" name="email" type="email" autocomplete="username" required>
-            <label for="entry-password">Password</label>
+            <label for="entry-email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>Email address</label>
+            <input id="entry-email" name="email" type="email" autocomplete="username" placeholder="Enter your email" required>
+            <label for="entry-password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>Password</label>
             <div class="login-password-field">
-              <input id="entry-password" name="password" type="password" autocomplete="current-password" required>
+              <input id="entry-password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
               <button id="entry-toggle-password" type="button" aria-label="Show password" aria-pressed="false">Show</button>
             </div>
             <p id="entry-error" class="login-error" role="alert" hidden></p>
-            <button type="submit" class="btn login-submit">Sign in</button>
+            <button type="submit" class="btn login-submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5m5 5H4"/><path d="M12 3h6a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-6"/></svg>Sign in</button>
           </form>
-          <p class="login-register">New learner? <a href="index.html#register">Create an account</a></p>
+          <p class="login-register">New student or teacher? <a href="index.html#register">Create an account</a></p>
         </div>
+        <svg class="login-panel-book" viewBox="0 0 160 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M80 31C61 16 35 13 12 20v58c27-6 50-1 68 13 18-14 41-19 68-13V20c-23-7-49-4-68 11Z"/><path d="M80 31v60M25 35c16-2 29 0 41 7M25 49c16-2 29 0 41 7m28-14c12-7 25-9 41-7m-41 21c12-7 25-9 41-7"/></svg>
       </div>
     </div>
   </main>

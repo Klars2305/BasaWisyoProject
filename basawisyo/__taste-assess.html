@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="assets/images/wisyo.png" type="image/png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BasaWisyo | Offline Reading Companion for Filipino Learners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/styles/base.css">
+<link rel="stylesheet" href="src/styles/roles.css">
+<link rel="stylesheet" href="src/styles/login.css">
+<link rel="stylesheet" href="src/styles/visual-system.css">
+<link rel="stylesheet" href="src/styles/reading-studio.css">
+</head>
+<body class="auth-entry">
+
+<section id="welcome-screen" class="entry-screen" aria-label="BasaWisyo welcome">
+  <div class="login-layout">
+    <div class="login-story">
+      <div class="login-brand">
+        <img src="assets/images/wisyo.png" alt="" aria-hidden="true">
+        <span>BasaWisyo</span>
+      </div>
+      <div class="login-story-content">
+        <div class="login-book-art" aria-hidden="true">
+          <img src="assets/images/wisyo.png" alt="">
+        </div>
+        <h1>Bawat pahina,<br>bagong pag-unlad.</h1>
+        <p>Read stories, practice with purpose, and grow with your classroom.</p>
+      </div>
+      <p class="login-story-footer">A reading companion for Filipino learners and teachers.</p>
+    </div>
+    <div class="login-panel">
+      <div class="login-panel-inner">
+        <h2 id="entry-heading">Start reading with BasaWisyo</h2>
+        <p class="login-intro">Explore stories now, or use an account to continue your reading journey.</p>
+        <div class="entry-actions">
+          <button type="button" class="btn entry-primary" data-a="entry-guest">Explore as guest</button>
+          <a class="entry-secondary" href="login.html">Sign in</a>
+          <button type="button" class="entry-secondary" data-a="auth-open" data-v="register">Create an account</button>
+        </div>
+        <p class="entry-note">You can explore without an account. Guest activity stays in this browser.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="app">
+<header>
+    <a href="#" class="brand" data-a="tab" data-v="home">
+      <div class="brand-avatar" id="brand-avatar">
+        <img src="assets/images/wisyo.png" alt="BasaWisyo Logo" class="mascot-img">
+      </div>
+      <div class="brand-text">
+        <h1>BasaWisyo</h1>
+        <span id="header-status">Grade 7–12 Phil-IRI Companion</span>
+      </div>
+    </a>
+    <div class="hdr-actions">
+      <button class="user-hdr-badge" id="hdr-auth-btn" data-a="auth-open" title="Click to Sign In, Register, or View Account">
+        <span class="user-avatar-dot" id="hdr-user-avatar"><svg class="ui-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg></span>
+        <span id="hdr-user-name">Guest</span>
+        <span class="user-role-badge role-guest" id="hdr-user-role">Guest</span>
+      </button>
+      <span class="pill" id="lv-pill">No level</span>
+      <div id="hdr-hearts-container"></div>
+      <div id="hdr-streak-container"></div>
+      <button class="icon-btn" id="theme-btn" data-a="toggle-theme" title="Toggle Dark/Light Mode" aria-label="Toggle theme"><svg class="ui-icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </div>
+  </header>
+
+  <!-- Sub Navigation Tabs -->
+  <div id="sn" role="navigation" aria-label="Section navigation"></div>
+
+  <!-- Main View Area -->
+  <main id="v"></main>
+</div>
+<!-- ==========================================================================
+     Authentication, Projector & Management Modals
+     ========================================================================== -->
+
+<!-- Account registration modal -->
+<div id="auth-modal" class="app-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" hidden>
+  <div class="app-modal-card">
+    <div class="modal-hdr">
+      <h2 id="auth-modal-title">Create an account</h2>
+      <button type="button" class="modal-close-btn" data-a="auth-close" aria-label="Close account form"><svg class="ui-icon" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+    </div>
+    <p class="sub">Register as a student or teacher. Admin accounts are managed by the school admin.</p>
+
+    <!-- Register Form -->
+    <div id="auth-register-pane">
+      <form id="form-register" onsubmit="return false;">
+        <fieldset class="registration-role-fieldset">
+          <legend>Account type</legend>
+          <div class="role-picker-grid">
+            <label class="role-choice-card">
+              <input type="radio" name="reg-role" value="student" checked>
+              <span class="role-title">Student</span>
+              <span class="role-desc">Read and join a classroom</span>
+            </label>
+            <label class="role-choice-card">
+              <input type="radio" name="reg-role" value="teacher">
+              <span class="role-title">Teacher</span>
+              <span class="role-desc">Create and manage a classroom</span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="auth-form-group">
+          <label for="reg-name">Full Name</label>
+          <input type="text" id="reg-name" class="auth-input" placeholder="e.g. Juan dela Cruz" required>
+        </div>
+        <div class="auth-form-group">
+          <label for="reg-email">Email Address</label>
+          <input type="email" id="reg-email" class="auth-input" placeholder="e.g. juan@school.edu.ph" required>
+        </div>
+        <div class="auth-form-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" class="auth-input" placeholder="Min. 6 characters" required>
+        </div>
+
+        <!-- Student-specific Teacher Share Code Field -->
+        <div class="auth-form-group" id="reg-group-student">
+          <label for="reg-teacher-code">Teacher's Share Code (Optional)</label>
+          <input type="text" id="reg-teacher-code" class="auth-input" placeholder="e.g. BASA-TEACH-8492" style="text-transform:uppercase;font-family:monospace">
+          <div class="auth-help">Enter code provided by your teacher to automatically join their class section!</div>
+        </div>
+
+        <div class="auth-form-group" id="reg-group-teacher" hidden>
+          <label for="reg-section">Class Section</label>
+          <input type="text" id="reg-section" class="auth-input" placeholder="e.g. Grade 8 - Emerald" maxlength="100">
+          <div class="auth-help">Your classroom share code will be created automatically.</div>
+        </div>
+
+        <button type="button" class="btn blue" id="reg-submit" style="width:100%;margin-top:10px" data-a="auth-register-submit">Create Student Account</button>
+      </form>
+      <p class="login-register">Already have an account? <a href="login.html">Sign in</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- Teacher Projector / Blackboard Display Modal -->
+<div id="projector-modal" class="app-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="projector-title" hidden>
+  <div class="app-modal-card wide">
+    <div class="modal-hdr">
+      <h2 id="projector-title"><svg class="ui-icon" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M12 16v5M8 21h8M7 8h10M7 11h7"/></svg> Classroom Connect: Display Mode</h2>
+      <button type="button" class="modal-close-btn" data-a="projector-close" aria-label="Close classroom display"><svg class="ui-icon" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+    </div>
+    <div class="projector-display-box">
+      <div style="font-size:18px;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:var(--gold)">
+        Join Guro Juan's Class Section
+      </div>
+      <div class="projector-code" id="projector-share-code">BASA-TEACH-8492</div>
+      <div class="projector-steps">
+        <b>Instructions for Nearby Students:</b><br>
+        1. Open <b>BasaWisyo</b> on your phone, tablet, or browser<br>
+        2. Click <b>"Connect Teacher"</b> or Register as Student<br>
+        3. Enter code <b style="color:var(--gold)" id="projector-share-code-sub">BASA-TEACH-8492</b><br>
+        4. Your reading assessments and WPM will sync immediately!
+      </div>
+      <div class="projector-actions" style="margin-top:24px;display:flex;justify-content:center;gap:12px">
+        <button class="btn blue" data-a="teacher-copy-code" style="font-size:15px;padding:10px 24px"><svg class="ui-icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg> Copy Share Code</button>
+        <button class="btn o" data-a="projector-close" style="font-size:15px;padding:10px 20px;border-color:rgba(255,255,255,0.4);color:#fff">Done / Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Teacher and admin practice editor -->
+<div id="admin-passage-modal" class="app-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="passage-modal-title" hidden>
+  <div class="app-modal-card wide">
+    <div class="modal-hdr">
+      <h2 id="passage-modal-title">Add reading practice</h2>
+      <button type="button" class="modal-close-btn" data-a="passage-modal-close" aria-label="Close reading practice editor"><svg class="ui-icon" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+    </div>
+    <p id="passage-modal-hint" class="sub">Add a passage and comprehension question.</p>
+    <form id="form-passage" onsubmit="return false;">
+      <div class="passage-meta-grid">
+        <div class="auth-form-group">
+          <label for="pass-title">Passage Title</label>
+          <input type="text" id="pass-title" class="auth-input" placeholder="e.g. Ang Munting Bangka" required>
+        </div>
+        <div class="auth-form-group">
+          <label for="pass-diff">Difficulty Tier</label>
+          <select id="pass-diff" class="auth-input">
+            <option value="easy">Madali (Easy - Frustration/Early Instructional)</option>
+            <option value="medium">Katamtaman (Medium - Instructional)</option>
+            <option value="hard">Mahirap (Hard - Independent)</option>
+            <option value="extreme">Matindi (Extreme - Mastery)</option>
+          </select>
+        </div>
+        <div class="auth-form-group">
+          <label for="pass-lang">Passage Language</label>
+          <select id="pass-lang" class="auth-input">
+            <option value="en-US">English</option>
+            <option value="fil-PH">Filipino</option>
+            <option value="ceb-PH">Cebuano</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <label for="pass-text">Passage Text Content</label>
+        <textarea id="pass-text" class="auth-input" rows="5" placeholder="Type or paste the reading passage text here..." required></textarea>
+      </div>
+
+      <section class="practice-question-builder" aria-labelledby="practice-questions-heading">
+        <div class="practice-builder-head">
+          <div>
+            <h3 id="practice-questions-heading">Comprehension questions</h3>
+            <p class="sub">Choose 1–20 questions. Write them yourself or ask Wisyo for editable suggestions.</p>
+          </div>
+          <div class="auth-form-group practice-count-field">
+            <label for="practice-question-count">Number of questions</label>
+            <input type="number" id="practice-question-count" class="auth-input" min="1" max="20" value="1" inputmode="numeric">
+          </div>
+        </div>
+        <div class="practice-helper-actions">
+          <button type="button" class="btn o" data-a="practice-wisyo-suggest" id="practice-wisyo-suggest">Ask Wisyo to draft questions</button>
+          <span id="practice-wisyo-status" class="sub-sm" role="status" aria-live="polite">Wisyo suggestions need your review before submission.</span>
+        </div>
+        <div class="practice-question-nav" aria-label="Question navigation">
+          <button type="button" class="btn o sm" data-a="practice-question-prev" id="practice-question-prev">← Previous</button>
+          <div class="practice-question-progress">
+            <label for="practice-question-slider" id="practice-question-position" aria-live="polite">Question 1 of 1</label>
+            <input type="range" id="practice-question-slider" min="1" max="1" value="1" aria-label="Go to question">
+          </div>
+          <button type="button" class="btn o sm" data-a="practice-question-next" id="practice-question-next">Next →</button>
+        </div>
+        <div id="passage-questions"></div>
+      </section>
+
+      <div class="passage-form-actions">
+        <button type="button" class="btn o" data-a="passage-modal-close">Cancel</button>
+        <button type="button" class="btn o" id="practice-save-draft" data-a="practice-save-draft" hidden>Save draft</button>
+        <button type="button" class="btn blue" id="practice-submit" data-a="practice-submit" hidden>Submit for approval</button>
+        <button type="button" class="btn blue" id="practice-admin-save" data-a="practice-admin-save" hidden>Publish practice</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Bottom Navigation Bar -->
+<nav aria-label="Primary navigation">
+  <div class="nav-inner" id="nav"></div>
+</nav>
+
+<!-- Floating Wisyo AI Tutor Launcher Button -->
+<button id="aib" data-a="ai-open" aria-label="Open Wisyo AI Tutor">
+  <div class="mascot-icon">
+    <img src="assets/images/wisyo.png" alt="Wisyo Mascot" class="mascot-img">
+  </div>
+  <span>Ask Wisyo</span>
+</button>
+
+<!-- Trilingual Dictionary Tooltip Card -->
+<div id="tip" hidden></div>
+
+<!-- Reports & Form 14 Sheet Modal -->
+<div id="md" role="dialog" aria-modal="true" aria-labelledby="sample-report-title" hidden></div>
+
+<!-- Interactive Wisyo AI Assistant Modal Drawer -->
+<div id="ai" role="dialog" aria-modal="true" aria-labelledby="ai-title" hidden>
+  <div class="drawer">
+    <div class="ai-header">
+      <div class="mascot-lg">
+        <img src="assets/images/wisyo.png" alt="Wisyo Mascot" class="mascot-img">
+      </div>
+      <div>
+        <b id="ai-title">Wisyo Tutor <span class="ai-badge" id="ai-mode-tag">Offline help</span></b>
+        <small id="ai-subtitle">Passage tips and vocabulary stay in this browser.</small>
+      </div>
+      <span class="spacer"></span>
+      <button class="icon-btn" data-a="ai-clear" title="Clear chat history" aria-label="Clear chat history"><svg class="ui-icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      <button class="icon-btn" data-a="ai-close" title="Close drawer" aria-label="Close Wisyo Tutor"><svg class="ui-icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+    </div>
+
+    <p id="ai-mode-status" class="ai-mode-status" role="status" aria-live="polite">Wisyo uses Groq when available and offline help otherwise.</p>
+
+    <!-- Message stream -->
+    <div id="aim" role="log" aria-live="polite" aria-label="Wisyo conversation"></div>
+
+    <!-- Quick prompt recommendation chips -->
+    <div class="chips" id="ai-chips">
+      <button data-a="ai-chip" data-v="Explain my last mistake and help me fix it"><svg class="ui-icon" aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg> Explain my mistake</button>
+      <button data-a="ai-chip" data-v="Summarize the passage I am currently reading"><svg class="ui-icon" aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Summarize current passage</button>
+      <button data-a="ai-chip" data-v="What is the difference between literal and inferential questions?"><svg class="ui-icon" aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Literal vs Inference</button>
+      <button data-a="ai-chip" data-v="Give me a quick Filipino riddle (bugtong)!"><svg class="ui-icon" aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.3 6.7L21 11l-6.7 2.3L12 20l-2.3-6.7L3 11l6.7-2.3L12 2z"/></svg> Give me a bugtong</button>
+      <button data-a="ai-chip" data-v="How can I prepare for the Phil-IRI exam?"><svg class="ui-icon" aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> Phil-IRI Tips</button>
+    </div>
+
+    <!-- Text input box -->
+    <div class="ai-input-row">
+      <input id="aii" type="text" placeholder="Ask anything in English, Filipino, or Bisaya…" autocomplete="off">
+      <button class="btn blue" id="ai-send-button" data-a="ai-send" aria-label="Send">Send</button>
+    </div>
+  </div>
+</div>
+
+<script src="src/utils/core.js"></script>
+<script src="src/data/dictionary.js"></script>
+<script src="src/data/passages.js"></script>
+<script src="src/data/narrations.js"></script>
+<script src="src/data/passage-schema.js"></script>
+<script src="src/services/auth.js"></script>
+<script src="src/pages/teacher.js"></script>
+<script src="src/pages/admin.js"></script>
+<script src="src/services/state.js"></script>
+<script src="src/services/hearts.js"></script>
+<script src="src/services/rewards.js"></script>
+<script src="src/services/quests.js"></script>
+<script src="src/services/review.js"></script>
+<script src="src/services/flashcards.js"></script>
+<script src="src/services/journey.js"></script>
+<script src="src/services/board.js"></script>
+<script src="src/services/rankings.js"></script>
+<script src="src/services/mastery.js"></script>
+<script src="src/utils/reading.js"></script>
+<script src="src/components/navigation.js"></script>
+<script src="src/components/shell.js"></script>
+<script src="src/pages/home.js"></script>
+<script src="src/pages/assess.js"></script>
+<script src="src/pages/practice.js"></script>
+<script src="src/pages/flashcards.js"></script>
+<script src="src/pages/profile.js"></script>
+<script src="src/pages/quest.js"></script>
+<script src="src/pages/board.js"></script>
+<script src="src/pages/reports.js"></script>
+<script src="src/pages/parent.js"></script>
+<script src="src/pages/about.js"></script>
+<script src="src/pages/services.js"></script>
+<script src="src/services/quiz.js"></script>
+<script src="src/services/tutor.js"></script>
+<script src="src/services/practice-helper.js"></script>
+<script src="src/components/notifications.js"></script>
+<script src="src/services/exports.js"></script>
+<script src="src/services/backup.js"></script>
+<script src="src/services/import-reader.js"></script>
+<script src="src/services/material-storage.js"></script>
+<script src="src/services/ai-question-generator.js"></script>
+<script src="src/services/assignments.js"></script>
+<script src="src/pages/reading-studio.js"></script>
+<script src="src/pages/teacher-reading-studio.js"></script>
+<script src="src/app.js"></script>
+<script>GUEST_MODE=true;CURRENT_TAB="assess";renderApp();</script></body>
+</html>
+
+
+

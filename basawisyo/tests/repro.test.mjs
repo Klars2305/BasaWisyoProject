@@ -10,24 +10,35 @@ const files = [
   'src/utils/core.js',
   'src/data/dictionary.js',
   'src/data/passages.js',
+  'src/data/narrations.js',
   'src/data/passage-schema.js',
   'src/services/auth.js',
   'src/pages/teacher.js',
   'src/pages/admin.js',
   'src/services/state.js',
+  'src/services/journey.js',
+  'src/services/board.js',
   'src/utils/reading.js',
+  'src/components/navigation.js',
   'src/pages/home.js',
+  'src/pages/practice.js',
+  'src/pages/profile.js',
+  'src/pages/board.js',
+  'src/pages/reports.js',
   'src/pages/practice.js',
   'src/services/quiz.js',
   'src/services/practice-helper.js',
   'src/services/backup.js',
   'src/app.js',
+  'src/services/exports.js',
 ];
 
 function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' } = {}) {
   const elements = new Map();
   const listeners = new Map();
   const alerts = [];
+  const toasts = [];
+  let prints = 0;
   let exportedJson = null;
   let failNextKey = null;
   let failNextRemoveKey = null;
@@ -83,7 +94,7 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
       revokeObjectURL() {},
     },
     renderApp() {},
-    showToast() {},
+    showToast(message, kind) { toasts.push({ message, kind }); },
     alert(message) { alerts.push(message); },
     confirm: () => confirmResult,
     window: {
@@ -93,6 +104,7 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
         replace(url) { this.replaced = url; },
       },
       history: { replaceState() {} },
+      print() { prints++; },
     },
     navigator: {},
     setTimeout() {},
@@ -106,6 +118,8 @@ function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' 
   return {
     storage,
     alerts,
+    toasts,
+    prints: () => prints,
     failNextWrite(key) { failNextKey = key; },
     failNextRemove(key) { failNextRemoveKey = key; },
     eval: expression => vm.runInContext(expression, context),
@@ -232,6 +246,17 @@ test('draft and invalid custom records stay out of the published collection', ()
     qs: [{ q: 'Question?', o: ['Yes', 'No'], a: 3, k: 'Literal' }]
   })`), /valid correct-answer option/);
   assert.equal(app.eval('AUTH.customPassages.length'), 1);
+});
+
+test('practice language is retained for narration and invalid locales are rejected', () => {
+  const app = loadApp();
+  const base = `{
+    id: 'language_test', t: 'Ang Bangka', diff: 'easy', x: 'Ang bangka ay maliit.',
+    qs: [{ q: 'Ano ito?', o: ['Bangka', 'Bahay'], a: 0, k: 'Literal' }],
+    lang: 'fil-PH'
+  }`;
+  assert.equal(app.eval(`normalizePassage(${base}).lang`), 'fil-PH');
+  assert.throws(() => app.eval(`normalizePassage({ ...${base}, lang: 'wrong' })`), /passage language/);
 });
 
 test('teacher assignment choices include the published admin passage', () => {
@@ -559,9 +584,12 @@ test('a suspended session returns to the public landing page', () => {
 test('public entry links to a separate login page and keeps registration', () => {
   const html = readFileSync(join(appRoot, 'index.html'), 'utf8');
   const loginHtml = readFileSync(join(appRoot, 'login.html'), 'utf8');
-  assert.match(html, /data-a="entry-guest">Explore as guest<\/button>/);
-  assert.match(html, /href="login.html">Sign in<\/a>/);
-  assert.match(html, /data-a="auth-open" data-v="register">Create an account<\/button>/);
+  const guestAction = html.match(/<button\b[^>]*data-a="entry-guest"[^>]*>([\s\S]*?)<\/button>/)?.[1];
+  const signInAction = html.match(/<a\b[^>]*href="login.html"[^>]*>([\s\S]*?)<\/a>/)?.[1];
+  const registerAction = html.match(/<button\b[^>]*data-a="auth-open"[^>]*data-v="register"[^>]*>([\s\S]*?)<\/button>/)?.[1];
+  assert.match(guestAction || '', /Explore as guest/);
+  assert.match(signInAction || '', /Sign in/);
+  assert.match(registerAction || '', /Create an account/);
   assert.match(html, /name="reg-role" value="student" checked/);
   assert.match(html, /name="reg-role" value="teacher"/);
   assert.ok(!html.includes('id="entry-login-form"'));
@@ -875,4 +903,506 @@ test('student session reloads after state initialization', () => {
   const reloaded = loadApp(app.storage);
   assert.equal(reloaded.eval('AUTH.currentUser.role'), 'student');
   assert.equal(reloaded.eval('S.lvl'), 1);
+});
+
+test('guided journey blocks extreme practice and unlocks the next tier after two distinct results', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  const extremeId = app.eval('PRACTICE_DATA.extreme[0].id');
+  app.click('read-passage', extremeId);
+  assert.equal(app.eval('ACTIVE_QUIZ'), null);
+  assert.match(app.eval('viewPractice()'), /Complete earlier tiers/);
+
+  app.eval('startQuiz([PRACTICE_DATA.easy[0]], "pr", "First"); ACTIVE_QUIZ.correctCount = 2; finishQuiz()');
+  assert.equal(app.eval('journeySummary().tier'), 0);
+  app.eval('startQuiz([PRACTICE_DATA.easy[1]], "pr", "Second"); ACTIVE_QUIZ.correctCount = 1; finishQuiz()');
+  assert.equal(app.eval('journeySummary().tier'), 1);
+  assert.equal(app.eval('journeyCanRead(PRACTICE_DATA.medium[0])'), true);
+  assert.equal(app.eval('journeyCanRead(PRACTICE_DATA.extreme[0])'), false);
+  assert.equal(loadApp(app.storage).eval('journeySummary().tier'), 1);
+});
+
+test('guided journey suggests a retry after two weak attempts', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:0})');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[1].qs.map(q=>({P:PRACTICE_DATA.easy[1],q})),correctCount:1})');
+  assert.equal(app.eval('journeySummary().tier'), 0);
+  assert.equal(app.eval('journeySummary().next.id'), app.eval('PRACTICE_DATA.easy[0].id'));
+});
+
+test('student home shows the next reading step and teacher roster shows tier controls', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("ana@basawisyo.ph", "student123")');
+  assert.match(app.eval('viewHome()'), /Next recommended:/);
+  assert.match(app.eval('viewHome()'), /Locked/);
+  app.eval('AUTH.logout(); AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.match(app.eval('viewTeacher()'), /data-a="teacher-journey-override"/);
+});
+
+test('student journeys stay separate and guest journey transfers during registration', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:2})');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[1].qs.map(q=>({P:PRACTICE_DATA.easy[1],q})),correctCount:1})');
+  assert.equal(app.eval('journeySummary().tier'), 1);
+  app.eval('AUTH.logout(); AUTH.login("ana@basawisyo.ph", "student123")');
+  assert.equal(app.eval('journeySummary().tier'), 0);
+
+  app.eval('AUTH.logout(); GUEST_MODE = true');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:2})');
+  const registered = app.eval('AUTH.register({name:"New Reader",email:"newreader@example.ph",password:"secret7",role:"student"})');
+  assert.equal(registered.success, true);
+  assert.equal(app.eval('Object.keys(AUTH.currentUser.journey.results).length'), 1);
+  assert.equal(app.eval('Object.keys(S.guestJourney.results).length'), 0);
+  assert.equal(loadApp(app.storage).eval('Object.keys(AUTH.currentUser.journey.results).length'), 1);
+});
+
+test('only a linked teacher can grant extra tier access, and failed saves do not grant it', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  app.change({ dataset: { a: 'teacher-journey-override', v: 'usr_stud_2' }, value: '3' });
+  assert.equal(app.eval('AUTH.users.find(u => u.id === "usr_stud_2").journeyOverride'), 3);
+  app.eval('AUTH.logout(); AUTH.login("ana@basawisyo.ph", "student123")');
+  assert.equal(app.eval('journeySummary().tier'), 3);
+  assert.throws(() => app.eval('setStudentJourneyOverride("usr_stud_1", "3")'), /Teacher account required/);
+
+  app.eval('AUTH.logout(); AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  app.failNextWrite('basa_wisyo_users_v2');
+  assert.throws(() => app.eval('setStudentJourneyOverride("usr_stud_1", "3")'), /could not be saved/);
+  assert.equal(app.eval('AUTH.users.find(u => u.id === "usr_stud_1").journeyOverride'), undefined);
+});
+
+test('reading badges reflect distinct eligible practice and a better retry', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  const practice = (index, correctCount, correctQuestions = []) => app.eval(`recordJourneyPractice({
+    mode:"pr", steps:PRACTICE_DATA.easy[${index}].qs.map(q=>({P:PRACTICE_DATA.easy[${index}],q})),
+    correctCount:${correctCount}, correctQuestions:${JSON.stringify(correctQuestions)}
+  })`);
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).filter(b=>b.earned).length'), 0);
+  practice(0, 0);
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).find(b=>b.id==="first").earned'), true);
+  practice(0, 0);
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).find(b=>b.id==="steady").earned'), false);
+  practice(0, 2, [{ index: 0, skill: 'Literal' }]);
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).find(b=>b.id==="comeback").earned'), true);
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).find(b=>b.id==="perfect").earned'), true);
+  practice(1, 1, [{ index: 0, skill: 'Literal' }]);
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).find(b=>b.id==="steady").earned'), false);
+  practice(2, 1, [{ index: 0, skill: 'Literal' }]);
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).find(b=>b.id==="steady").earned'), true);
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).find(b=>b.id==="literal").earned'), true);
+  practice(2, 1, [{ index: 0, skill: 'Literal' }]);
+  assert.equal(app.eval('journeyForCurrent().skillEvidence.Literal.length'), 3);
+});
+
+test('profile frames unlock from badges, save per learner, and transfer from guest registration', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  assert.throws(() => app.eval('setJourneyFrame("gold")'), /Earn the matching badge/);
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:1})');
+  assert.match(app.eval('viewProfile()'), /data-a="reward-frame" data-v="sky"/);
+  app.click('reward-frame', 'sky');
+  assert.equal(app.eval('journeySelectedFrame()'), 'sky');
+  const registered = app.eval('AUTH.register({name:"Badge Reader",email:"badgereader@example.ph",password:"secret7",role:"student"})');
+  assert.equal(registered.success, true);
+  assert.equal(app.eval('journeySelectedFrame()'), 'sky');
+  assert.equal(app.eval('S.guestJourney.frame'), 'none');
+  assert.equal(loadApp(app.storage).eval('journeySelectedFrame()'), 'sky');
+  app.eval('AUTH.logout(); AUTH.login("ana@basawisyo.ph", "student123")');
+  assert.equal(app.eval('journeySelectedFrame()'), 'none');
+});
+
+test('guest skill badge evidence transfers into the new student account and stays in backups', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  for (const index of [0, 1, 2]) {
+    app.eval(`recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[${index}].qs.map(q=>({P:PRACTICE_DATA.easy[${index}],q})),correctCount:1,correctQuestions:[{index:0,skill:"Literal"}]})`);
+  }
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).find(b=>b.id==="literal").earned'), true);
+  const registered = app.eval('AUTH.register({name:"Skill Reader",email:"skillreader@example.ph",password:"secret7",role:"student"})');
+  assert.equal(registered.success, true);
+  assert.equal(app.eval('journeyAchievements(journeyForCurrent()).find(b=>b.id==="literal").earned'), true);
+  app.eval('AUTH.logout()');
+  const backup = exportedBackup(app);
+  assert.equal(backup.users.find(user => user.email === 'skillreader@example.ph').journey.skillEvidence.Literal.length, 3);
+});
+
+test('answering a practice question records skill evidence through the quiz flow', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  app.element('#quiz-feedback', { innerHTML: '' });
+  app.element('.opt', []);
+  app.eval('startQuiz([PRACTICE_DATA.easy[0]], "pr", "Badge practice")');
+  app.eval('handleAnswer(PRACTICE_DATA.easy[0].qs[0].a)');
+  assert.equal(app.eval('ACTIVE_QUIZ.correctQuestions.length'), 1);
+  app.eval('finishQuiz()');
+  assert.equal(app.eval('journeyForCurrent().skillEvidence.Literal.length'), 1);
+});
+
+test('class board is opt-in, counts each story once, and shares tied places', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  assert.equal(app.eval('classBoardEntries(0).length'), 0);
+  assert.match(app.eval('viewClassBoard()'), /Join Class Board/);
+  app.click('board-opt', 'on');
+  assert.equal(app.eval('AUTH.currentUser.journey.boardOptIn'), true);
+  assert.equal(app.eval('classBoardEntries(0).length'), 1);
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:0})');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:2})');
+  assert.equal(app.eval('readingRank(journeyForCurrent()).stories'), 1);
+  assert.equal(app.eval('boardStoryCount(journeyForCurrent(), 0)'), 1);
+  app.eval('AUTH.logout(); AUTH.login("ana@basawisyo.ph", "student123")');
+  assert.equal(app.eval('classBoardEntries(0).length'), 1);
+  app.click('board-opt', 'on');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[1].qs.map(q=>({P:PRACTICE_DATA.easy[1],q})),correctCount:1})');
+  assert.equal(app.eval('classBoardEntries(0).map(entry=>entry.place).join(",")'), '1,1');
+  assert.doesNotMatch(app.eval('viewClassBoard()'), /Carlo Bautista/);
+  app.click('board-opt', 'off');
+  assert.equal(app.eval('classBoardEntries(0).length'), 1);
+  assert.equal(loadApp(app.storage).eval('AUTH.currentUser.journey.boardOptIn'), false);
+});
+
+test('class board stays inside the teacher group and excludes guests and admins', () => {
+  const app = loadApp();
+  assert.throws(() => app.eval('setClassBoardOptIn(true)'), /Join a teacher/);
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.eval('setClassBoardOptIn(true)');
+  app.eval('AUTH.logout()');
+  const teacher = app.eval('AUTH.register({name:"Second Guro",email:"secondguro@example.ph",password:"secret7",role:"teacher",section:"Grade 7"})');
+  assert.equal(teacher.success, true);
+  assert.equal(app.eval('classBoardEntries(0).length'), 0);
+  const code = teacher.user.shareCode;
+  app.eval('AUTH.logout()');
+  const student = app.eval(`AUTH.register({name:"Second Reader",email:"secondreader@example.ph",password:"secret7",role:"student",teacherCode:"${code}"})`);
+  assert.equal(student.success, true);
+  assert.equal(app.eval('AUTH.currentUser.journey.boardOptIn'), false);
+  app.eval('setClassBoardOptIn(true)');
+  assert.equal(app.eval('classBoardEntries(0).length'), 1);
+  app.eval('AUTH.logout(); AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.equal(app.eval('classBoardEntries(0).length'), 1);
+  assert.throws(() => app.eval('setClassBoardOptIn(true)'), /Join a teacher/);
+  app.eval('AUTH.logout(); AUTH.login("admin@basawisyo.ph", "admin123")');
+  assert.equal(app.eval('classBoardEntries(0).length'), 0);
+  assert.match(app.eval('viewClassBoard()'), /for learners and their linked teachers/);
+});
+
+test('failed Class Board opt-in save does not add the student', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.failNextWrite('basa_wisyo_users_v2');
+  assert.throws(() => app.eval('setClassBoardOptIn(true)'), /could not be saved/);
+  assert.equal(app.eval('classBoardEntries(0).length'), 0);
+});
+
+test('Class Board filters tiers and excludes legacy or unapproved story records', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  assert.equal(app.eval('journeyForCurrent().boardOptIn'), false);
+  app.eval('setClassBoardOptIn(true)');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:1})');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.medium[0].qs.map(q=>({P:PRACTICE_DATA.medium[0],q})),correctCount:1})');
+  app.eval('saveCurrentJourney({...journeyForCurrent(),results:{...journeyForCurrent().results,mesh_fake:{correct:1,total:2,attempts:1}}})');
+  assert.equal(app.eval('boardStoryCount(journeyForCurrent(), 0)'), 1);
+  assert.equal(app.eval('boardStoryCount(journeyForCurrent(), 1)'), 1);
+  assert.equal(app.eval('readingRank(journeyForCurrent()).stories'), 2);
+  app.click('board-tier', '1');
+  assert.equal(app.eval('BOARD_TIER'), 1);
+  assert.match(app.eval('viewClassBoard()'), /Medium \(Katamtaman\)/);
+  app.click('board-tier', '999');
+  assert.equal(app.eval('BOARD_TIER'), 1);
+});
+
+test('reading rewards and Class Board choices survive reload without network access', () => {
+  const storage = new Map();
+  const app = loadApp(storage);
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:2})');
+  app.eval('setJourneyFrame("sky"); setClassBoardOptIn(true)');
+  const reloaded = loadApp(storage);
+  assert.equal(reloaded.eval('AUTH.currentUser.role'), 'student');
+  assert.equal(reloaded.eval('readingRank(journeyForCurrent()).stories'), 1);
+  assert.equal(reloaded.eval('journeySelectedFrame()'), 'sky');
+  assert.equal(reloaded.eval('classBoardEntries(0).length'), 1);
+});
+
+test('guest progress transfers once but never joins a new account to the Class Board', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:1})');
+  assert.equal(app.eval('readingRank(journeyForCurrent()).stories'), 1);
+  const created = app.eval('AUTH.register({name:"Guest Reader",email:"guestboard@example.ph",password:"secret7",role:"student",teacherCode:"BASA-TEACH-8492"})');
+  assert.equal(created.success, true);
+  assert.equal(app.eval('readingRank(journeyForCurrent()).stories'), 1);
+  assert.equal(app.eval('journeyForCurrent().boardOptIn'), false);
+  assert.equal(app.eval('classBoardEntries(0).length'), 0);
+  assert.equal(app.eval('boardStoryCount(S.guestJourney)'), 0);
+});
+
+test('teacher override is limited to linked students and valid tiers', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.throws(() => app.eval('setStudentJourneyOverride("missing", "2")'), /not in your class/);
+  assert.throws(() => app.eval('setStudentJourneyOverride("usr_stud_1", "4")'), /valid reading tier/);
+  const otherTeacher = app.eval('AUTH.register({name:"Other Teacher",email:"otherteacher@example.ph",password:"secret7",role:"teacher",section:"Grade 7"})');
+  assert.equal(otherTeacher.success, true);
+  assert.throws(() => app.eval('setStudentJourneyOverride("usr_stud_1", "2")'), /not in your class/);
+  assert.equal(app.eval('AUTH.users.find(user=>user.id==="usr_stud_1").journeyOverride'), undefined);
+});
+
+test('learner navigation uses Profile while teacher and admin keep Reports', () => {
+  const app = loadApp();
+  for (const role of ['guest', 'student']) {
+    assert.equal(app.eval(`bottomTabsForRole("${role}").includes("profile")`), true);
+    assert.equal(app.eval(`bottomTabsForRole("${role}").includes("reports")`), false);
+  }
+  for (const role of ['teacher', 'admin']) {
+    assert.equal(app.eval(`bottomTabsForRole("${role}").includes("reports")`), true);
+    assert.equal(app.eval(`bottomTabsForRole("${role}").includes("profile")`), false);
+  }
+});
+
+test('guests and students cannot open or export reports through forged actions', () => {
+  const app = loadApp();
+  for (const role of ['guest', 'student']) {
+    if (role === 'student') app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+    app.eval('CURRENT_TAB = "home"');
+    assert.match(app.eval('viewReports()'), /Reports unavailable/);
+    for (const [action, value] of [['tab', 'reports'], ['open-report-sheet'], ['download-csv'], ['print-sheet']]) {
+      app.click(action, value);
+      assert.equal(app.eval('CURRENT_TAB'), 'home');
+      assert.match(app.toasts.at(-1).message, /Teacher or admin account required/);
+    }
+    assert.equal(app.eval('$("#md").hidden'), undefined);
+    assert.equal(app.exportedJson(), null);
+    assert.equal(app.prints(), 0);
+    assert.throws(() => app.eval('openForm14Modal()'), /Teacher or admin account required/);
+    assert.throws(() => app.eval('downloadCSV()'), /Teacher or admin account required/);
+    assert.throws(() => app.eval('printReportSheet()'), /Teacher or admin account required/);
+  }
+});
+
+test('teacher and admin can preview, export, and print only sample report data', () => {
+  const app = loadApp();
+  app.eval('S.lvl = 3; S.w = 99999; S.ss = 1');
+  for (const [email, password] of [['teacher@basawisyo.ph', 'teacher123'], ['admin@basawisyo.ph', 'admin123']]) {
+    app.eval('AUTH.logout()');
+    app.eval(`AUTH.login("${email}", "${password}")`);
+    app.click('tab', 'reports');
+    assert.equal(app.eval('CURRENT_TAB'), 'reports');
+    const report = app.eval('viewReports()');
+    assert.match(report, /Sample Class 8-A Distribution/);
+    assert.match(report, /not validated Phil-IRI results/);
+    assert.doesNotMatch(report, /41 Learners|Current Learner/);
+    app.click('open-report-sheet');
+    const modal = app.eval('$("#md").innerHTML');
+    assert.match(modal, /Sample Form 14 Layout/);
+    assert.match(modal, /Not for official submission/);
+    assert.doesNotMatch(modal, /Current Learner|99,999/);
+    app.click('download-csv');
+    assert.match(app.exportedJson(), /Sample Learner Name/);
+    assert.doesNotMatch(app.exportedJson(), /Current Learner|99999/);
+    const beforePrints = app.prints();
+    app.click('print-sheet');
+    assert.equal(app.prints(), beforePrints + 1);
+  }
+});
+
+test('Home links to rewards while guest and student profiles contain the badge panel', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  const guestHome = app.eval('viewHome()');
+  assert.match(guestHome, /View badges in My Progress/);
+  assert.doesNotMatch(guestHome, /class="card rewards-panel"/);
+  assert.match(app.eval('viewProfile()'), /class="card rewards-panel"/);
+
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  const studentHome = app.eval('viewHome()');
+  assert.match(studentHome, /View badges in Student Profile/);
+  assert.doesNotMatch(studentHome, /class="card rewards-panel"/);
+  assert.match(app.eval('viewProfile()'), /class="card rewards-panel"/);
+});
+
+test('Student Profile shows only the current account journey and earned rewards', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:2})');
+  app.eval('S.w = 99999; S.ss = 999');
+  const first = app.eval('viewProfile()');
+  assert.match(first, /Carlo Bautista/);
+  assert.match(first, /My Completed Stories/);
+  assert.match(first, /Best practice: 2 of 2 correct/);
+  assert.match(first, /Story Starter/);
+  assert.match(first, /First Story/);
+  assert.doesNotMatch(first, /99,999 words|999 reading sessions/);
+  app.eval('AUTH.logout(); AUTH.login("ana@basawisyo.ph", "student123")');
+  const second = app.eval('viewProfile()');
+  assert.match(second, /Ana Reyes/);
+  assert.match(second, /No completed stories yet/);
+  assert.doesNotMatch(second, /Carlo Bautista|Best practice: 2 of 2 correct/);
+});
+
+test('guest My Progress uses local guest journey and registration carries it into Profile', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:1})');
+  const guest = app.eval('viewProfile()');
+  assert.match(guest, /My Progress/);
+  assert.match(guest, /Create student account/);
+  assert.match(guest, /Best practice: 1 of 2 correct/);
+  assert.doesNotMatch(guest, /Carlo Bautista/);
+  const registered = app.eval('AUTH.register({name:"Transferred Reader",email:"transferred@example.ph",password:"secret7",role:"student"})');
+  assert.equal(registered.success, true);
+  assert.match(app.eval('viewProfile()'), /Transferred Reader/);
+  assert.match(app.eval('viewProfile()'), /Best practice: 1 of 2 correct/);
+  assert.equal(app.eval('boardStoryCount(S.guestJourney)'), 0);
+  app.eval('AUTH.logout(); AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.doesNotMatch(app.eval('viewProfile()'), /Transferred Reader|Best practice/);
+});
+
+test('reloading restores only the student profile and does not grant report access', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:1})');
+  const reloaded = loadApp(app.storage);
+  assert.match(reloaded.eval('viewProfile()'), /Carlo Bautista/);
+  assert.match(reloaded.eval('viewProfile()'), /Best practice: 1 of 2 correct/);
+  assert.match(reloaded.eval('viewReports()'), /Reports unavailable/);
+  reloaded.click('tab', 'reports');
+  assert.notEqual(reloaded.eval('CURRENT_TAB'), 'reports');
+  assert.throws(() => reloaded.eval('downloadCSV()'), /Teacher or admin account required/);
+});
+
+test('report dialog takes keyboard focus and restores it when closed', () => {
+  const app = loadApp();
+  let closeFocused = false;
+  let triggerFocused = false;
+  const modal = { hidden: true, innerHTML: '', querySelector: () => ({ focus() { closeFocused = true; } }) };
+  app.element('#md', modal);
+  app.element('#v [data-a="open-report-sheet"]', { focus() { triggerFocused = true; } });
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123"); openForm14Modal()');
+  assert.equal(modal.hidden, false);
+  assert.equal(closeFocused, true);
+  assert.match(modal.innerHTML, /id="sample-report-title"/);
+  app.click('modal-close');
+  assert.equal(modal.hidden, true);
+  assert.equal(triggerFocused, true);
+});
+
+test('Student Profile escapes account and classroom text', () => {
+  const app = loadApp();
+  const created = app.eval('AUTH.register({name:"<img src=x onerror=alert(1)>",email:"escapeprofile@example.ph",password:"secret7",role:"student",teacherCode:"BASA-TEACH-8492"})');
+  assert.equal(created.success, true);
+  const html = app.eval('viewProfile()');
+  assert.doesNotMatch(html, /<img src=x onerror=/);
+  assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+});
+
+test('guest My Progress survives reload without granting report access', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:1})');
+  const reloaded = loadApp(app.storage);
+  assert.equal(reloaded.eval('AUTH.currentUser'), null);
+  reloaded.eval('GUEST_MODE = true');
+  assert.match(reloaded.eval('viewProfile()'), /Best practice: 1 of 2 correct/);
+  assert.match(reloaded.eval('viewReports()'), /Reports unavailable/);
+});
+
+test('teacher and admin report access survives session reload', () => {
+  for (const [email, password] of [['teacher@basawisyo.ph', 'teacher123'], ['admin@basawisyo.ph', 'admin123']]) {
+    const app = loadApp();
+    app.eval(`AUTH.login("${email}", "${password}")`);
+    const reloaded = loadApp(app.storage);
+    assert.equal(reloaded.eval('canViewReports()'), true);
+    assert.match(reloaded.eval('viewReports()'), /Reading Reports Preview/);
+    reloaded.click('tab', 'reports');
+    assert.equal(reloaded.eval('CURRENT_TAB'), 'reports');
+  }
+});
+
+test('teacher and admin Passage Library shows local best scores without learner quiz controls', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:1})');
+  app.eval('AUTH.logout(); AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const teacherHtml = app.eval('viewPractice()');
+  assert.match(teacherHtml, /Passage Library/);
+  assert.match(teacherHtml, /View passage &amp; results/);
+  assert.match(teacherHtml, /Carlo Bautista/);
+  assert.match(teacherHtml, /1\/2/);
+  assert.doesNotMatch(teacherHtml, /data-a="read-passage"|Read & Answer|Read Again/);
+  const passageId = app.eval('PRACTICE_DATA.easy[0].id');
+  app.click('read-passage', passageId);
+  assert.equal(app.eval('ACTIVE_QUIZ'), null);
+  assert.equal(app.eval('CURRENT_TAB'), 'practice');
+  app.click('start-placement');
+  assert.equal(app.eval('ACTIVE_QUIZ'), null);
+  app.eval('AUTH.logout(); AUTH.login("admin@basawisyo.ph", "admin123")');
+  const adminHtml = app.eval('viewPractice()');
+  assert.match(adminHtml, /Carlo Bautista/);
+  assert.match(adminHtml, /1\/2/);
+  assert.doesNotMatch(adminHtml, /data-a="read-passage"/);
+  app.click('read-passage', passageId);
+  assert.equal(app.eval('ACTIVE_QUIZ'), null);
+});
+
+test('Passage Library keeps teacher edits to owned drafts and gives admins review actions', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const own = app.eval('AUTH.savePractice({t:"Teacher Draft",diff:"easy",x:"A short classroom passage.",qs:[{q:"What happened?",o:["Reading","Running"],a:0,k:"Literal"}]})');
+  const teacherHtml = app.eval('viewPractice()');
+  assert.match(teacherHtml, new RegExp(`data-a="practice-edit" data-v="${own.id}"`));
+  assert.match(teacherHtml, new RegExp(`data-a="practice-delete" data-v="${own.id}"`));
+  assert.doesNotMatch(teacherHtml, /data-a="practice-approve"/);
+  app.eval('AUTH.savePractice({t:"Teacher Draft",diff:"easy",x:"A short classroom passage.",qs:[{q:"What happened?",o:["Reading","Running"],a:0,k:"Literal"}]},{id:"' + own.id + '",submit:true})');
+  const pendingHtml = app.eval('viewPractice()');
+  assert.match(pendingHtml, new RegExp(`data-a="practice-withdraw" data-v="${own.id}"`));
+  assert.doesNotMatch(pendingHtml, new RegExp(`data-a="practice-delete" data-v="${own.id}"`));
+  app.eval('AUTH.logout(); AUTH.login("admin@basawisyo.ph", "admin123")');
+  const adminHtml = app.eval('viewPractice()');
+  assert.match(adminHtml, new RegExp(`data-a="practice-approve" data-v="${own.id}"`));
+  assert.match(adminHtml, new RegExp(`data-a="practice-reject" data-v="${own.id}"`));
+});
+
+test('teacher results stay within the linked class and keep earlier score totals', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:2})');
+  app.eval('AUTH.users.find(user=>user.id==="usr_stud_1").teacherCode="ANOTHER-CLASS"');
+  app.eval('AUTH.logout(); AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.doesNotMatch(app.eval('viewPractice()'), /Carlo Bautista/);
+  app.eval('AUTH.logout(); AUTH.login("admin@basawisyo.ph", "admin123")');
+  assert.match(app.eval('viewPractice()'), /Carlo Bautista/);
+  app.eval('PRACTICE_DATA.easy[0].qs.push({q:"A new question?",o:["Yes","No"],a:0,k:"Literal"})');
+  assert.match(app.eval('viewPractice()'), /Earlier question count/);
+});
+
+test('teacher Class Overview uses linked student progress and has no learner assessment controls', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("student@basawisyo.ph", "student123")');
+  app.eval('recordJourneyPractice({mode:"pr",steps:PRACTICE_DATA.easy[0].qs.map(q=>({P:PRACTICE_DATA.easy[0],q})),correctCount:1})');
+  app.eval('AUTH.logout(); AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const html = app.eval('viewTeacherOverview()');
+  assert.match(html, /Class Overview/);
+  assert.match(html, /Carlo Bautista/);
+  assert.match(html, /Best: 1\/2/);
+  assert.match(html, /Completed student-passage pairs/);
+  assert.doesNotMatch(html, /Your Phil-IRI Level|Words Read|data-a="start-placement"|data-a="read-passage"/);
+  assert.match(app.eval('viewTeacherLearnerPreview()'), /Read-only preview/);
+  assert.doesNotMatch(app.eval('viewTeacherLearnerPreview()'), /data-a="read-passage"|data-a="start-placement"/);
+  assert.equal(app.eval('bottomTabsForRole("teacher").includes("assess")'), false);
+});
+
+test('teacher Class Overview gives an empty invite state and excludes other teachers classes', () => {
+  const app = loadApp();
+  const created = app.eval('AUTH.register({name:"Other Teacher",email:"overviewteacher@example.ph",password:"secret7",role:"teacher",section:"Grade 9"})');
+  assert.equal(created.success, true);
+  const html = app.eval('viewTeacherOverview()');
+  assert.match(html, /Invite students to your class/);
+  assert.match(html, new RegExp(created.user.shareCode));
+  assert.doesNotMatch(html, /Carlo Bautista|Ana Reyes/);
+  app.eval('AUTH.logout(); AUTH.login("student@basawisyo.ph", "student123")');
+  assert.match(app.eval('viewTeacherOverview()'), /Teacher account required/);
 });

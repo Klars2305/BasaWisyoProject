@@ -2,6 +2,20 @@ function dashboardTabForRole(role) {
   return role === "teacher" ? "teacher" : role === "admin" ? "admin" : "home";
 }
 
+function showInlineDialog(dialog, focusTarget) {
+  if (!dialog) return;
+  if (dialog.hidden) dialog._returnFocus = document.activeElement;
+  dialog.hidden = false;
+  (focusTarget || dialog.querySelector?.('button, input, select, textarea'))?.focus?.();
+}
+
+function closeInlineDialog(dialog) {
+  if (!dialog || dialog.hidden) return;
+  dialog.hidden = true;
+  if (dialog._returnFocus?.isConnected) dialog._returnFocus.focus?.();
+  dialog._returnFocus = null;
+}
+
 function selectedRegistrationRole() {
   return $('input[name="reg-role"]:checked')?.value || "student";
 }
@@ -17,8 +31,8 @@ function updateRegistrationRole() {
 }
 
 function openRegistration() {
-  $("#auth-modal").hidden = false;
   updateRegistrationRole();
+  showInlineDialog($("#auth-modal"), $("#reg-name"));
 }
 
 function logoutToIndex() {
@@ -27,6 +41,7 @@ function logoutToIndex() {
     return;
   }
   GUEST_MODE = false;
+  stopSpeech();
   ACTIVE_QUIZ = null;
   CURRENT_TAB = "home";
   $("#auth-modal").hidden = true;
@@ -64,6 +79,10 @@ function practiceQuestionMarkup(question = {}, index = 0) {
         </select>
       </label>
     </div>
+    <label style="margin-top:8px">Explanation / Text evidence (optional)
+      <input type="text" class="auth-input" data-field="explanation" maxlength="1000"
+        value="${escapeHTML(question.exp ?? "")}" placeholder="Explanation or supporting lines for student feedback">
+    </label>
   </fieldset>`;
 }
 
@@ -73,7 +92,8 @@ function readPracticeQuestionDrafts() {
     o: Array.from({ length: 6 }, (_, index) => card.querySelector(`[data-field="option-${index}"]`))
       .filter(Boolean).map(field => field.value),
     a: Number(card.querySelector('[data-field="answer"]').value),
-    k: card.querySelector('[data-field="skill"]').value
+    k: card.querySelector('[data-field="skill"]').value,
+    exp: card.querySelector('[data-field="explanation"]')?.value ?? ""
   }));
 }
 
@@ -125,7 +145,10 @@ function validatedPracticeQuestions() {
       showPracticeQuestion(index);
       throw new Error(`Complete question ${index + 1}, including two answers and the correct choice.`);
     }
-    return { ...question, o: question.o.filter(option => option.trim()) };
+    const cleaned = { ...question, o: question.o.filter(option => option.trim()) };
+    if (cleaned.exp && cleaned.exp.trim()) cleaned.exp = cleaned.exp.trim();
+    else delete cleaned.exp;
+    return cleaned;
   });
 }
 
@@ -141,7 +164,7 @@ function openPracticeEditor(id = null) {
   EDITING_PRACTICE_ID = passage?.id ?? null;
   const values = {
     "#pass-title": passage?.t ?? "", "#pass-diff": passage?.diff ?? "easy",
-    "#pass-text": passage?.x ?? ""
+    "#pass-lang": passage?.lang ?? "en-US", "#pass-text": passage?.x ?? ""
   };
   for (const [selector, value] of Object.entries(values)) {
     const field = $(selector);
@@ -159,14 +182,14 @@ function openPracticeEditor(id = null) {
   $("#practice-submit").hidden = actor.role !== "teacher";
   $("#practice-admin-save").hidden = actor.role !== "admin";
   $("#practice-admin-save").textContent = passage ? "Save changes" : "Publish practice";
-  $("#admin-passage-modal").hidden = false;
-  $("#pass-title").focus();
+  showInlineDialog($("#admin-passage-modal"), $("#pass-title"));
 }
 
 function savePracticeFromEditor(submit) {
   const passage = AUTH.savePractice({
     t: $("#pass-title")?.value,
     diff: $("#pass-diff")?.value,
+    lang: $("#pass-lang")?.value || "en-US",
     x: $("#pass-text")?.value,
     qs: validatedPracticeQuestions()
   }, { id: EDITING_PRACTICE_ID, submit });
@@ -181,11 +204,17 @@ function savePracticeFromEditor(submit) {
 /* ==========================================================================
    Global Event Delegations
    ========================================================================== */
-document.addEventListener("click", e => {
+document.addEventListener("click", async e => {
   const t = e.target.closest("[data-a]");
   if (!t) return;
   const a = t.dataset.a;
   const v = t.dataset.v;
+  if (((a === "tab" && v === "reports")
+      || ["open-report-sheet", "download-csv", "print-sheet"].includes(a))
+      && !canViewReports()) {
+    showToast("Teacher or admin account required for reports.", "warn");
+    return;
+  }
   if (a.startsWith("admin-") && AUTH.currentUser?.role !== "admin") {
     showToast("Admin account required for this action.", "warn");
     return;
@@ -197,8 +226,10 @@ document.addEventListener("click", e => {
 
   // Tabs
   if (a === "tab") {
+    stopSpeech();
     CURRENT_TAB = v;
     ACTIVE_QUIZ = null;
+    QUIZ_RESULT = null;
     renderApp();
   }
 
@@ -206,25 +237,83 @@ document.addEventListener("click", e => {
   else if (a === "filter-diff") {
     S.activeDiff = v;
     CURRENT_TAB = "practice";
+    QUIZ_RESULT = null;
+    renderApp();
+  }
+
+  else if (a === "reward-frame") {
+    try {
+      setJourneyFrame(v);
+      renderApp();
+      showToast("Profile frame updated.");
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
+  }
+
+  else if (a === "board-opt") {
+    try {
+      setClassBoardOptIn(v === "on");
+      renderApp();
+      showToast(v === "on" ? "You joined the local Class Board." : "You left the Class Board.");
+    } catch (error) {
+      showToast(error.message, "warn");
+    }
+  }
+  else if (a === "board-tier") {
+    const tier = Number(v);
+    if (Number.isInteger(tier) && tier >= 0 && tier < DIFF_KEYS.length) {
+      BOARD_TIER = tier;
+      renderApp();
+    }
+  }
+  else if (a === "board-metric") {
+    CURRENT_BOARD_METRIC = v;
+    renderApp();
+  }
+  else if (a === "board-scope") {
+    CURRENT_BOARD_SCOPE = v;
     renderApp();
   }
 
   // Start placement diagnostic
   else if (a === "start-placement") {
+    if (["teacher", "admin"].includes(AUTH.currentUser?.role)) {
+      CURRENT_TAB = "practice";
+      renderApp();
+      showToast("Open a passage to view its content and student results.");
+      return;
+    }
     if (!AUTH.currentUser) GUEST_MODE = true;
     $("#auth-modal").hidden = true;
+    QUIZ_RESULT = null;
     startQuiz(PLACEMENT_TEST, "pl", "Phil-IRI Diagnostic Placement");
   }
 
   // Read specific passage in practice
   else if (a === "read-passage") {
+    if (["teacher", "admin"].includes(AUTH.currentUser?.role)) {
+      CURRENT_TAB = "practice";
+      renderApp();
+      showToast("Use View passage & results to review reading content without taking a quiz.");
+      return;
+    }
     const found = getPublishedPassageById(v);
-    if (found) {
+    if (found && !journeyCanRead(found)) {
+      showToast("Complete earlier reading tiers or ask your teacher to unlock this passage.", "warn");
+    } else if (found) {
+      QUIZ_RESULT = null;
       startQuiz([found], "pr", `Practice: ${found.t}`);
     }
   }
 
   // Answer selection in quiz
+  else if (a === "quiz-begin-question") {
+    showQuizStage("question");
+  }
+  else if (a === "quiz-show-passage") {
+    showQuizStage("passage");
+  }
   else if (a === "submit-answer") {
     handleAnswer(parseInt(v, 10));
   }
@@ -234,12 +323,170 @@ document.addEventListener("click", e => {
     handleQuizNext();
   }
 
+  // Quiz result scene actions
+  else if (a === "quiz-karaoke-skip") {
+    skipQuizKaraoke();
+  }
+  else if (a === "quiz-review") {
+    if (QUIZ_RESULT) {
+      QUIZ_RESULT.reviewMode = !QUIZ_RESULT.reviewMode;
+      if (typeof updateQuestProgress === "function") {
+        updateQuestProgress("review", 1);
+      }
+      renderApp();
+    }
+  }
+  else if (a === "quiz-retry") {
+    if (QUIZ_RESULT?.quiz?.steps?.[0]?.P) {
+      const p = QUIZ_RESULT.quiz.steps[0].P;
+      QUIZ_RESULT = null;
+      startQuiz([p], "pr", `Practice: ${p.t}`);
+    }
+  }
+  else if (a === "quiz-next-story") {
+    const summary = journeySummary();
+    const currentId = QUIZ_RESULT?.quiz?.steps?.[0]?.P?.id;
+    const next = summary?.next;
+    QUIZ_RESULT = null;
+    if (next && next.id !== currentId && journeyCanRead(next)) {
+      startQuiz([next], "pr", `Practice: ${next.t}`);
+    } else {
+      CURRENT_TAB = "practice";
+      renderApp();
+    }
+  }
+  else if (a === "quiz-exit-to-library") {
+    const m = $("#zero-hearts-modal");
+    if (m && typeof m.remove === "function") m.remove();
+    QUIZ_RESULT = null;
+    CURRENT_TAB = "practice";
+    renderApp();
+  }
+  else if (a === "out-of-hearts-retry") {
+    const m = $("#zero-hearts-modal");
+    if (m && typeof m.remove === "function") m.remove();
+    let passageToRetry = null;
+    if (v) {
+      passageToRetry = getPublishedPassageById(v);
+    }
+    if (!passageToRetry && ACTIVE_QUIZ?.steps?.[0]?.P) {
+      passageToRetry = ACTIVE_QUIZ.steps[0].P;
+    }
+    if (passageToRetry) {
+      ACTIVE_QUIZ = null;
+      QUIZ_RESULT = null;
+      startQuiz([passageToRetry], "pr", `Practice: ${passageToRetry.t}`);
+    } else {
+      CURRENT_TAB = "practice";
+      renderApp();
+    }
+  }
+  else if (a === "zero-hearts-close") {
+    const m = $("#zero-hearts-modal");
+    if (m && typeof m.remove === "function") m.remove();
+  }
+  else if (a === "heart-info") {
+    if (typeof syncHearts === "function") {
+      const st = syncHearts();
+      const timeStr = st.hearts < st.maxHearts ? ` · Next heart in ${formatHeartCountdown(st.remainingMs)}` : " · Full hearts!";
+      showToast(`Hearts: ${st.hearts}/${st.maxHearts}${timeStr}`);
+    }
+  }
+
   // Quit quiz early
   else if (a === "quit-quiz") {
     if (confirm("Are you sure you want to exit? Your progress in this quiz will be cancelled.")) {
+      stopSpeech();
       ACTIVE_QUIZ = null;
       renderApp();
     }
+  }
+
+  // Smart Review Session
+  else if (a === "start-smart-review") {
+    if (typeof startSmartReviewSession === "function") {
+      const started = startSmartReviewSession();
+      if (!started && typeof showToast === "function") {
+        showToast("No questions need review right now! Great job!", "ok");
+      }
+    }
+  }
+
+  // Save word from reading passage directly to Vocabulary Flashcards
+  else if (a === "save-word-flashcard") {
+    if (typeof saveFlashcard === "function") {
+      const card = saveFlashcard({ word: v });
+      if (card && typeof showToast === "function") {
+        showToast(`Saved "${v}" to Vocabulary Flashcards! 📇`);
+      }
+    }
+    const tip = $("#tip");
+    if (tip) tip.hidden = true;
+  }
+
+  // Vocabulary Flashcards interactions
+  else if (a === "fc-flip") {
+    FLASHCARD_IS_FLIPPED = !FLASHCARD_IS_FLIPPED;
+    renderApp();
+  }
+  else if (a === "fc-rate") {
+    const rating = v;
+    const cardId = e.target.closest('[data-card]')?.getAttribute('data-card');
+    if (cardId && typeof rateFlashcard === "function") {
+      const updated = rateFlashcard(cardId, rating);
+      if (typeof updateQuestProgress === "function") {
+        updateQuestProgress("review", 1);
+      }
+      FLASHCARD_ACTIVE_INDEX++;
+      FLASHCARD_IS_FLIPPED = false;
+      const intervalStr = updated?.intervalDays ? ` Next review in ${updated.intervalDays} day(s).` : "";
+      showToast(`Card rated ${rating.toUpperCase()}!${intervalStr}`);
+      renderApp();
+    }
+  }
+  else if (a === "fc-prev") {
+    FLASHCARD_ACTIVE_INDEX = Math.max(0, FLASHCARD_ACTIVE_INDEX - 1);
+    FLASHCARD_IS_FLIPPED = false;
+    renderApp();
+  }
+  else if (a === "fc-next") {
+    FLASHCARD_ACTIVE_INDEX++;
+    FLASHCARD_IS_FLIPPED = false;
+    renderApp();
+  }
+  else if (a === "fc-filter") {
+    FLASHCARD_ACTIVE_FILTER = v;
+    FLASHCARD_ACTIVE_INDEX = 0;
+    FLASHCARD_IS_FLIPPED = false;
+    renderApp();
+  }
+  else if (a === "fc-open-add") {
+    FLASHCARD_SHOW_ADD_MODAL = true;
+    renderApp();
+  }
+  else if (a === "fc-close-add") {
+    FLASHCARD_SHOW_ADD_MODAL = false;
+    renderApp();
+  }
+  else if (a === "fc-add-submit") {
+    const word = $("#fc-new-word")?.value?.trim();
+    const def = $("#fc-new-def")?.value?.trim();
+    const fil = $("#fc-new-fil")?.value?.trim();
+    const bis = $("#fc-new-bis")?.value?.trim();
+    const sent = $("#fc-new-sentence")?.value?.trim();
+    if (!word || !def) {
+      showToast("Please enter a vocabulary word and its definition.", "warn");
+      return;
+    }
+    if (typeof saveFlashcard === "function") {
+      saveFlashcard({ word, definition: def, filipino: fil, bisaya: bis, contextSentence: sent });
+      FLASHCARD_SHOW_ADD_MODAL = false;
+      showToast(`Added "${word}" to Vocabulary Flashcards! 🎉`);
+      renderApp();
+    }
+  }
+  else if (a === "fc-speak") {
+    speak(v);
   }
 
   // Trilingual dictionary tooltip
@@ -261,6 +508,9 @@ document.addEventListener("click", e => {
           <div>🇵🇭 <b>Filipino:</b> ${entry[0]}</div>
           <div>🏝️ <b>Bisaya:</b> ${entry[1]}</div>
           <div style="margin-top:4px">📖 <b>English:</b> ${entry[2]}</div>
+          <button class="btn sm blue" data-a="save-word-flashcard" data-v="${wordKey}" style="margin-top:8px;width:100%;font-size:0.8rem;padding:5px 8px">
+            ${uiIcon("flashcards")} Save to Flashcards
+          </button>
         </div>
       `;
     }
@@ -269,14 +519,47 @@ document.addEventListener("click", e => {
     $("#tip").hidden = true;
   }
   else if (a === "speech-speak-word") {
-    speak(v);
+    speak(v, { passage: ACTIVE_QUIZ?.steps[ACTIVE_QUIZ.idx]?.P });
+  }
+  else if (a === "speech-preview") {
+    const passage = ACTIVE_QUIZ?.steps[ACTIVE_QUIZ.idx]?.P;
+    const language = speechLanguage(passage);
+    const sample = language.startsWith("fil") ? "Magandang araw. Basahin natin ang kuwento."
+      : language.startsWith("ceb") ? "Maayong adlaw. Atong basahon ang sugilanon."
+      : "Good morning. Let us read this story together.";
+    if (!speak(sample, { language })) showToast("No device voice is available.", "warn");
   }
 
   // Read whole passage aloud
   else if (a === "speech-read") {
     if (ACTIVE_QUIZ) {
-      speak(ACTIVE_QUIZ.steps[ACTIVE_QUIZ.idx].P.x);
-      showToast("Playing audio narration...");
+      if (SPEECH_PASSAGE_ACTIVE) {
+        stopSpeech();
+      } else if (!speak(ACTIVE_QUIZ.steps[ACTIVE_QUIZ.idx].P.x,
+        { followPassage: true, passage: ACTIVE_QUIZ.steps[ACTIVE_QUIZ.idx].P })) {
+        showToast("Audio narration is unavailable in this browser.", "warn");
+      }
+    }
+  }
+  else if (a === "speech-pause") {
+    if (typeof pauseSpeech === "function") {
+      pauseSpeech();
+    }
+  }
+  else if (a === "speech-resume") {
+    if (typeof resumeSpeech === "function") {
+      resumeSpeech();
+    }
+  }
+  else if (a === "speech-rate-set") {
+    const rateVal = Number(v);
+    if ([0.75, 0.85, 1, 1.1, 1.25].includes(rateVal)) {
+      setSpeechSetting("rate", rateVal);
+      if (ACTIVE_QUIZ?.steps?.[ACTIVE_QUIZ.idx]?.P) {
+        refreshSpeechControls(ACTIVE_QUIZ.steps[ACTIVE_QUIZ.idx].P);
+      }
+      renderApp();
+      showToast(`Narration speed: ${rateVal}x`);
     }
   }
 
@@ -294,12 +577,17 @@ document.addEventListener("click", e => {
 
   // AI Tutor interactions
   else if (a === "ai-open") {
+    if (typeof updateQuestProgress === "function") {
+      updateQuestProgress("review", 1);
+    }
     aiOpen();
   }
   else if (a === "ai-close") {
-    $("#ai").hidden = true;
+    closeInlineDialog($("#ai"));
   }
   else if (a === "ai-clear") {
+    WISYO_REQUEST_ID++;
+    WISYO_BUSY = false;
     CHAT_HISTORY = [];
     aiOpen();
   }
@@ -369,13 +657,14 @@ document.addEventListener("click", e => {
     openForm14Modal();
   }
   else if (a === "modal-close") {
-    $("#md").hidden = true;
+    closeReportModal();
   }
   else if (a === "download-csv") {
     downloadCSV();
   }
   else if (a === "print-sheet") {
-    window.print();
+    try { printReportSheet(); }
+    catch (error) { showToast(error.message, "warn"); }
   }
 
   // Parent Features
@@ -422,8 +711,7 @@ document.addEventListener("click", e => {
     }
   }
   else if (a === "auth-close") {
-    const modal = $("#auth-modal");
-    if (modal) modal.hidden = true;
+    closeInlineDialog($("#auth-modal"));
   }
   else if (a === "auth-register-submit") {
     const name = $("#reg-name")?.value;
@@ -474,12 +762,11 @@ document.addEventListener("click", e => {
       const subEl = $("#projector-share-code-sub");
       if (codeEl) codeEl.textContent = code;
       if (subEl) subEl.textContent = code;
-      modal.hidden = false;
+      showInlineDialog(modal, modal.querySelector(".modal-close-btn"));
     }
   }
   else if (a === "projector-close") {
-    const modal = $("#projector-modal");
-    if (modal) modal.hidden = true;
+    closeInlineDialog($("#projector-modal"));
   }
   else if (a === "teacher-dispatch-assignment") {
     const pSelect = $("#asg-passage-select");
@@ -543,7 +830,7 @@ document.addEventListener("click", e => {
   else if (a === "guest-save-profile") {
     const modal = $("#auth-modal");
     if (modal) {
-      modal.hidden = false;
+      showInlineDialog(modal, $("#reg-name"));
       const regTab = $("#tab-btn-register");
       if (regTab) regTab.click();
       showToast("Fill in registration to permanently link your reading score!");
@@ -623,7 +910,7 @@ document.addEventListener("click", e => {
   else if (a === "passage-modal-close") {
     PRACTICE_EDITOR_GENERATION++;
     EDITING_PRACTICE_ID = null;
-    $("#admin-passage-modal").hidden = true;
+    closeInlineDialog($("#admin-passage-modal"));
   }
   else if (a === "practice-question-prev" || a === "practice-question-next") {
     showPracticeQuestion(PRACTICE_ACTIVE_QUESTION_INDEX + (a === "practice-question-next" ? 1 : -1));
@@ -741,6 +1028,239 @@ document.addEventListener("click", e => {
     renderApp();
   }
 
+  // Student My Reading Studio Actions
+  else if (a === "studio-tab") {
+    STUDIO_ACTIVE_SUBTAB = v || "import";
+    renderApp();
+  }
+  else if (a === "studio-file-trigger") {
+    const input = $("#studio-file-input");
+    if (input) input.click();
+  }
+  else if (a === "studio-qcount") {
+    STUDIO_Q_COUNT = Number(v) || 5;
+    renderApp();
+  }
+  else if (a === "studio-generate-start") {
+    handleStudioGenerateAndStart();
+  }
+  else if (a === "studio-launch-saved") {
+    const all = typeof readLocalMaterials === "function" ? readLocalMaterials() : [];
+    const mat = all.find(m => m.id === v);
+    if (mat) {
+      const passageObj = {
+        id: mat.id,
+        t: mat.title,
+        diff: mat.difficulty,
+        lang: mat.language,
+        x: mat.text,
+        qs: mat.questions
+      };
+      startQuiz([passageObj], "studio", `My Studio: ${mat.title}`);
+    }
+  }
+  else if (a === "studio-delete") {
+    if (!confirm("Are you sure you want to delete this material from your personal library?")) return;
+    deleteMaterial(v).then(() => {
+      showToast("Material removed from your personal library.");
+      renderApp();
+    }).catch(err => showToast(err.message, "warn"));
+  }
+
+  // Teacher Reading Studio Actions
+  else if (a === "tstudio-subtab") {
+    TEACHER_STUDIO_SUBTAB = v || "editor";
+    renderApp();
+  }
+  else if (a === "tstudio-file-trigger") {
+    const input = $("#tstudio-file-input");
+    if (input) input.click();
+  }
+  else if (a === "tstudio-qcount") {
+    TEACHER_STUDIO_Q_COUNT = Number(v) || 5;
+    renderApp();
+  }
+  else if (a === "tstudio-draft-ai") {
+    const textInput = $("#tstudio-text-input");
+    const langSelect = $("#tstudio-lang-select");
+    const diffSelect = $("#tstudio-diff-select");
+    const text = (textInput?.value || TEACHER_STUDIO_TEXT || "").trim();
+    if (!text || text.length < 25) {
+      showToast("Please provide passage text before generating questions.", "warn");
+      return;
+    }
+    TEACHER_STUDIO_IS_LOADING = true;
+    showToast("Wisyo AI is generating draft questions...", "info");
+    renderApp();
+
+    generateWisyoPractice(text, {
+      count: TEACHER_STUDIO_Q_COUNT,
+      difficulty: diffSelect?.value || TEACHER_STUDIO_DIFF,
+      language: langSelect?.value || TEACHER_STUDIO_LANG
+    }).then(res => {
+      TEACHER_STUDIO_QUESTIONS = res.questions || [];
+      TEACHER_STUDIO_VOCAB = res.vocabulary || [];
+      TEACHER_STUDIO_IS_LOADING = false;
+      showToast(`Drafted ${TEACHER_STUDIO_QUESTIONS.length} questions successfully! ✨`);
+      renderApp();
+    }).catch(err => {
+      TEACHER_STUDIO_IS_LOADING = false;
+      showToast(`Drafting failed: ${err.message}`, "warn");
+      renderApp();
+    });
+  }
+  else if (a === "tstudio-add-question") {
+    TEACHER_STUDIO_QUESTIONS.push({
+      id: `custom_q_${Date.now()}_${TEACHER_STUDIO_QUESTIONS.length}`,
+      q: "New question prompt...",
+      o: ["Option A", "Option B", "Option C", "Option D"],
+      a: 0,
+      k: "Literal",
+      exp: "Explanation or evidence from the reading passage."
+    });
+    renderApp();
+  }
+  else if (a === "tstudio-delete-q") {
+    const idx = Number(v);
+    if (idx >= 0 && idx < TEACHER_STUDIO_QUESTIONS.length) {
+      TEACHER_STUDIO_QUESTIONS.splice(idx, 1);
+      renderApp();
+    }
+  }
+  else if (a === "tstudio-set-key") {
+    const qidx = Number(btn.dataset.qidx);
+    const optidx = Number(btn.dataset.optidx);
+    if (TEACHER_STUDIO_QUESTIONS[qidx]) {
+      TEACHER_STUDIO_QUESTIONS[qidx].a = optidx;
+    }
+  }
+  else if (a === "tstudio-save-draft" || a === "tstudio-submit-approval") {
+    const isSubmit = a === "tstudio-submit-approval";
+    const title = $("#tstudio-title-input")?.value?.trim() || TEACHER_STUDIO_TITLE || "Untitled Material";
+    const author = $("#tstudio-author-input")?.value?.trim() || TEACHER_STUDIO_AUTHOR || "DepEd Curriculum";
+    const text = $("#tstudio-text-input")?.value?.trim() || TEACHER_STUDIO_TEXT || "";
+    const lang = $("#tstudio-lang-select")?.value || TEACHER_STUDIO_LANG;
+    const diff = $("#tstudio-diff-select")?.value || TEACHER_STUDIO_DIFF;
+
+    if (!text || text.length < 25) {
+      showToast("Please provide passage text before saving.", "warn");
+      return;
+    }
+
+    // Sync input values from DOM to questions array
+    $$(".tstudio-q-prompt").forEach(inp => {
+      const idx = Number(inp.dataset.idx);
+      if (TEACHER_STUDIO_QUESTIONS[idx]) TEACHER_STUDIO_QUESTIONS[idx].q = inp.value;
+    });
+    $$(".tstudio-opt-input").forEach(inp => {
+      const qidx = Number(inp.dataset.qidx);
+      const optidx = Number(inp.dataset.optidx);
+      if (TEACHER_STUDIO_QUESTIONS[qidx]?.o?.[optidx] !== undefined) {
+        TEACHER_STUDIO_QUESTIONS[qidx].o[optidx] = inp.value;
+      }
+    });
+    $$(".tstudio-exp-input").forEach(inp => {
+      const idx = Number(inp.dataset.idx);
+      if (TEACHER_STUDIO_QUESTIONS[idx]) TEACHER_STUDIO_QUESTIONS[idx].exp = inp.value;
+    });
+
+    saveMaterial({
+      id: TEACHER_STUDIO_EDITING_ID,
+      title,
+      author,
+      text,
+      language: lang,
+      difficulty: diff,
+      sourceType: "teacher_studio",
+      status: isSubmit ? "pending" : "draft",
+      visibility: "private",
+      questions: TEACHER_STUDIO_QUESTIONS,
+      vocabulary: TEACHER_STUDIO_VOCAB
+    }).then(saved => {
+      TEACHER_STUDIO_EDITING_ID = saved.id;
+      showToast(isSubmit ? "Submitted for Admin Approval! 📋" : "Saved as Teacher Draft! 💾");
+      if (isSubmit) TEACHER_STUDIO_SUBTAB = "queue";
+      renderApp();
+    }).catch(err => showToast(err.message, "warn"));
+  }
+  else if (a === "tstudio-load-edit") {
+    const all = typeof readLocalMaterials === "function" ? readLocalMaterials() : [];
+    const mat = all.find(m => m.id === v);
+    if (mat) {
+      TEACHER_STUDIO_EDITING_ID = mat.id;
+      TEACHER_STUDIO_TITLE = mat.title;
+      TEACHER_STUDIO_AUTHOR = mat.author;
+      TEACHER_STUDIO_TEXT = mat.text;
+      TEACHER_STUDIO_LANG = mat.language;
+      TEACHER_STUDIO_DIFF = mat.difficulty;
+      TEACHER_STUDIO_QUESTIONS = mat.questions || [];
+      TEACHER_STUDIO_VOCAB = mat.vocabulary || [];
+      TEACHER_STUDIO_SUBTAB = "editor";
+      renderApp();
+      showToast(`Loaded "${mat.title}" into editor.`);
+    }
+  }
+  else if (a === "tstudio-submit-approval-id") {
+    updateMaterialStatus(v, "pending", "").then(() => {
+      showToast("Material submitted for Admin Review! 📋");
+      renderApp();
+    }).catch(err => showToast(err.message, "warn"));
+  }
+  else if (a === "tstudio-assign-material") {
+    TEACHER_STUDIO_SUBTAB = "assignments";
+    renderApp();
+    setTimeout(() => {
+      const sel = $("#tstudio-assign-mat-select");
+      if (sel) sel.value = v;
+    }, 50);
+  }
+  else if (a === "tstudio-create-assignment-action") {
+    const matId = $("#tstudio-assign-mat-select")?.value;
+    const section = $("#tstudio-assign-section-input")?.value?.trim();
+    const dueDate = $("#tstudio-assign-due-input")?.value;
+    const mode = $("#tstudio-assign-mode-select")?.value || "practice";
+
+    if (!matId || !section) {
+      showToast("Please choose a material and specify a class section.", "warn");
+      return;
+    }
+
+    createClassAssignment({
+      materialId: matId,
+      sectionCode: section,
+      dueDate,
+      mode
+    }).then(() => {
+      showToast("Class Assignment created successfully! 🚀");
+      renderApp();
+    }).catch(err => showToast(err.message, "warn"));
+  }
+  else if (a === "tstudio-export-pkg") {
+    try {
+      const json = exportAssignmentPackage(v);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `assignment_${v}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast("Assignment Package exported to JSON! 📦");
+    } catch (err) {
+      showToast(err.message, "warn");
+    }
+  }
+  else if (a === "tstudio-delete-assignment") {
+    if (!confirm("Are you sure you want to remove this class assignment?")) return;
+    removeAssignment(v);
+    showToast("Assignment removed.");
+    renderApp();
+  }
+  else if (a === "tstudio-import-pkg-trigger") {
+    const input = $("#tstudio-import-pkg-input");
+    if (input) input.click();
+  }
+
   else if (a === "toggle-theme") {
     S.theme = S.theme === "dark" ? "light" : "dark";
     save();
@@ -766,42 +1286,76 @@ document.addEventListener("input", e => {
       searchInput.setSelectionRange(SEARCH_QUERY.length, SEARCH_QUERY.length);
     }
   }
+  if (e.target.id === "studio-text-input") {
+    STUDIO_EXTRACTED_TEXT = e.target.value;
+    const stats = typeof normalizeImportedText === "function" ? normalizeImportedText(STUDIO_EXTRACTED_TEXT) : { wordCount: 0, charCount: 0, estMinutes: 1 };
+    const statsEl = $("#studio-char-stats");
+    if (statsEl) {
+      statsEl.innerHTML = `<b>${stats.wordCount}</b> words · <b>${stats.charCount}</b> characters · ~${stats.estMinutes} min read`;
+    }
+  }
+  if (e.target.id === "tstudio-text-input") {
+    TEACHER_STUDIO_TEXT = e.target.value;
+  }
 });
 
 // Enter key support for AI input
 document.addEventListener("keydown", e => {
+  const dialog = Array.from(document.querySelectorAll('[role="dialog"]')).find(item => !item.hidden);
+  if (e.key === "Tab" && dialog) {
+    const focusable = Array.from(dialog.querySelectorAll('a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'))
+      .filter(item => !item.hidden && item.getClientRects().length);
+    if (focusable.length) {
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!dialog.contains(document.activeElement) || (e.shiftKey && document.activeElement === first)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
   if (e.key === "Enter" && e.target.id === "aii") {
     const val = e.target.value;
     e.target.value = "";
     aiSend(val);
   }
   if (e.key === "Escape") {
-    $("#ai").hidden = true;
-    $("#md").hidden = true;
+    closeInlineDialog($("#ai"));
+    closeReportModal();
+    closeInlineDialog($("#auth-modal"));
+    closeInlineDialog($("#projector-modal"));
+    if (!$("#admin-passage-modal").hidden) {
+      PRACTICE_EDITOR_GENERATION++;
+      EDITING_PRACTICE_ID = null;
+      closeInlineDialog($("#admin-passage-modal"));
+    }
     $("#tip").hidden = true;
   }
 });
 
 // Close modal when clicking dark backdrop
 $("#md").addEventListener("click", e => {
-  if (e.target.id === "md") $("#md").hidden = true;
+  if (e.target.id === "md") closeReportModal();
 });
 $("#ai").addEventListener("click", e => {
-  if (e.target.id === "ai") $("#ai").hidden = true;
+  if (e.target.id === "ai") closeInlineDialog($("#ai"));
 });
 
 // Backdrop click closures for new modals
 $("#auth-modal")?.addEventListener("click", e => {
-  if (e.target.id === "auth-modal") $("#auth-modal").hidden = true;
+  if (e.target.id === "auth-modal") closeInlineDialog($("#auth-modal"));
 });
 $("#projector-modal")?.addEventListener("click", e => {
-  if (e.target.id === "projector-modal") $("#projector-modal").hidden = true;
+  if (e.target.id === "projector-modal") closeInlineDialog($("#projector-modal"));
 });
 $("#admin-passage-modal")?.addEventListener("click", e => {
   if (e.target.id === "admin-passage-modal") {
     PRACTICE_EDITOR_GENERATION++;
     EDITING_PRACTICE_ID = null;
-    $("#admin-passage-modal").hidden = true;
+    closeInlineDialog($("#admin-passage-modal"));
   }
 });
 
@@ -813,6 +1367,27 @@ document.addEventListener("input", e => {
 });
 
 document.addEventListener("change", e => {
+  if (e.target.id === "speech-follow") {
+    setSpeechSetting("follow", e.target.checked);
+    return;
+  }
+  if (["speech-mode", "speech-language", "speech-voice", "speech-rate"].includes(e.target.id)) {
+    stopSpeech();
+    setSpeechSetting(e.target.id.slice("speech-".length), e.target.value);
+    refreshSpeechControls(ACTIVE_QUIZ?.steps[ACTIVE_QUIZ.idx]?.P);
+    return;
+  }
+  if (e.target.dataset?.a === "teacher-journey-override") {
+    try {
+      setStudentJourneyOverride(e.target.dataset.v, e.target.value);
+      showToast("Student reading tier access updated in this browser.");
+    } catch (error) {
+      const student = AUTH.users.find(user => user.id === e.target.dataset.v);
+      e.target.value = student?.journeyOverride == null ? "" : String(student.journeyOverride);
+      showToast(error.message, "warn");
+    }
+    return;
+  }
   if (e.target.name === "reg-role") {
     updateRegistrationRole();
     return;
@@ -866,6 +1441,55 @@ document.addEventListener("change", e => {
       input.value = "";
     };
     reader.readAsText(file);
+    return;
+  }
+  if (e.target.id === "studio-file-input") {
+    handleStudioFileSelected(e.target);
+    return;
+  }
+  if (e.target.id === "tstudio-file-input") {
+    const file = e.target.files?.[0];
+    if (file) {
+      TEACHER_STUDIO_WARNING = "";
+      TEACHER_STUDIO_IS_LOADING = true;
+      renderApp();
+      extractTextFromFile(file).then(res => {
+        if (!res.success) {
+          TEACHER_STUDIO_WARNING = res.error || "Could not extract text.";
+        } else {
+          TEACHER_STUDIO_TEXT = res.text;
+          TEACHER_STUDIO_TITLE = res.stats.cleanTitle || file.name.replace(/\.[^/.]+$/, "");
+          TEACHER_STUDIO_DIFF = res.stats.suggestedTier || "medium";
+          if (res.isScannedOrEmpty && res.error) {
+            TEACHER_STUDIO_WARNING = res.error;
+          }
+        }
+        TEACHER_STUDIO_IS_LOADING = false;
+        renderApp();
+      }).catch(err => {
+        TEACHER_STUDIO_WARNING = err.message;
+        TEACHER_STUDIO_IS_LOADING = false;
+        renderApp();
+      });
+    }
+    return;
+  }
+  if (e.target.id === "tstudio-import-pkg-input") {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = evt => {
+        try {
+          importAssignmentPackage(evt.target.result);
+          showToast("Assignment Package imported successfully! 📦");
+          renderApp();
+        } catch (err) {
+          showToast(`Import failed: ${err.message}`, "warn");
+        }
+      };
+      reader.readAsText(file);
+    }
+    return;
   }
 });
 

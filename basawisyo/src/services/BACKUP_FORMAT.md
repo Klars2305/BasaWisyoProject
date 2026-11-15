@@ -4,6 +4,13 @@ The admin export creates a UTF-8 JSON file with `format: "BasaWisyoBackup"` and
 `version: 1`. It contains `exportDate` (ISO timestamp), `school`, `users`,
 `assignments`, `guestTokens`, `customPassages`, and `systemState`. The last field
 contains reading progress and display settings from `basa_wisyo_state_v2`.
+It also contains the guest Reading Journey, while student journeys and teacher
+tier overrides are stored in their `users` records. Older version 1 backups
+without journey fields restore with an empty guest journey.
+Journey records may also contain badge skill evidence and a selected cosmetic
+profile frame. Badges are derived from the saved journey results and evidence.
+Student journeys may include a Class Board opt-in choice; older backups without
+that field leave students off the board.
 The current login session is deliberately excluded.
 
 Restore accepts version 1 and legacy unversioned exports that contain a valid

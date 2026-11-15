@@ -8,6 +8,7 @@ validation path for reading content. It returns the canonical form:
   id: "cust_123",              // stable letters/numbers/_/- ID, up to 80 chars
   t: "Title",                  // 1–160 chars
   diff: "easy",                // easy | medium | hard | extreme
+  lang: "en-US",               // optional: en-US | fil-PH | ceb-PH; older passages narrate as English
   x: "Passage text",           // 1–30,000 chars
   qs: [{                       // 1–20 questions
     q: "Question?",            // 1–500 chars

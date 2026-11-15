@@ -1,0 +1,42 @@
+/* Teacher and admin Passage Library: reading content with local result evidence. */
+.practice-management-page { max-width: 1240px; margin: 0 auto; }
+.practice-management-page .library-heading { align-items: flex-end; }
+.practice-management-page .library-heading h2 { margin: 2px 0 0; }
+.practice-management-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.practice-management-actions .btn { min-height: 44px; }
+.practice-management-page .diff-selector { margin-bottom: 16px; }
+.practice-management-page .search-row { margin-bottom: 12px; }
+.practice-management-note { margin: 0 0 12px; padding: 10px 12px; border-left: 3px solid var(--sky); border-radius: var(--radius-sm); background: var(--sky-soft); line-height: 1.5; }
+.practice-management-list { display: grid; gap: 12px; }
+.practice-management-card { min-width: 0; margin: 0; padding: var(--surface-pad); }
+.practice-management-card-head { display: grid; gap: 12px; }
+.practice-management-card-head > div { min-width: 0; }
+.practice-management-card h3 { margin: 8px 0 4px; font-size: var(--text-card); }
+.practice-management-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.practice-management-meta .pill { padding: 3px 9px; }
+.practice-management-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.practice-management-totals > div { min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+.practice-management-totals b { display: block; color: var(--text); font: 700 1.15rem/1.2 var(--font-display); font-variant-numeric: tabular-nums; }
+.practice-management-totals span { display: block; margin-top: 2px; color: var(--sub); font-size: .75rem; line-height: 1.35; }
+.practice-management-controls { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.practice-management-controls > .btn { min-height: 44px; }
+.practice-management-details { flex: 1 1 100%; min-width: 0; }
+.practice-management-details > summary { display: inline-flex; align-items: center; min-height: 44px; padding: 9px 14px; border: 1px solid var(--sky); border-radius: var(--radius-sm); color: var(--sky-ink); font-size: .86rem; font-weight: 700; cursor: pointer; }
+.practice-management-details > summary:hover { background: var(--sky-soft); }
+.practice-management-details > summary:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+.practice-management-detail-body { display: grid; gap: var(--space-2); margin: var(--space-3) 0 4px; padding: var(--surface-pad); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+.practice-management-passage { max-width: 72ch; margin: 0 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.practice-management-questions { display: grid; gap: 8px; margin: 0 0 10px; padding-left: 22px; }
+.practice-management-questions li { padding-left: 4px; }
+.practice-management-questions li b, .practice-management-questions li .sub-sm { display: block; }
+.practice-management-questions li .sub-sm { margin-top: 3px; }
+.practice-management-detail-body .responsive-table-wrap { margin: 0; }
+.practice-management-detail-body .data-table { min-width: 400px; }
+@media (min-width: 720px) {
+  .practice-management-card-head { grid-template-columns: minmax(0, 1fr) minmax(255px, .55fr); align-items: center; }
+}
+@media (max-width: 420px) {
+  .practice-management-actions .btn { flex: 1 1 100%; }
+  .practice-management-controls > .btn { flex: 1 1 auto; }
+  .practice-management-totals > div { padding: 8px; }
+}

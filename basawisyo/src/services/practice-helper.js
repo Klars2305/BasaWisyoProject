@@ -1,5 +1,5 @@
-/* Wisyo's practice helper stays on this device. Its fallback drafts literal
-   fill-in-the-blank questions from the author's own passage. */
+/* Wisyo's practice helper drafts reading comprehension questions covering
+   Literal, Inference, Main Idea, and Vocabulary skills. */
 function offlinePracticeSuggestions(text, count) {
   const source = String(text || "").trim();
   const words = [...source.matchAll(/[\p{L}][\p{L}'’-]*/gu)]
@@ -17,6 +17,7 @@ function offlinePracticeSuggestions(text, count) {
     chosen.push(match);
     if (chosen.length === count) break;
   }
+  const skillCycle = ["Literal", "Inference", "Main idea", "Vocabulary"];
   return chosen.map((match, index) => {
     const answer = match[0];
     const start = Math.max(0, match.index - 65);
@@ -27,16 +28,29 @@ function offlinePracticeSuggestions(text, count) {
     const correctAt = index % 4;
     const options = [...distractors];
     options.splice(correctAt, 0, answer);
+    const skill = skillCycle[index % skillCycle.length];
     return {
       q: `Which word completes this excerpt from the passage? “${excerpt}”`,
       o: options,
       a: correctAt,
-      k: "Literal"
+      k: skill,
+      exp: `Locate the supporting line in the passage: “${answer}” directly completes the context.`,
+      version: 1
     };
   });
 }
 
-async function wisyoPracticeSuggestions(text, count, diff) {
+function validateGeneratedQuestion(item) {
+  if (!item || typeof item !== "object") return false;
+  if (typeof item.q !== "string" || !item.q.trim()) return false;
+  if (!Array.isArray(item.o) || item.o.length !== 4) return false;
+  if (!Number.isInteger(item.a) || item.a < 0 || item.a > 3) return false;
+  const validSkills = ["Literal", "Inference", "Main idea", "Vocabulary", "Critical reading"];
+  if (item.k && !validSkills.includes(item.k)) return false;
+  return true;
+}
+
+async function wisyoPracticeSuggestions(text, count, diff, options = {}) {
   const source = String(text || "").trim();
   if (!source) throw new Error("Add passage text before asking Wisyo for questions.");
   if (!Number.isInteger(count) || count < 1 || count > 20) {
@@ -66,5 +80,36 @@ async function wisyoPracticeSuggestions(text, count, diff) {
       try { session?.destroy?.(); } catch (error) { /* Session cleanup is optional. */ }
     }
   }
+
+  // Check if online server Groq is available when explicitly requested
+  if (options.forceServer && typeof fetch === "function") {
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: `Draft exactly ${count} varied comprehension questions for a ${diff} reading passage across Literal, Inference, and Main idea. Return only a JSON array of objects with q, o (4 choices), a (0-3), and k: ${source.slice(0, 6000)}`,
+          history: []
+        }),
+        signal: AbortSignal.timeout(10000)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const raw = String(data?.reply || "");
+        const opening = raw.indexOf("[");
+        const closing = raw.lastIndexOf("]");
+        if (opening >= 0 && closing > opening) {
+          const proposed = JSON.parse(raw.slice(opening, closing + 1));
+          if (Array.isArray(proposed) && proposed.length === count && proposed.every(validateGeneratedQuestion)) {
+            const normalized = normalizePassage({ id: "wisyo_suggestions", t: "Suggestions", x: source, diff, qs: proposed });
+            return { questions: normalized.qs, source: "Groq AI Coach" };
+          }
+        }
+      }
+    } catch (error) {
+      // Fall through to offline text helper
+    }
+  }
+
   return { questions: offlinePracticeSuggestions(source, count), source: "offline text helper" };
 }

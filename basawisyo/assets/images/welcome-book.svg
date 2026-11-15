@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 270" role="img" aria-label="Open storybook and stacked books">
+  <defs>
+    <linearGradient id="page" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#dceeff"/></linearGradient>
+    <linearGradient id="cover" x2="0" y2="1"><stop stop-color="#30a0f5"/><stop offset="1" stop-color="#0054c8"/></linearGradient>
+    <linearGradient id="stack" x2="0" y2="1"><stop stop-color="#45adff"/><stop offset="1" stop-color="#0451bd"/></linearGradient>
+  </defs>
+  <ellipse cx="290" cy="245" rx="268" ry="20" fill="#001d57" opacity=".5"/>
+  <path d="M90 217c-29-17-39-42-52-72 22 2 41 20 46 43-5-43 1-71 17-87 10 28 9 55-2 80 13-27 29-41 54-42-10 36-26 59-56 78Z" fill="#1aa5c4"/>
+  <path d="M475 225c34-22 42-48 50-82-23 9-38 25-41 46 3-41-5-70-22-85-6 32-3 55 6 79-12-25-34-39-58-36 15 35 30 55 65 78Z" fill="#20a9c3"/>
+  <g transform="translate(403 77) rotate(9)"><rect x="0" y="51" width="159" height="39" rx="9" fill="#f0a418"/><path d="M8 54h139v28H8c11-9 11-19 0-28Z" fill="#fff3d3"/><path d="M2 50h154v8H2Z" fill="#fbbf38"/></g>
+  <g transform="translate(430 128) rotate(-8)"><rect x="0" y="42" width="151" height="35" rx="8" fill="#0571d8"/><path d="M8 47h131v22H8c8-7 8-15 0-22Z" fill="#f7fbff"/><path d="M3 40h144v10H3Z" fill="url(#stack)"/></g>
+  <path d="M36 206c62-3 120 0 214 34 20 7 36 8 58 2 93-34 181-39 250-24l-22 25c-77-11-159-3-228 21-20 7-35 6-57-2-78-24-138-30-202-21Z" fill="#003d9f"/>
+  <path d="M43 199c65-9 130-3 212 32 17 7 39 10 55 2 82-34 158-43 244-27l-17 24c-83-15-159-8-228 21-19 7-37 4-56-3-72-25-139-30-198-22Z" fill="url(#cover)"/>
+  <path d="M61 187c61-12 124-5 193 34 16 9 35 10 53 2 77-39 156-46 230-30l-18 18c-79-11-149-4-212 28-19 8-37 6-54-2-70-33-131-38-191-27Z" fill="#b4d8fb"/>
+  <path d="M70 172c65-16 129-7 184 34 17 13 39 15 54 5 59-43 136-54 217-34l-10 16c-77-16-148-7-209 31-17 8-34 6-51-4-61-38-122-43-185-29Z" fill="url(#page)"/>
+  <path d="M76 161c64-15 123-7 178 30 17 11 35 16 51 5 64-42 138-51 212-31l8 13c-80-21-152-9-217 33-16 10-36 7-54-5-56-38-115-46-184-34Z" fill="#fff"/>
+  <path d="M305 197v41" stroke="#87baf0" stroke-width="5" stroke-linecap="round"/>
+  <path d="M105 174c57-6 103 4 142 28m-132-44c57-6 103 4 142 28m71 15c44-30 100-42 159-34m-161 22c46-29 101-39 158-31" fill="none" stroke="#c5defa" stroke-width="5" stroke-linecap="round"/>
+  <path d="M365 224v34l16-11 16 9v-39" fill="#ffc329"/>
+  <path d="m95 93 4 12 12 4-12 4-4 12-4-12-12-4 12-4Zm399-70 3 10 10 3-10 3-3 10-3-10-10-3 10-3Z" fill="#ffc229"/>
+</svg>

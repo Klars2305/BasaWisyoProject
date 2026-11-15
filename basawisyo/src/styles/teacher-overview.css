@@ -1,0 +1,59 @@
+/* Teacher Home shows class evidence; the learner preview remains read only. */
+.teacher-overview, .teacher-preview-page { max-width: 1240px; margin: 0 auto; }
+.teacher-overview-intro { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.teacher-overview-intro > div { min-width: 0; }
+.teacher-overview-intro h2 { margin: 3px 0 6px; font-size: clamp(1.45rem, 3.5vw, 2rem); }
+.teacher-overview-intro .sub { max-width: 60ch; margin: 0; }
+.teacher-overview-intro .btn { min-height: 44px; }
+.teacher-overview-code { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--section-gap); padding: var(--surface-pad); border-color: var(--sky); background: var(--sky-soft); }
+.teacher-overview-code > div { min-width: 0; }
+.teacher-overview-code strong { display: block; margin: 6px 0; color: var(--text); font: 700 clamp(1.2rem, 3vw, 1.6rem)/1.25 var(--font-display); letter-spacing: .02em; overflow-wrap: anywhere; }
+.teacher-overview-code .sub-sm { display: block; max-width: 60ch; }
+.teacher-overview-code .btn { min-height: 44px; }
+.teacher-overview-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin-bottom: var(--section-gap); }
+.teacher-overview-metrics .card { display: flex; flex-direction: column; gap: 5px; min-width: 0; margin: 0; padding: var(--space-3); box-shadow: none; }
+.teacher-overview-metrics b { color: var(--text); font: 700 clamp(1.35rem, 3.5vw, 1.85rem)/1.15 var(--font-display); font-variant-numeric: tabular-nums; }
+.teacher-overview-metrics .sub-sm { font-size: var(--text-label); }
+.teacher-overview-grid { display: grid; gap: var(--section-gap); align-items: start; }
+.teacher-overview-panel { min-width: 0; margin: 0; padding: var(--surface-pad); box-shadow: none; }
+.teacher-overview-panel-head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.teacher-overview-panel-head h3 { margin: 4px 0; font-size: var(--text-card); }
+.teacher-overview-panel-head .btn { min-height: 44px; }
+.teacher-overview-students { display: grid; gap: 0; }
+.teacher-overview-student { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; padding: 13px 0; border-top: 1px solid var(--border); }
+.teacher-overview-student > div { min-width: 0; }
+.teacher-overview-student b, .teacher-overview-student .sub-sm, .teacher-overview-student strong { display: block; }
+.teacher-overview-student b { color: var(--text); font-weight: 700; }
+.teacher-overview-student-score { text-align: left; }
+.teacher-overview-student-score strong { color: var(--sky-ink); font-size: .86rem; }
+.teacher-overview-student-score .sub-sm { max-width: 28ch; overflow-wrap: anywhere; }
+.teacher-overview-more { margin: 12px 0 0; }
+.teacher-overview-assignments { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.teacher-overview-assignments li { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+.teacher-overview-assignments b, .teacher-overview-assignments .sub-sm { display: block; }
+.teacher-overview-assignments .sub-sm { margin-top: 3px; }
+.teacher-overview-practice-status { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--sub); font-size: .84rem; }
+.teacher-overview-practice-status .btn { min-height: 44px; }
+.teacher-overview-empty { padding: var(--feature-pad); text-align: left; box-shadow: none; }
+.teacher-overview-empty h3 { margin: 6px 0 8px; font-size: var(--text-card); }
+.teacher-overview-empty .sub { max-width: 60ch; }
+.teacher-overview-empty-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.teacher-overview-empty-actions .btn { min-height: 44px; }
+.teacher-overview-disclaimer { display: block; margin-top: 16px; max-width: 75ch; }
+.teacher-preview-grid { display: grid; gap: 12px; margin-bottom: 16px; }
+.teacher-preview-grid .card { margin: 0; box-shadow: none; }
+.teacher-preview-grid h3 { margin: 5px 0 8px; }
+.teacher-preview-grid .sub { margin-bottom: 0; }
+.teacher-preview-page > .sub-sm { display: block; margin-top: 16px; }
+@media (min-width: 640px) {
+  .teacher-overview-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .teacher-overview-student { flex-wrap: nowrap; }
+  .teacher-overview-student-score { flex: 0 0 175px; text-align: right; }
+  .teacher-preview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 920px) {
+  .teacher-overview-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
+}
+@media (max-width: 420px) {
+  .teacher-overview-intro .btn, .teacher-overview-code .btn, .teacher-overview-empty-actions .btn { width: 100%; }
+}

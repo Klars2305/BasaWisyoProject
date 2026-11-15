@@ -2,6 +2,16 @@ function viewHome() {
   const u = AUTH.currentUser;
   const role = u ? u.role : "guest";
   const currentLvlStr = S.lvl !== null ? PHIL_IRI_LEVELS[S.lvl] : "Not Assessed";
+  const journey = role === "student" || role === "guest" ? journeySummary() : null;
+  const publishedPassages = getPublishedPassages();
+  const tierCounts = DIFF_KEYS.map(key => publishedPassages.filter(passage => passage.diff === key).length);
+  const tierPill = index => journey && index > journey.tier
+    ? `<span class="pill">${uiIcon("lock")} Locked</span>`
+    : `<span class="pill ok">${tierCounts[index]} Passages</span>`;
+  const assignmentLocked = id => {
+    const passage = publishedPassages.find(item => item.id === id);
+    return passage && journey && DIFF_KEYS.indexOf(passage.diff) > journey.tier;
+  };
 
   // Build role-specific banner
   let roleBanner = "";
@@ -12,15 +22,15 @@ function viewHome() {
       const teachName = teach ? teach.name : "Your Teacher";
       // Check assignments
       const myAsgs = AUTH.assignments.filter(a => 
-        a.teacherCode === u.teacherCode && getPublishedPassageById(a.passageId)
-        && (a.targetGroup === "all" || a.targetGroup === `level-${S.lvl}`)
+        a.teacherCode === u.teacherCode && publishedPassages.some(passage => passage.id === a.passageId)
+        && (a.targetGroup === "all" || a.targetGroup === `level-${u.lvl}`)
       );
 
       roleBanner = `
-        <div class="card" style="background:linear-gradient(135deg, var(--card), var(--sky-soft));border-left:5px solid var(--sky);margin-bottom:18px">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div class="card home-role-card home-role-student">
+          <div class="home-role-content">
             <div>
-              <div class="lab" style="color:var(--sky)">🎓 Connected Classroom</div>
+              <div class="lab" style="color:var(--sky-ink)">${uiIcon("classroom")} Connected Classroom</div>
               <h3 style="margin:2px 0 0 0">${escapeHTML(teachName)} · ${escapeHTML(u.section || "Grade 8")}</h3>
               <p class="sub" style="margin:4px 0 0 0">Classroom Share Code: <b>${escapeHTML(u.teacherCode)}</b> · Live roster synced</p>
             </div>
@@ -30,23 +40,26 @@ function viewHome() {
           </div>
 
           ${myAsgs.length > 0 ? `
-            <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
-              <div class="lab" style="margin-bottom:6px">📌 Assigned by Teacher for your reading level:</div>
+            <div class="home-assignment-list">
+              <div class="lab" style="margin-bottom:6px">${uiIcon("practice")} Assigned by Teacher for your reading level:</div>
               <div style="display:flex;flex-direction:column;gap:6px">
                 ${myAsgs.map(a => `
-                  <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+                  <div class="assigned-story-row">
                     <div>
                       <b>${escapeHTML(a.title)}</b>
                       <span class="sub-sm" style="margin-left:6px">Due: ${escapeHTML(a.dueDate)}</span>
                     </div>
-                    <button class="btn sm" data-a="read-passage" data-v="${escapeHTML(a.passageId)}">Read Now</button>
+                    <button class="btn sm" data-a="read-passage" data-v="${escapeHTML(a.passageId)}"
+                      ${assignmentLocked(a.passageId) ? 'disabled title="Complete earlier tiers or ask your teacher to unlock this tier"' : ""}>
+                      ${assignmentLocked(a.passageId) ? "Tier locked" : "Read Now"}
+                    </button>
                   </div>
                 `).join("")}
               </div>
             </div>
           ` : `
-            <div style="margin-top:10px;font-size:12px;color:var(--sub)">
-              ✓ You are up to date on all teacher reading assignments!
+            <div class="home-empty-assignment sub-sm">
+              ${uiIcon("check")} You are up to date on all teacher reading assignments!
             </div>
           `}
         </div>
@@ -54,10 +67,10 @@ function viewHome() {
     } else {
       roleBanner = `
         <div class="connect-teacher-card">
-          <h3>👩‍🏫 Connect with Your Teacher</h3>
+          <h3>${uiIcon("classroom")} Connect with Your Teacher</h3>
           <p class="sub">Enter the Share Code provided by your teacher to join your section, sync diagnostic scores, and receive assigned stories:</p>
           <div class="connect-row">
-            <input type="text" id="home-teacher-code" placeholder="e.g. BASA-TEACH-8492">
+            <input type="text" id="home-teacher-code" aria-label="Teacher share code" placeholder="e.g. BASA-TEACH-8492">
             <button class="btn" data-a="student-connect-teacher">Join Class</button>
           </div>
         </div>
@@ -66,46 +79,46 @@ function viewHome() {
   } else if (role === "teacher") {
     const studCount = AUTH.getTeacherStudents().length;
     roleBanner = `
-      <div class="card" style="background:linear-gradient(135deg, var(--card), var(--teal-soft));border-left:5px solid var(--teal);margin-bottom:18px">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="card home-role-card home-role-teacher">
+        <div class="home-role-content">
           <div>
-            <div class="lab" style="color:var(--teal)">👩‍🏫 Teacher Workspace · ${escapeHTML(u.section)}</div>
+            <div class="lab" style="color:var(--teal-ink)">${uiIcon("teacher")} Teacher Workspace · ${escapeHTML(u.section)}</div>
             <h3 style="margin:2px 0 0 0">Classroom Share Code: <b>${escapeHTML(u.shareCode)}</b></h3>
             <p class="sub" style="margin:4px 0 0 0">${studCount} students currently connected to your roster</p>
           </div>
-          <div style="display:flex;gap:6px">
-            <button class="btn sm" data-a="tab" data-v="teacher">Open Classroom Hub</button>
-            <button class="btn o sm" data-a="teacher-show-projector">📡 Blackboard Code</button>
+          <div class="teacher-home-actions">
+            <button class="btn sm" data-a="tab" data-v="teacher">${uiIcon("teacher")} Open Classroom Hub</button>
+            <button class="btn o sm" data-a="teacher-show-projector">${uiIcon("projector")} Blackboard Code</button>
           </div>
         </div>
       </div>
     `;
   } else if (role === "admin") {
     roleBanner = `
-      <div class="card" style="background:linear-gradient(135deg, var(--card), var(--coral-soft));border-left:5px solid var(--coral);margin-bottom:18px">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="card home-role-card home-role-admin">
+        <div class="home-role-content">
           <div>
-            <div class="lab" style="color:var(--coral)">🛡️ School Administration Console</div>
+            <div class="lab" style="color:var(--coral-ink)">${uiIcon("admin")} School Administration Console</div>
             <h3 style="margin:2px 0 0 0">${u.school}</h3>
             <p class="sub" style="margin:4px 0 0 0">${AUTH.users.length} total users enrolled · Full curriculum & account management</p>
           </div>
-          <button class="btn sm" data-a="tab" data-v="admin">Open Admin Panel</button>
+          <button class="btn sm" data-a="tab" data-v="admin">${uiIcon("admin")} Open Admin Panel</button>
         </div>
       </div>
     `;
   } else {
     // Guest
     roleBanner = `
-      <div class="card" style="background:linear-gradient(135deg, var(--gold-soft), var(--card));border-left:5px solid var(--gold);margin-bottom:18px">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="card home-role-card home-role-guest">
+        <div class="home-role-content">
           <div>
-            <div class="lab" style="color:var(--gold-hover)">👤 Guest Mode</div>
+            <div class="lab" style="color:var(--gold-ink)">${uiIcon("user")} Guest Mode</div>
             <h3 style="margin:2px 0 0 0">Identify Your Reading Level Instantly</h3>
-            <p class="sub" style="margin:4px 0 0 0">No account required! Take a 3-minute diagnostic test or sign in to save your profile.</p>
+            <p class="sub" style="margin:4px 0 0 0">No account required for guest practice. Your progress stays in this browser and can transfer when you create a student account here.</p>
           </div>
-          <div style="display:flex;gap:6px">
-            <button class="btn gold sm" data-a="start-placement" data-v="guest">⚡ Start Guest Diagnostic</button>
-            <button class="btn o sm" data-a="auth-open">🔐 Sign in</button>
+          <div class="guest-entry-actions">
+            <button class="btn blue sm" data-a="start-placement" data-v="guest">${uiIcon("assess")} Start Guest Diagnostic</button>
+            <button class="btn o sm" data-a="auth-open">${uiIcon("profile")} Sign in</button>
             <button class="btn o sm" data-a="auth-open" data-v="register">Create account</button>
           </div>
         </div>
@@ -114,26 +127,38 @@ function viewHome() {
   }
 
   return `
-    ${roleBanner}
-
-    <div class="hero">
-      <div class="lab" style="color:#f5ab1d">Mabuhay! Welcome to BasaWisyo</div>
+    <div class="hero home-hero">
+      <div class="home-hero-copy">
+      <div class="lab" style="color:#f5ab1d">Welcome to BasaWisyo</div>
       <h2>Every Filipino Learner a Confident Reader.</h2>
       <p class="sub">
-        Offline-first, culturally rooted reading practice built for Grades 7 to 12. Complete diagnostic placement, explore leveled Philippine stories, read together in class quests, and generate official DepEd Phil-IRI reports in seconds.
+        Culturally rooted reading practice built for Grades 7 to 12. Try a placement activity, explore leveled Philippine stories, follow your reading journey, and celebrate progress with badges.
       </p>
-      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-        <button class="btn gold sm" data-a="tab" data-v="assess">
-          ${S.lvl === null ? "🎯 Start Placement Test" : "🔄 Check Reading Level"}
+      <div class="home-hero-actions">
+        <button class="btn blue sm" data-a="tab" data-v="assess">
+          ${uiIcon("assess")} ${S.lvl === null ? "Start Placement Test" : "Check Reading Level"}
         </button>
         <button class="btn o sm" data-a="tab" data-v="practice">
-          📖 Browse 24+ Passages
+          ${uiIcon("practice")} Browse 24+ Passages
         </button>
+      </div>
+      </div>
+      <div class="home-hero-art" aria-hidden="true">
+        <div class="home-hero-book"><span></span><span></span><span></span></div>
+        <img src="assets/images/wisyo.png" alt="">
       </div>
     </div>
 
-    <div class="home-layout">
-      <div>
+    ${roleBanner}
+    <div class="home-dashboard-grid">
+      ${journey ? `<div class="home-dashboard-main">
+        ${typeof renderDailyQuestCard === "function" ? renderDailyQuestCard() : ""}
+        ${viewJourneyPanel(journey)}
+        <div class="home-profile-link">
+          <button class="btn o sm" data-a="tab" data-v="profile">${uiIcon("badge")} View badges in ${role === "guest" ? "My Progress" : "Student Profile"}</button>
+        </div>
+      </div>` : ""}
+      <div class="home-dashboard-side">
         <!-- Quick Stat Bar -->
         <div class="stat-grid">
           <div class="stat-box">
@@ -149,43 +174,43 @@ function viewHome() {
         </div>
 
         <!-- 4 Difficulty Tiers Showcase -->
-        <div class="card">
+        <div class="card home-tiers-card">
           <div class="lab">Leveled Reading Tiers</div>
           <h3>Choose Your Difficulty</h3>
           <p class="sub">Carefully calibrated texts spanning foundational to college-prep analytical prose:</p>
           
-          <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-            <div class="row" style="background:var(--teal-soft);padding:10px;border-radius:10px;cursor:pointer" data-a="filter-diff" data-v="easy">
-              <div>
-                <b style="color:var(--teal)">🟢 Easy (Madali)</b>
-                <div class="sub-sm">Grade 7 Foundational · Everyday community life & nature</div>
-              </div>
-              <span class="pill ok">6 Passages</span>
-            </div>
+          <div class="home-tier-list">
+            <button type="button" class="tier-row tier-easy" data-a="filter-diff" data-v="easy">
+              <span class="tier-copy">
+                <b style="color:var(--teal-ink)"><span class="badge-diff diff-easy" style="margin-right:6px">EASY</span> Easy (Madali)</b>
+                <span class="sub-sm">Grade 7 Foundational · Everyday community life & nature</span>
+              </span>
+              ${tierPill(0)}
+            </button>
 
-            <div class="row" style="background:var(--gold-soft);padding:10px;border-radius:10px;cursor:pointer" data-a="filter-diff" data-v="medium">
-              <div>
-                <b style="color:var(--gold-hover)">🟡 Medium (Katamtaman)</b>
-                <div class="sub-sm">Grade 8–9 Instructional · Ecology, local history & science</div>
-              </div>
-              <span class="pill warn">6 Passages</span>
-            </div>
+            <button type="button" class="tier-row tier-medium" data-a="filter-diff" data-v="medium">
+              <span class="tier-copy">
+                <b style="color:var(--gold-ink)"><span class="badge-diff diff-medium" style="margin-right:6px">MEDIUM</span> Medium (Katamtaman)</b>
+                <span class="sub-sm">Grade 8–9 Instructional · Ecology, local history & science</span>
+              </span>
+              ${tierPill(1)}
+            </button>
 
-            <div class="row" style="background:var(--coral-soft);padding:10px;border-radius:10px;cursor:pointer" data-a="filter-diff" data-v="hard">
-              <div>
-                <b style="color:var(--coral)">🟠 Hard (Mahirap)</b>
-                <div class="sub-sm">Grade 10–11 Advanced · Rhetoric, propaganda & engineering</div>
-              </div>
-              <span class="pill">6 Passages</span>
-            </div>
+            <button type="button" class="tier-row tier-hard" data-a="filter-diff" data-v="hard">
+              <span class="tier-copy">
+                <b style="color:var(--coral-ink)"><span class="badge-diff diff-hard" style="margin-right:6px">HARD</span> Hard (Mahirap)</b>
+                <span class="sub-sm">Grade 10–11 Advanced · Rhetoric, propaganda & engineering</span>
+              </span>
+              ${tierPill(2)}
+            </button>
 
-            <div class="row" style="background:var(--purple-soft);padding:10px;border-radius:10px;cursor:pointer" data-a="filter-diff" data-v="extreme">
-              <div>
-                <b style="color:var(--purple)">🔴 Extreme (Sukdulan)</b>
-                <div class="sub-sm">Grade 12 Mastery · Jurisprudence, ethology & critical theory</div>
-              </div>
-              <span class="pill">6 Passages</span>
-            </div>
+            <button type="button" class="tier-row tier-extreme" data-a="filter-diff" data-v="extreme">
+              <span class="tier-copy">
+                <b style="color:var(--purple-ink)"><span class="badge-diff diff-extreme" style="margin-right:6px">EXTREME</span> Extreme (Sukdulan)</b>
+                <span class="sub-sm">Grade 12 Mastery · Jurisprudence, ethology & critical theory</span>
+              </span>
+              ${tierPill(3)}
+            </button>
           </div>
         </div>
       </div>

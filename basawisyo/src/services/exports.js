@@ -1,6 +1,6 @@
 function openForm14Modal() {
+  requireReportAccess();
   const md = $("#md");
-  md.hidden = false;
 
   const rows = CLASS_ROSTER.map((st, i) => `
     <tr>
@@ -13,32 +13,22 @@ function openForm14Modal() {
     </tr>
   `).join("");
 
-  const userRow = S.lvl !== null ? `
-    <tr style="background:var(--gold-soft);font-weight:bold">
-      <td>41</td>
-      <td>Current Learner (You)</td>
-      <td>${PHIL_IRI_LEVELS[S.lvl]}</td>
-      <td>${Math.round(S.w / Math.max(1, S.ss * 3))} WPM</td>
-      <td>88%</td>
-      <td>${S.miss ? S.miss.k : 'None'}</td>
-    </tr>
-  ` : '';
-
   md.innerHTML = `
     <div class="sheet">
       <div class="row">
         <div>
-          <h2>DepEd Phil-IRI Form 14: Class Reading Profile</h2>
-          <div class="sub-sm">School Year 2026–2027 · Grade 8 - Section A</div>
+          <h2 id="sample-report-title">Sample Form 14 Layout</h2>
+          <div class="sub-sm">Demo Class 8-A · Not for official submission</div>
         </div>
-        <button class="icon-btn noprint" data-a="modal-close">✕</button>
+        <button class="icon-btn noprint" data-a="modal-close" aria-label="Close sample report">✕</button>
       </div>
 
       <p class="sub">
-        Standardized summary of Oral and Silent Reading assessments for submission to DepEd Division reading coordinators.
+        This layout uses sample learner data. It is not a validated assessment or official submission form.
       </p>
 
-      <div style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+      <div role="region" aria-label="Sample report table" tabindex="0"
+        style="max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:8px">
         <table>
           <thead>
             <tr>
@@ -52,37 +42,48 @@ function openForm14Modal() {
           </thead>
           <tbody>
             ${rows}
-            ${userRow}
           </tbody>
         </table>
       </div>
 
       <div class="btn-row noprint" style="margin-top:14px">
-        <button class="btn gold" data-a="download-csv">💾 Download CSV Report</button>
-        <button class="btn o" data-a="print-sheet">🖨️ Print Form 14</button>
+        <button class="btn blue" data-a="download-csv">${uiIcon("download")} Download Sample CSV</button>
+        <button class="btn o" data-a="print-sheet">${uiIcon("print")} Print Sample Layout</button>
         <button class="btn o" data-a="modal-close">Close</button>
       </div>
     </div>
   `;
+  md.hidden = false;
+  md.querySelector?.('[data-a="modal-close"]')?.focus?.();
+}
+
+function closeReportModal() {
+  const md = $("#md");
+  if (md.hidden) return;
+  md.hidden = true;
+  $('#v [data-a="open-report-sheet"]')?.focus?.();
 }
 
 function downloadCSV() {
-  let csv = "No.,Learner Name,Phil-IRI Level,Words Per Minute,Comprehension %,Focus Gap\n";
+  requireReportAccess();
+  let csv = "No.,Sample Learner Name,Demo Reading Level,Demo Words Per Minute,Demo Comprehension %,Sample Focus Gap\n";
   CLASS_ROSTER.forEach((st, i) => {
     csv += `${i + 1},"${st.n}",${PHIL_IRI_LEVELS[st.l]},${st.wpm},${st.comp}%,${st.weak}\n`;
   });
-  if (S.lvl !== null) {
-    csv += `41,"Current Learner (You)",${PHIL_IRI_LEVELS[S.lvl]},115,88%,${S.miss ? S.miss.k : 'None'}\n`;
-  }
-
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "DepEd_Phil-IRI_Form14_Class8A.csv";
+  a.download = "BasaWisyo_Sample_Form14_Class8A.csv";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  showToast("CSV file downloaded successfully!");
+  showToast("Sample CSV file downloaded.");
+}
+
+function printReportSheet() {
+  requireReportAccess();
+  if ($("#md")?.hidden !== false) throw new Error("Open the sample report before printing.");
+  window.print();
 }
 

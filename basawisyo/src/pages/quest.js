@@ -7,14 +7,14 @@ function viewQuest() {
 
   return `
     <h2>Class 8-A Bayanihan Reading Quest</h2>
-    <p class="sub">Cooperative reading: every learner contributes words to a collective goal. No toxic ranking or cutthroat leaderboards.</p>
+    <p class="sub">Cooperative reading toward a shared goal. The optional Class Board celebrates distinct stories completed by learners who choose to join.</p>
 
     <div class="hero">
       <div class="lab" style="color:#f5ab1d">Collective Class Target: 25,000 Words</div>
       <div class="big" style="color:#fff;margin:6px 0">${totalWords.toLocaleString()} <span style="font-size:1.1rem;font-weight:500;color:#ccdcf8">/ ${GOAL.toLocaleString()}</span></div>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <p class="sub" style="color:#e0edff">
-        ${totalWords >= GOAL ? "🎉 Goal Reached! Maraming salamat sa sipag at tiyaga ng buong klase!" : `Remaining: ${(GOAL - totalWords).toLocaleString()} words to complete this week's quest.`}
+        ${totalWords >= GOAL ? `${uiIcon("check")} Goal Reached! Thank you for the dedication and hard work of the entire class!` : `Remaining: ${(GOAL - totalWords).toLocaleString()} words to complete this week's quest.`}
       </p>
       <div class="row" style="background:rgba(255,255,255,0.1);padding:8px 12px;border-radius:10px;margin-top:10px">
         <span>Your contribution:</span>
@@ -39,7 +39,7 @@ function viewQuest() {
       <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
         <div class="lab">Import Code from Classmate</div>
         <textarea id="mesh-code" rows="2" placeholder="Paste code here..."></textarea>
-        <button class="btn sm gold" data-a="mesh-import">Import & Add to Practice</button>
+        <button class="btn sm blue" data-a="mesh-import">Import & Add to Practice</button>
       </div>
     </div>
   `;

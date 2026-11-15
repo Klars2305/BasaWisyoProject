@@ -14,6 +14,8 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  min-height: 44px;
+  max-width: min(48vw, 240px);
   transition: all 0.2s ease;
   color: var(--text);
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
@@ -42,10 +44,10 @@
   border-radius: 999px;
   letter-spacing: 0.5px;
 }
-.role-student { background: var(--sky-soft); color: var(--sky); }
-.role-teacher { background: var(--teal-soft); color: var(--teal); }
-.role-admin { background: var(--coral-soft); color: var(--coral); }
-.role-guest { background: var(--gold-soft); color: var(--gold-hover); }
+.role-student { background: var(--sky-soft); color: var(--sky-ink); }
+.role-teacher { background: var(--teal-soft); color: var(--teal-ink); }
+.role-admin { background: var(--coral-soft); color: var(--coral-ink); }
+.role-guest { background: var(--gold-soft); color: var(--gold-ink); }
 
 /* Modal Windows */
 .app-modal-overlay {
@@ -66,10 +68,10 @@
   border: 1px solid var(--border);
   width: 100%;
   max-width: 520px;
-  max-height: 90vh;
+  max-height: min(90dvh, 900px);
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
-  padding: 24px;
+  padding: var(--feature-pad, clamp(18px, 3vw, 28px));
   position: relative;
   animation: slideUp 0.25s ease-out;
 }
@@ -124,7 +126,7 @@
 .practice-question-card {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 14px;
+  padding: var(--surface-pad);
   margin: 12px 0;
   min-width: 0;
 }
@@ -134,7 +136,7 @@
 }
 .practice-question-card label {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 .practice-question-card .auth-input { margin-top: 5px; }
@@ -147,8 +149,9 @@
 @media (max-width: 560px) {
   .practice-option-grid { grid-template-columns: 1fr; }
   .practice-count-field { width: 100%; }
-  .practice-question-nav { gap: 6px; padding: 8px; }
-  .practice-question-nav .btn { padding: 6px 8px; font-size: 11px; }
+  .practice-question-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .practice-question-progress { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
+  .practice-question-nav .btn { width: 100%; min-height: 44px; padding: 8px; font-size: 0.8125rem; }
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -163,7 +166,7 @@
 }
 .modal-hdr h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--text-section);
   color: var(--text);
   font-family: var(--font-display);
   display: flex;
@@ -176,8 +179,11 @@
   font-size: 20px;
   color: var(--sub);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
   line-height: 1;
 }
 .modal-close-btn:hover {
@@ -195,6 +201,7 @@
 .auth-tab-btn {
   background: none;
   border: none;
+  min-height: var(--control-height);
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 600;
@@ -224,7 +231,7 @@
   min-width: 0;
 }
 .registration-role-fieldset legend {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   margin-bottom: 8px;
 }
@@ -234,8 +241,8 @@
   gap: 10px;
   margin-bottom: 18px;
 }
-.role-choice-card {
-  border: 2px solid var(--border);
+.role-choice-card, .role-choice-opt {
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px 8px;
   text-align: center;
@@ -243,35 +250,35 @@
   transition: all 0.2s ease;
   background: var(--bg);
 }
-.role-choice-card:hover {
+.role-choice-card:hover, .role-choice-opt:hover {
   border-color: var(--sky);
   background: var(--card);
 }
-.role-choice-card:has(input:checked) {
+.role-choice-card:has(input:checked), .role-choice-opt:has(input:checked) {
   border-color: var(--sky);
   background: var(--sky-soft);
   box-shadow: 0 0 0 1px var(--sky);
 }
-.role-choice-card:focus-within { outline: 2px solid var(--sky); outline-offset: 2px; }
-.role-choice-card input { accent-color: var(--sky); margin-bottom: 5px; }
-.role-choice-card.selected {
+.role-choice-card:focus-within, .role-choice-opt:focus-within { outline: 2px solid var(--sky); outline-offset: 2px; }
+.role-choice-card input, .role-choice-opt input { accent-color: var(--sky); margin-bottom: 5px; }
+.role-choice-card.selected, .role-choice-opt.selected {
   border-color: var(--sky);
   background: var(--sky-soft);
   box-shadow: 0 0 0 1px var(--sky);
 }
-.role-choice-card .role-icon {
+.role-choice-card .role-icon, .role-choice-opt .role-icon {
   font-size: 24px;
   margin-bottom: 4px;
 }
-.role-choice-card .role-title {
+.role-choice-card .role-title, .role-choice-opt .role-title {
   display: block;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text);
 }
-.role-choice-card .role-desc {
+.role-choice-card .role-desc, .role-choice-opt .role-desc {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--sub);
   margin-top: 2px;
 }
@@ -282,20 +289,21 @@
 }
 .auth-form-group label {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .auth-input {
   width: 100%;
+  min-height: var(--control-height);
   box-sizing: border-box;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: 1rem;
   font-family: inherit;
   transition: border-color 0.2s;
 }
@@ -305,9 +313,9 @@
   background: var(--card);
 }
 .auth-help {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--sub);
-  margin-top: 3px;
+  margin-top: 5px;
 }
 
 /* Guest Diagnostic Callout Banner */
@@ -342,13 +350,7 @@
   overflow: hidden;
 }
 .share-code-hero::after {
-  content: "📖";
-  position: absolute;
-  right: -10px;
-  bottom: -20px;
-  font-size: 120px;
-  opacity: 0.12;
-  pointer-events: none;
+  content: none;
 }
 .share-code-label {
   font-size: 12px;
@@ -391,6 +393,7 @@
   border-radius: 999px;
   font-size: 13px;
   cursor: pointer;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -446,6 +449,8 @@
 .responsive-table-wrap {
   width: 100%;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--card);
@@ -457,6 +462,7 @@
   border-collapse: collapse;
   text-align: left;
   font-size: 13px;
+  min-width: max-content;
 }
 .data-table th {
   background: var(--bg);
@@ -487,10 +493,10 @@
   font-weight: 700;
   text-align: center;
 }
-.level-0 { background: #fdeeed; color: #d84035; } /* Frustration */
-.level-1 { background: #fff7e6; color: #b7791f; } /* Instructional */
-.level-2 { background: #e9f4ff; color: #2589e6; } /* Independent */
-.level-3 { background: #e2f8f2; color: #0e7c66; } /* Mastery */
+.level-0 { background: var(--coral-soft); color: var(--coral-ink); } /* Frustration */
+.level-1 { background: var(--gold-soft); color: var(--gold-ink); } /* Instructional */
+.level-2 { background: var(--sky-soft); color: var(--sky-ink); } /* Independent */
+.level-3 { background: var(--teal-soft); color: var(--teal-ink); } /* Mastery */
 
 /* Projector / Class Screen Display Modal */
 .projector-display-box {

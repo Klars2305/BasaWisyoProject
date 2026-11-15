@@ -29,15 +29,16 @@ function viewAdmin() {
     AUTH.customPassages.length;
   const pendingPractices = AUTH.customPassages.filter(passage => passage?.status === "pending").length;
 
-  return `
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px">
+  return `<div class="admin-page">
+    <div class="dashboard-intro admin-intro">
       <div>
-        <h2 style="margin:0">🛡️ DepEd School Admin Console</h2>
-        <p class="sub" style="margin:4px 0 0 0">${escapeHTML(admin.school)} · Master Oversight & Curriculum Control</p>
+        <div class="lab">Local administration</div>
+        <h2>${uiIcon("admin")} School Admin Console</h2>
+        <p class="sub">${escapeHTML(admin.school)} · Accounts and curriculum in this browser</p>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn gold" data-a="practice-new">➕ Add Practice</button>
-        <button class="btn o" data-a="admin-export-backup">💾 Export Backup</button>
+      <div class="dashboard-intro-actions">
+        <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add Practice</button>
+        <button class="btn o" data-a="admin-export-backup">${uiIcon("backup")} Export Backup</button>
       </div>
     </div>
 
@@ -56,7 +57,7 @@ function viewAdmin() {
         <div class="metric-title">Active Teachers</div>
       </div>
       <div class="metric-box">
-        <div class="metric-value" style="color:var(--gold)">${totalPassages}</div>
+        <div class="metric-value" style="color:var(--gold-ink)">${totalPassages}</div>
         <div class="metric-title">Curriculum Passages</div>
       </div>
       <div class="metric-box">
@@ -66,18 +67,18 @@ function viewAdmin() {
     </div>
 
     <!-- Admin Navigation Tabs -->
-    <div class="auth-tab-bar" style="margin-bottom:18px">
-      <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'users' ? 'active' : ''}" data-a="admin-tab" data-v="users">
-        👥 User Management (${allUsers.length})
+    <div class="auth-tab-bar admin-section-tabs" role="group" aria-label="Admin console sections">
+      <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'users' ? 'active' : ''}" data-a="admin-tab" data-v="users" aria-pressed="${CURRENT_ADMIN_TAB === 'users'}">
+        ${uiIcon("users")} User Management (${allUsers.length})
       </button>
-      <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'curriculum' ? 'active' : ''}" data-a="admin-tab" data-v="curriculum">
-        📚 Curriculum & Passages (${totalPassages}${pendingPractices ? ` · ${pendingPractices} awaiting review` : ""})
+      <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'curriculum' ? 'active' : ''}" data-a="admin-tab" data-v="curriculum" aria-pressed="${CURRENT_ADMIN_TAB === 'curriculum'}">
+        ${uiIcon("practice")} Curriculum & Passages (${totalPassages}${pendingPractices ? ` · ${pendingPractices} awaiting review` : ""})
       </button>
-      <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'benchmarks' ? 'active' : ''}" data-a="admin-tab" data-v="benchmarks">
-        ⚙️ Phil-IRI Standards
+      <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'benchmarks' ? 'active' : ''}" data-a="admin-tab" data-v="benchmarks" aria-pressed="${CURRENT_ADMIN_TAB === 'benchmarks'}">
+        ${uiIcon("settings")} Phil-IRI Standards
       </button>
-      <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'system' ? 'active' : ''}" data-a="admin-tab" data-v="system">
-        💾 Database & Backup
+      <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'system' ? 'active' : ''}" data-a="admin-tab" data-v="system" aria-pressed="${CURRENT_ADMIN_TAB === 'system'}">
+        ${uiIcon("backup")} Local Data & Backup
       </button>
     </div>
 
@@ -86,18 +87,20 @@ function viewAdmin() {
     ${CURRENT_ADMIN_TAB === 'curriculum' ? renderAdminCurriculumTab() : ''}
     ${CURRENT_ADMIN_TAB === 'benchmarks' ? renderAdminBenchmarksTab() : ''}
     ${CURRENT_ADMIN_TAB === 'system' ? renderAdminSystemTab() : ''}
+    </div>
   `;
 }
 
 function renderAdminUsersTab(users) {
   return `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <div class="card admin-section-card">
+      <div class="admin-card-head">
         <div class="lab">Registered Accounts Directory</div>
         <div style="font-size:12px;color:var(--sub)">Manage roles, permissions, and passwords</div>
       </div>
 
-      <div class="responsive-table-wrap">
+      <p class="table-scroll-hint sub-sm">Scroll the table sideways to review account details and actions.</p>
+      <div class="responsive-table-wrap" tabindex="0" role="region" aria-label="Registered accounts; scroll horizontally for more columns">
         <table class="data-table">
           <thead>
             <tr>
@@ -128,12 +131,12 @@ function renderAdminUsersTab(users) {
                   </span>
                 </td>
                 <td>
-                  <div style="display:flex;gap:4px">
-                    <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="admin-edit-role" data-v="${escapeHTML(u.id)}">Role</button>
-                    <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="admin-toggle-status" data-v="${escapeHTML(u.id)}">
+                  <div class="admin-row-actions">
+                    <button class="btn o" data-a="admin-edit-role" data-v="${escapeHTML(u.id)}">Role</button>
+                    <button class="btn o" data-a="admin-toggle-status" data-v="${escapeHTML(u.id)}">
                       ${u.status === 'active' ? 'Suspend' : 'Activate'}
                     </button>
-                    <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="admin-reset-pwd" data-v="${escapeHTML(u.id)}">Reset PW</button>
+                    <button class="btn o" data-a="admin-reset-pwd" data-v="${escapeHTML(u.id)}">Reset PW</button>
                   </div>
                 </td>
               </tr>
@@ -168,18 +171,19 @@ function renderAdminCurriculumTab() {
   ];
 
   return `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <div class="card admin-section-card">
+      <div class="admin-card-head">
         <div>
           <div class="lab">Leveled Reading Curriculum</div>
           <p class="sub" style="margin:2px 0 0 0">Built-in and custom passage records; only published valid passages appear to readers.</p>
         </div>
-        <button class="btn gold" data-a="practice-new">➕ Add New Practice</button>
+        <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add New Practice</button>
       </div>
 
       <p class="sub">${pendingCount ? `${pendingCount} teacher practice${pendingCount === 1 ? "" : "s"} awaiting review. Approve to add to the student library, or reject with a reason.` : "No teacher practices are awaiting review."}</p>
 
-      <div class="responsive-table-wrap">
+      <p class="table-scroll-hint sub-sm">Scroll the table sideways to review passage status and approval actions.</p>
+      <div class="responsive-table-wrap" tabindex="0" role="region" aria-label="Reading curriculum; scroll horizontally for more columns">
         <table class="data-table">
           <thead>
             <tr>
@@ -206,20 +210,22 @@ function renderAdminCurriculumTab() {
                   <td>${escapeHTML(p.status || "published")}</td>
                   <td>${isCustom ? escapeHTML(AUTH.users.find(user => user.id === p.ownerId)?.name || p.author || "Legacy custom") : 'Standard Core'}</td>
                   <td>
-                    ${isCustom ? `
-                      ${p.status === "published" ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="read-passage" data-v="${escapeHTML(p.id)}">Preview</button>` : ""}
-                      ${p.status !== "invalid" ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-edit" data-v="${escapeHTML(p.id)}">Edit</button>` : ""}
-                      ${p.status === "pending" ? `
-                        <button class="btn gold" style="font-size:11px;padding:2px 8px" data-a="practice-approve" data-v="${escapeHTML(p.id)}">Approve</button>
-                        <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-reject" data-v="${escapeHTML(p.id)}">Reject</button>
-                      ` : ""}
-                      ${p.status === "published" ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-unpublish" data-v="${escapeHTML(p.id)}">Unpublish</button>` : ""}
-                      ${p.status === "draft" && AUTH.users.find(user => user.id === p.ownerId)?.role !== "teacher" ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-publish" data-v="${escapeHTML(p.id)}">Publish</button>` : ""}
-                      ${AUTH.assignments.some(assignment => assignment.passageId === p.id) ? `<button class="btn o" style="font-size:11px;padding:2px 8px" data-a="practice-remove-assignments" data-v="${escapeHTML(p.id)}">Remove class assignments</button>` : ""}
-                      <button class="btn o" style="font-size:11px;padding:2px 8px;color:var(--coral)" data-a="practice-delete" data-v="${escapeHTML(p.id)}">Delete</button>
-                    ` : `
-                      <button class="btn o" style="font-size:11px;padding:2px 8px" data-a="read-passage" data-v="${p.id}">Preview</button>
-                    `}
+                    <div class="admin-row-actions">
+                      ${isCustom ? `
+                        ${p.status === "published" ? `<button class="btn o sm" data-a="read-passage" data-v="${escapeHTML(p.id)}">Preview</button>` : ""}
+                        ${p.status !== "invalid" ? `<button class="btn o sm" data-a="practice-edit" data-v="${escapeHTML(p.id)}">Edit</button>` : ""}
+                        ${p.status === "pending" ? `
+                          <button class="btn blue sm" data-a="practice-approve" data-v="${escapeHTML(p.id)}">Approve</button>
+                          <button class="btn o sm" data-a="practice-reject" data-v="${escapeHTML(p.id)}">Reject</button>
+                        ` : ""}
+                        ${p.status === "published" ? `<button class="btn o sm" data-a="practice-unpublish" data-v="${escapeHTML(p.id)}">Unpublish</button>` : ""}
+                        ${p.status === "draft" && AUTH.users.find(user => user.id === p.ownerId)?.role !== "teacher" ? `<button class="btn o sm" data-a="practice-publish" data-v="${escapeHTML(p.id)}">Publish</button>` : ""}
+                        ${AUTH.assignments.some(assignment => assignment.passageId === p.id) ? `<button class="btn o sm" data-a="practice-remove-assignments" data-v="${escapeHTML(p.id)}">Remove class assignments</button>` : ""}
+                        <button class="btn o sm danger" data-a="practice-delete" data-v="${escapeHTML(p.id)}">Delete</button>
+                      ` : `
+                        <button class="btn o sm" data-a="read-passage" data-v="${p.id}">Preview</button>
+                      `}
+                    </div>
                   </td>
                 </tr>
               `;
@@ -233,10 +239,11 @@ function renderAdminCurriculumTab() {
 
 function renderAdminBenchmarksTab() {
   return `
-    <div class="card">
+    <div class="card admin-section-card">
       <div class="lab">DepEd Phil-IRI Calibrated Benchmarks</div>
       <p class="sub">These standards dictate the automatic placement logic across junior and senior high reading assessments.</p>
       
+      <div class="responsive-table-wrap" tabindex="0" role="region" aria-label="Reading benchmark table; scroll horizontally for more columns">
       <table style="margin-top:14px">
         <thead>
           <tr>
@@ -278,21 +285,22 @@ function renderAdminBenchmarksTab() {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   `;
 }
 
 function renderAdminSystemTab() {
   return `
-    <div class="card">
-      <div class="lab">Database Operations & Emergency Backup</div>
+    <div class="card admin-section-card">
+      <div class="lab">Local Data & Emergency Backup</div>
       <p class="sub" style="margin-bottom:14px">
-        Export the complete school state including accounts, share codes, assignments, and curriculum. Works completely offline.
+        Export this browser's accounts, share codes, assignments, and curriculum. Works completely offline.
       </p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn" data-a="admin-export-backup">💾 Export Complete JSON Backup</button>
-        <button class="btn o" data-a="admin-restore-backup-trigger">📥 Restore from JSON File</button>
-        <button class="btn o" style="color:var(--coral)" data-a="admin-reset-presets">🔄 Reset to DepEd Factory Presets</button>
+        <button class="btn" data-a="admin-export-backup">${uiIcon("backup")} Export Complete JSON Backup</button>
+        <button class="btn o" data-a="admin-restore-backup-trigger">${uiIcon("upload")} Restore from JSON File</button>
+        <button class="btn o danger" data-a="admin-reset-presets">${uiIcon("reset")} Reset to DepEd Factory Presets</button>
       </div>
       <input type="file" id="admin-restore-file" style="display:none" accept=".json,application/json">
     </div>
