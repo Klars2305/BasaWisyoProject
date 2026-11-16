@@ -2,12 +2,17 @@
    Admin Interface Views
    ========================================================================== */
 
-let CURRENT_ADMIN_TAB = "users"; // 'users', 'curriculum', 'benchmarks', 'system'
+let CURRENT_ADMIN_TAB = "users"; // 'users', 'classes', 'curriculum', 'benchmarks', 'system'
 
 function viewAdmin() {
   const admin = AUTH.currentUser;
   if (!admin || admin.role !== "admin") {
     return `<div class="card"><p>Access restricted to Administrative accounts. Please sign in as Admin.</p></div>`;
+  }
+
+  if (typeof CURRENT_TAB !== "undefined") {
+    if (CURRENT_TAB === "users") CURRENT_ADMIN_TAB = "users";
+    else if (CURRENT_TAB === "classes") CURRENT_ADMIN_TAB = "classes";
   }
 
   const allUsers = AUTH.users;
@@ -72,6 +77,9 @@ function viewAdmin() {
       <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'users' ? 'active' : ''}" data-a="admin-tab" data-v="users" aria-pressed="${CURRENT_ADMIN_TAB === 'users'}">
         ${uiIcon("users")} User Management (${allUsers.length})
       </button>
+      <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'classes' ? 'active' : ''}" data-a="admin-tab" data-v="classes" aria-pressed="${CURRENT_ADMIN_TAB === 'classes'}">
+        ${uiIcon("classes")} Classes & Sections (${teachers.length})
+      </button>
       <button class="auth-tab-btn ${CURRENT_ADMIN_TAB === 'curriculum' ? 'active' : ''}" data-a="admin-tab" data-v="curriculum" aria-pressed="${CURRENT_ADMIN_TAB === 'curriculum'}">
         ${uiIcon("practice")} Curriculum & Passages (${totalPassages}${pendingPractices ? ` · ${pendingPractices} awaiting review` : ""})
       </button>
@@ -85,6 +93,7 @@ function viewAdmin() {
 
     <!-- Admin Sub-tab Content -->
     ${CURRENT_ADMIN_TAB === 'users' ? renderAdminUsersTab(allUsers) : ''}
+    ${CURRENT_ADMIN_TAB === 'classes' ? renderAdminClassesTab(teachers, allUsers) : ''}
     ${CURRENT_ADMIN_TAB === 'curriculum' ? renderAdminCurriculumTab() : ''}
     ${CURRENT_ADMIN_TAB === 'benchmarks' ? renderAdminBenchmarksTab() : ''}
     ${CURRENT_ADMIN_TAB === 'system' ? renderAdminSystemTab() : ''}
@@ -142,6 +151,60 @@ function renderAdminUsersTab(users) {
                 </td>
               </tr>
             `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderAdminClassesTab(teachers, allUsers) {
+  const students = allUsers.filter(u => u.role === "student");
+  const assignments = Array.isArray(AUTH.assignments) ? AUTH.assignments : [];
+
+  return `
+    <div class="card admin-section-card">
+      <div class="admin-card-head">
+        <div>
+          <div class="lab">School Classes & Sections Roster</div>
+          <div style="font-size:12px;color:var(--sub)">Active sections, assigned teachers, class codes, and enrolled student distribution</div>
+        </div>
+      </div>
+
+      <p class="table-scroll-hint sub-sm">Scroll the table sideways to review section and enrollment details.</p>
+      <div class="responsive-table-wrap" tabindex="0" role="region" aria-label="School sections and teachers; scroll horizontally for more columns">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Section Name</th>
+              <th>Teacher Adviser</th>
+              <th>Class Share Code</th>
+              <th>Enrolled Learners</th>
+              <th>Active Assignments</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${teachers.length === 0 ? `
+              <tr><td colspan="6" style="text-align:center;padding:18px;color:var(--sub)">No teacher classrooms registered yet.</td></tr>
+            ` : teachers.map(t => {
+              const enrolled = students.filter(s => s.teacherCode === t.shareCode);
+              const classAssignments = assignments.filter(a => a.teacherId === t.id || a.sectionCode === t.section);
+              return `
+                <tr>
+                  <td><b>${escapeHTML(t.section || "General Section")}</b></td>
+                  <td>${escapeHTML(t.name)} <br><small style="color:var(--sub)">${escapeHTML(t.email)}</small></td>
+                  <td><code>${escapeHTML(t.shareCode || "N/A")}</code></td>
+                  <td><b>${enrolled.length}</b> student${enrolled.length === 1 ? "" : "s"}</td>
+                  <td>${classAssignments.length} assignment${classAssignments.length === 1 ? "" : "s"}</td>
+                  <td>
+                    <span style="color:${t.status === 'active' ? 'var(--teal)' : 'var(--coral)'};font-weight:700">
+                      ${t.status === 'active' ? '● Active' : '○ Suspended'}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join("")}
           </tbody>
         </table>
       </div>

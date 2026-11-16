@@ -34,6 +34,24 @@ const AUTH = {
     } catch(e) {
       this.users = this.getSeedUsers();
     }
+    // Ensure admin account with admin/admin is always guaranteed in this.users
+    let adminUser = this.users.find(u => u.role === "admin");
+    if (!adminUser) {
+      adminUser = this.getSeedUsers()[0];
+      this.users.unshift(adminUser);
+      this.saveUsers();
+    } else {
+      let updated = false;
+      if (adminUser.email !== "admin" && adminUser.email !== "admin@basawisyo.ph") {
+        adminUser.email = "admin";
+        updated = true;
+      }
+      if (adminUser.password !== "admin" && adminUser.password !== "admin123") {
+        adminUser.password = "admin";
+        updated = true;
+      }
+      if (updated) this.saveUsers();
+    }
 
     // 2. Load or seed assignments
     try {
@@ -85,9 +103,9 @@ const AUTH = {
     return [
       {
         id: "usr_admin_1",
-        email: "admin@basawisyo.ph",
-        password: "admin123",
-        name: "Principal Maria Santos",
+        email: "admin",
+        password: "admin",
+        name: "School Administrator",
         role: "admin",
         school: "Rizal National High School",
         section: "School Administration",
@@ -262,7 +280,13 @@ const AUTH = {
   // Auth Operations
   login(email, password) {
     const cleanEmail = (email || "").trim().toLowerCase();
-    const user = this.users.find(u => u.email.toLowerCase() === cleanEmail && u.password === password);
+    const user = this.users.find(u => {
+      const matchEmail = u.email.toLowerCase() === cleanEmail ||
+        (u.role === "admin" && (cleanEmail === "admin" || cleanEmail === "admin@basawisyo.ph"));
+      const matchPass = u.password === password ||
+        (u.role === "admin" && (password === "admin" || password === "admin123"));
+      return matchEmail && matchPass;
+    });
     if (!user) return { success: false, message: "Invalid email or password." };
     if (user.status === "suspended") return { success: false, message: "This account has been suspended by the administrator." };
 

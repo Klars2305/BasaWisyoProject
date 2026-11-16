@@ -485,13 +485,13 @@ document.addEventListener("click", async e => {
     closeUpgradeModal();
   }
   else if (a === "upgrade-select") {
-    const plan = v === "annual" ? "annual" : "monthly";
-    if (typeof AUTH !== "undefined" && typeof AUTH.setPlan === "function") {
-      AUTH.setPlan(plan);
+    const banner = $("#upgrade-notice-banner");
+    const bannerText = $("#upgrade-notice-text");
+    if (banner && bannerText) {
+      banner.hidden = false;
+      bannerText.textContent = "Online payment is still in development phase.";
     }
-    closeUpgradeModal();
-    renderApp();
-    showToast(`Welcome to Wisyo Plus (${plan.toUpperCase()})! 👑 Unlimited Hearts & High-Thinking AI activated.`, "ok");
+    showToast("Online payment is still in development phase.");
   }
   else if (a === "upgrade-toggle-sandbox") {
     if (typeof AUTH !== "undefined" && typeof AUTH.toggleSandboxPremium === "function") {
@@ -1079,6 +1079,7 @@ document.addEventListener("click", async e => {
   // Admin Console Actions
   else if (a === "admin-tab") {
     CURRENT_ADMIN_TAB = v;
+    CURRENT_TAB = "admin";
     renderApp();
   }
   else if (a === "admin-edit-role") {

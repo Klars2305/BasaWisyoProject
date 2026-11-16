@@ -260,7 +260,7 @@ test('Personal Story Import Quota: Free students capped at 2 personal stories; 3
   assert.equal(s3.title, 'My Story 3');
 });
 
-test('Dual-Card Paywall Modal: index.html contains monthly and annual cards with ribbon, pricing, features, fairness guarantee, and sandbox toggle', () => {
+test('Dual-Card Paywall Modal: index.html contains monthly and annual cards with ribbon, pricing, features, and fairness guarantee', () => {
   const html = readFileSync(join(root, 'index.html'), 'utf8');
 
   // Paywall Modal element
@@ -277,8 +277,11 @@ test('Dual-Card Paywall Modal: index.html contains monthly and annual cards with
   // Action Buttons
   assert.match(html, /data-a="upgrade-select"\s+data-v="monthly"/);
   assert.match(html, /data-a="upgrade-select"\s+data-v="annual"/);
-  assert.match(html, /data-a="upgrade-toggle-sandbox"/);
   assert.match(html, /data-a="upgrade-close"/);
+
+  // Sandbox row removed from production modal
+  assert.equal(html.includes('data-a="upgrade-toggle-sandbox"'), false);
+  assert.equal(html.includes('Evaluation Sandbox Simulation:'), false);
 
   // Fairness & Guarantee
   assert.match(html, /Equal Education Guarantee/);

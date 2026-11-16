@@ -41,15 +41,19 @@ function sendJson(res, status, body) {
 }
 
 function createChatHandler({
-  key = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY,
-  provider = process.env.GROQ_API_KEY || !process.env.OPENAI_API_KEY ? "GroqCloud" : "OpenAI Responses API",
-  ask = process.env.GROQ_API_KEY ? askGroq : askOpenAI,
+  key,
+  provider,
+  ask,
   now = Date.now
 } = {}) {
   const requests = new Map();
   return async function chatHandler(req, res) {
+    const activeKey = key !== undefined ? key : (process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY);
+    const activeProvider = provider !== undefined ? provider : (process.env.GROQ_API_KEY || !process.env.OPENAI_API_KEY ? "GroqCloud" : "OpenAI Responses API");
+    const activeAsk = ask !== undefined ? ask : (process.env.GROQ_API_KEY ? askGroq : askOpenAI);
+
     if (req.url === "/api/chat/status" && req.method === "GET") {
-      sendJson(res, 200, { onlineAvailable: Boolean(key), provider });
+      sendJson(res, 200, { onlineAvailable: Boolean(activeKey), provider: activeProvider });
       return;
     }
     if (req.url !== "/api/chat" || req.method !== "POST") {
@@ -57,11 +61,11 @@ function createChatHandler({
       return;
     }
     const origin = req.headers.origin;
-    const port = req.socket.localPort;
+    const port = req.socket?.localPort;
     const host = req.headers.host;
     const allowed = !origin
-      || origin === `http://127.0.0.1:${port}`
-      || origin === `http://localhost:${port}`
+      || (port && origin === `http://127.0.0.1:${port}`)
+      || (port && origin === `http://localhost:${port}`)
       || (host && (origin === `http://${host}` || origin === `https://${host}`))
       || origin.endsWith(".vercel.app")
       || (process.env.ALLOWED_ORIGIN && origin === process.env.ALLOWED_ORIGIN);
@@ -70,7 +74,7 @@ function createChatHandler({
       sendJson(res, 403, { error: "Chat must be used from this local BasaWisyo app." });
       return;
     }
-    if (!key) {
+    if (!activeKey) {
       sendJson(res, 503, { error: "Online AI is not configured. Choose Offline help." });
       return;
     }
@@ -78,7 +82,7 @@ function createChatHandler({
       sendJson(res, 415, { error: "Send JSON to this endpoint." });
       return;
     }
-    const address = req.socket.remoteAddress || "local";
+    const address = (req.headers && req.headers["x-forwarded-for"]) || req.socket?.remoteAddress || "local";
     const minute = Math.floor(now() / 60000);
     const record = requests.get(address);
     const count = record?.minute === minute ? record.count : 0;
@@ -87,29 +91,42 @@ function createChatHandler({
       return;
     }
     requests.set(address, { minute, count: count + 1 });
-    let raw = "";
-    try {
-      for await (const chunk of req) {
-        raw += chunk;
-        if (raw.length > 16000) {
-          sendJson(res, 413, { error: "Chat request is too long." });
-          return;
+    let input = null;
+    if (req.body && typeof req.body === "object") {
+      input = validChatInput(req.body);
+    } else if (typeof req.body === "string" && req.body.length > 0) {
+      try { input = validChatInput(JSON.parse(req.body)); }
+      catch (_) { sendJson(res, 400, { error: "Send a valid JSON message." }); return; }
+    } else {
+      let raw = "";
+      try {
+        for await (const chunk of req) {
+          raw += chunk;
+          if (raw.length > 16000) {
+            sendJson(res, 413, { error: "Chat request is too long." });
+            return;
+          }
         }
-      }
-      const input = validChatInput(JSON.parse(raw));
-      if (!input) {
-        sendJson(res, 400, { error: "Check the message and try again." });
+        input = validChatInput(JSON.parse(raw));
+      } catch (error) {
+        sendJson(res, 400, { error: "Send a valid JSON message." });
         return;
       }
-      const reply = await ask(input, { apiKey: key });
+    }
+    if (!input) {
+      sendJson(res, 400, { error: "Check the message and try again." });
+      return;
+    }
+    try {
+      const reply = await activeAsk(input, { apiKey: activeKey });
       sendJson(res, 200, { reply, mode: "online" });
     } catch (error) {
       if (error instanceof SyntaxError) {
         sendJson(res, 400, { error: "Send a valid JSON message." });
       } else if (error.status === 401 || error.status === 403) {
-        sendJson(res, 503, { error: `${provider} rejected the API key. Restart the local server with a valid key.` });
+        sendJson(res, 503, { error: `${activeProvider} rejected the API key. Restart the local server with a valid key.` });
       } else if (error.status === 429) {
-        sendJson(res, 429, { error: `${provider} free limit reached. Wisyo switched to Offline help.` });
+        sendJson(res, 429, { error: `${activeProvider} free limit reached. Wisyo switched to Offline help.` });
       } else {
         sendJson(res, 502, { error: "Online AI is unavailable. Choose Offline help and try again later." });
       }
