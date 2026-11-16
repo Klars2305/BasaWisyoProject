@@ -28,7 +28,11 @@ function validChatInput(value) {
         || typeof q.answered !== "boolean") return null;
     context.question = { text: q.text.trim(), skill: q.skill, answered: q.answered };
   }
-  return { message, history, context };
+  if (typeof rawContext.isPlacement === "boolean") {
+    context.isPlacement = rawContext.isPlacement;
+  }
+  const isPremium = Boolean(value.isPremium);
+  return { message, history, context, isPremium };
 }
 
 function sendJson(res, status, body) {
@@ -53,8 +57,16 @@ function createChatHandler({
       return;
     }
     const origin = req.headers.origin;
-    const expectedOrigin = `http://127.0.0.1:${req.socket.localPort}`;
-    if (origin && origin !== expectedOrigin) {
+    const port = req.socket.localPort;
+    const host = req.headers.host;
+    const allowed = !origin
+      || origin === `http://127.0.0.1:${port}`
+      || origin === `http://localhost:${port}`
+      || (host && (origin === `http://${host}` || origin === `https://${host}`))
+      || origin.endsWith(".vercel.app")
+      || (process.env.ALLOWED_ORIGIN && origin === process.env.ALLOWED_ORIGIN);
+
+    if (!allowed) {
       sendJson(res, 403, { error: "Chat must be used from this local BasaWisyo app." });
       return;
     }

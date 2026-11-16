@@ -324,3 +324,189 @@ test('Wisyo distinguishes a static page from a server that has not loaded the ke
   await vm.runInContext('checkWisyoOnlineStatus()', context);
   assert.match(elements.get('#ai-mode-status').textContent, /key is not loaded/);
 });
+
+test('Student A and Student B maintain isolated chat histories', () => {
+  const elements = new Map([
+    ['#ai-mode-tag', { textContent: '' }],
+    ['#ai-subtitle', { textContent: '' }],
+    ['#ai-mode-status', { textContent: '' }],
+    ['#ai-send-button', { disabled: false }],
+    ['#aim', { innerHTML: '', scrollTop: 0, scrollHeight: 0 }]
+  ]);
+  const storage = new Map();
+  const localStorageMock = {
+    getItem: k => storage.get(k) || null,
+    setItem: (k, v) => storage.set(k, String(v)),
+    removeItem: k => storage.delete(k)
+  };
+  let currentUser = { id: 'student-101', name: 'Student A' };
+  const context = vm.createContext({
+    document: { querySelector: selector => elements.get(selector) || null },
+    window: {},
+    D: {},
+    S: { miss: null },
+    ACTIVE_QUIZ: null,
+    LG: 'assets/images/wisyo.png',
+    $: selector => elements.get(selector) || null,
+    AUTH: { get currentUser() { return currentUser; } },
+    localStorage: localStorageMock,
+    setTimeout() {},
+    showToast() {}
+  });
+  vm.runInContext(readFileSync(join(root, 'src/services/tutor.js'), 'utf8'), context);
+
+  // Student A initializes and chats
+  vm.runInContext('initWisyoChatForCurrentAccount()', context);
+  vm.runInContext('CHAT_HISTORY.push(["u", "Hello from Student A"], ["a", "Welcome Student A!"]); saveWisyoChatHistory();', context);
+  assert.equal(storage.has('basawisyo_chat_history_student-101'), true);
+
+  // Switch to Student B
+  currentUser = { id: 'student-202', name: 'Student B' };
+  vm.runInContext('initWisyoChatForCurrentAccount()', context);
+  const studentBChat = vm.runInContext('CHAT_HISTORY', context);
+  assert.equal(studentBChat.some(([r, text]) => text.includes('Student A')), false);
+  assert.equal(studentBChat.length, 1); // default greeting only
+
+  // Student B chats
+  vm.runInContext('CHAT_HISTORY.push(["u", "Hello from Student B"], ["a", "Welcome Student B!"]); saveWisyoChatHistory();', context);
+  assert.equal(storage.has('basawisyo_chat_history_student-202'), true);
+
+  // Switch back to Student A and verify their history is preserved
+  currentUser = { id: 'student-101', name: 'Student A' };
+  vm.runInContext('initWisyoChatForCurrentAccount()', context);
+  const restoredStudentAChat = vm.runInContext('CHAT_HISTORY', context);
+  assert.equal(restoredStudentAChat.some(([r, text]) => text.includes('Student A')), true);
+  assert.equal(restoredStudentAChat.some(([r, text]) => text.includes('Student B')), false);
+});
+
+test('Wisyo safeguards diagnostic placement assessment from answer leakage', () => {
+  const elements = new Map([
+    ['#ai-mode-tag', { textContent: '' }],
+    ['#ai-subtitle', { textContent: '' }],
+    ['#ai-mode-status', { textContent: '' }],
+    ['#ai-send-button', { disabled: false }],
+    ['#aim', { innerHTML: '', scrollTop: 0, scrollHeight: 0 }]
+  ]);
+  const context = vm.createContext({
+    document: { querySelector: selector => elements.get(selector) || null },
+    window: {},
+    D: { boat: ['bangka', 'baroto', 'A small vessel for travelling over water.'] },
+    S: { miss: null },
+    ACTIVE_QUIZ: null,
+    LG: 'assets/images/wisyo.png',
+    $: selector => elements.get(selector) || null,
+    setTimeout() {},
+    showToast() {}
+  });
+  vm.runInContext(readFileSync(join(root, 'src/services/tutor.js'), 'utf8'), context);
+
+  const placementContext = {
+    passage: { title: 'Diagnostic Story', text: 'The red boat sailed across the deep blue lake at dawn.' },
+    question: { text: 'Where did the boat sail?', skill: 'Literal', answered: false },
+    isPlacement: true
+  };
+
+  // Student asking for hint or answer during placement
+  const hintResponse = vm.runInContext(`offlineWisyoResponse('Give me a hint', ${JSON.stringify(placementContext)})`, context);
+  assert.match(hintResponse, /diagnostic placement assessment/i);
+  assert.match(hintResponse, /question hints will unlock once you complete placement/i);
+  assert.doesNotMatch(hintResponse, /red boat|deep blue lake/i);
+
+  const answerResponse = vm.runInContext(`offlineWisyoResponse('What is the answer?', ${JSON.stringify(placementContext)})`, context);
+  assert.match(answerResponse, /diagnostic placement assessment/i);
+
+  // Groq request payload also tags placement mode
+  const groqPayload = buildGroqRequest({
+    message: 'What is the answer?',
+    history: [],
+    context: placementContext
+  });
+  assert.match(groqPayload.messages[1].content, /ASSESSMENT MODE: Diagnostic placement assessment in progress/i);
+});
+
+test('Wisyo drawer toggles wisyo-chat-open body class and renders retry on failure', () => {
+  const classList = new Set();
+  const elements = new Map([
+    ['#ai-mode-tag', { textContent: '' }],
+    ['#ai-subtitle', { textContent: '' }],
+    ['#ai-mode-status', { textContent: '' }],
+    ['#ai-send-button', { disabled: false }],
+    ['#aim', { innerHTML: '', scrollTop: 0, scrollHeight: 0 }],
+    ['#ai', { hidden: true, _returnFocus: null }],
+    ['#aii', { focus() {} }]
+  ]);
+  const context = vm.createContext({
+    document: {
+      body: {
+        classList: {
+          add: c => classList.add(c),
+          remove: c => classList.delete(c),
+          contains: c => classList.has(c)
+        }
+      },
+      querySelector: selector => elements.get(selector) || null,
+      activeElement: null
+    },
+    window: {},
+    D: {},
+    S: { miss: null },
+    ACTIVE_QUIZ: null,
+    LG: 'assets/images/wisyo.png',
+    $: selector => elements.get(selector) || null,
+    setTimeout: fn => fn(),
+    showToast() {},
+    escapeHTML: s => String(s)
+  });
+  vm.runInContext(readFileSync(join(root, 'src/services/tutor.js'), 'utf8'), context);
+
+  // Open drawer
+  vm.runInContext('aiOpen()', context);
+  assert.equal(elements.get('#ai').hidden, false);
+  assert.equal(classList.has('wisyo-chat-open'), true);
+
+  // Close drawer
+  vm.runInContext('aiClose()', context);
+  assert.equal(elements.get('#ai').hidden, true);
+  assert.equal(classList.has('wisyo-chat-open'), false);
+
+  // Failed Groq response renders Retry button
+  vm.runInContext('CHAT_HISTORY = [["u", "Explain photosynthesis"], ["a", "Groq is unavailable. Here\'s offline help:\\n\\nPhotosynthesis is how plants make food."]]; renderChat();', context);
+  const aimHtml = elements.get('#aim').innerHTML;
+  assert.match(aimHtml, /data-a="ai-retry"/);
+  assert.match(aimHtml, /data-v="Explain photosynthesis"/);
+  assert.match(aimHtml, /↻ Retry with Groq AI/);
+});
+
+test('checkWisyoOnlineStatus probes port 8765 when browsing on other local port', async () => {
+  const elements = new Map([
+    ['#ai-mode-tag', { textContent: '' }],
+    ['#ai-subtitle', { textContent: '' }],
+    ['#ai-mode-status', { textContent: '' }],
+    ['#ai-send-button', { disabled: false }]
+  ]);
+  const probedUrls = [];
+  const context = vm.createContext({
+    document: { querySelector: selector => elements.get(selector) || null },
+    window: {
+      location: { hostname: 'localhost', port: '3000' }
+    },
+    $: selector => elements.get(selector) || null,
+    ACTIVE_QUIZ: null,
+    AbortSignal,
+    async fetch(url) {
+      probedUrls.push(url);
+      if (url === '/api/chat/status') throw new Error('Failed to fetch on port 3000');
+      if (url === 'http://127.0.0.1:8765/api/chat/status') {
+        return { ok: true, async json() { return { onlineAvailable: true, provider: 'GroqCloud' }; } };
+      }
+      return { ok: false, status: 404 };
+    }
+  });
+  vm.runInContext(readFileSync(join(root, 'src/services/tutor.js'), 'utf8'), context);
+  await vm.runInContext('checkWisyoOnlineStatus()', context);
+  assert.equal(probedUrls.includes('/api/chat/status'), true);
+  assert.equal(probedUrls.includes('http://127.0.0.1:8765/api/chat/status'), true);
+  assert.equal(vm.runInContext('WISYO_API_BASE', context), 'http://127.0.0.1:8765');
+  assert.equal(vm.runInContext('WISYO_MODE', context), 'online');
+});
+

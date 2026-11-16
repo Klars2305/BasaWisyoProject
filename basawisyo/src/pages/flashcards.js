@@ -9,74 +9,49 @@ let FLASHCARD_ACTIVE_FILTER = "due"; // "due" | "all" | "mastered"
 let FLASHCARD_SHOW_ADD_MODAL = false;
 
 function viewFlashcards() {
-  const stats = getFlashcardStats();
   const allCards = getFlashcardDeck();
-  const dueCards = getDueFlashcards();
-  const masteredCards = allCards.filter(c => (c.box || 1) >= 4);
-
-  let activeCards = dueCards;
-  if (FLASHCARD_ACTIVE_FILTER === "all") {
-    activeCards = allCards;
-  } else if (FLASHCARD_ACTIVE_FILTER === "mastered") {
-    activeCards = masteredCards;
-  }
 
   // Bound index safely
-  if (FLASHCARD_ACTIVE_INDEX >= activeCards.length) {
-    FLASHCARD_ACTIVE_INDEX = Math.max(0, activeCards.length - 1);
+  if (FLASHCARD_ACTIVE_INDEX >= allCards.length) {
+    FLASHCARD_ACTIVE_INDEX = Math.max(0, allCards.length - 1);
   }
 
-  const currentCard = activeCards[FLASHCARD_ACTIVE_INDEX] || null;
+  const currentCard = allCards[FLASHCARD_ACTIVE_INDEX] || null;
 
   return `
     <div class="flashcards-page">
+      <div class="subnav-segmented" role="tablist" aria-label="Practice section switcher">
+        <button class="subnav-tab active" data-a="tab" data-v="flashcards">
+          ${uiIcon("flashcards")} <span>Vocabulary Flashcards</span>
+        </button>
+        <button class="subnav-tab" data-a="tab" data-v="assess">
+          ${uiIcon("assess")} <span>Diagnostic Placement</span>
+        </button>
+      </div>
+
       <!-- Header -->
       <div class="fc-header-row">
         <div>
-          <div class="lab" style="color:var(--gold)">Spaced Repetition &amp; Vocabulary</div>
+          <div class="lab" style="color:var(--gold)">Vocabulary Study Deck</div>
           <h2>Vocabulary Flashcards</h2>
-          <p class="sub">Culturally rooted Filipino vocabulary with trilingual translations, audio pronunciation, and Leitner spaced repetition.</p>
+          <p class="sub">Culturally rooted Filipino vocabulary with trilingual translations, audio pronunciation, and example sentences.</p>
         </div>
-        <button class="btn blue sm" data-a="fc-open-add">
-          ${uiIcon("add")} Add New Word
-        </button>
-      </div>
-
-      <!-- Stats Bar -->
-      <div class="fc-stats-bar">
-        <div class="fc-stat-item ${stats.due > 0 ? 'highlight' : ''}">
-          <span class="fc-stat-label">Due Today</span>
-          <span class="fc-stat-num">${stats.due}</span>
-        </div>
-        <div class="fc-stat-item">
-          <span class="fc-stat-label">Mastered (Box 4+)</span>
-          <span class="fc-stat-num">${stats.mastered}</span>
-        </div>
-        <div class="fc-stat-item">
-          <span class="fc-stat-label">Total in Deck</span>
-          <span class="fc-stat-num">${stats.total}</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          ${(typeof isUserPremium === "function" && isUserPremium())
+            ? `<span class="badge-prem" style="font-size:0.75rem;padding:5px 12px;border-radius:14px;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;font-weight:700">👑 Wisyo Plus: Unlimited (${allCards.length} cards)</span>`
+            : `<button class="btn sm o" data-a="upgrade-open" data-v="flashcards" style="font-size:0.75rem;border-color:#f59e0b;color:#92400e;background:#fffbeb;padding:5px 10px">Deck: ${allCards.length}/30 (Free) · ⭐ Upgrade</button>`}
+          <button class="btn blue sm" data-a="fc-open-add">
+            ${uiIcon("add")} Add New Word
+          </button>
         </div>
       </div>
 
-      <!-- Filter Tabs -->
-      <div class="fc-tabs-row" role="tablist" aria-label="Flashcard Deck Filters">
-        <button class="fc-tab-btn ${FLASHCARD_ACTIVE_FILTER === 'due' ? 'active' : ''}" data-a="fc-filter" data-v="due" role="tab" aria-selected="${FLASHCARD_ACTIVE_FILTER === 'due'}">
-          Due for Review (${stats.due})
-        </button>
-        <button class="fc-tab-btn ${FLASHCARD_ACTIVE_FILTER === 'all' ? 'active' : ''}" data-a="fc-filter" data-v="all" role="tab" aria-selected="${FLASHCARD_ACTIVE_FILTER === 'all'}">
-          All Cards (${stats.total})
-        </button>
-        <button class="fc-tab-btn ${FLASHCARD_ACTIVE_FILTER === 'mastered' ? 'active' : ''}" data-a="fc-filter" data-v="mastered" role="tab" aria-selected="${FLASHCARD_ACTIVE_FILTER === 'mastered'}">
-          Mastered (${stats.mastered})
-        </button>
-      </div>
-
-      <!-- Main Study Area -->
-      ${activeCards.length > 0 && currentCard ? `
+      <!-- Main Study Area: One Card at a Time -->
+      ${allCards.length > 0 && currentCard ? `
         <div class="fc-study-container">
           <div class="fc-card-meta">
-            <span>Card <b>${FLASHCARD_ACTIVE_INDEX + 1}</b> of <b>${activeCards.length}</b></span>
-            <span class="pill">Leitner Box ${currentCard.box || 1}/5 · Review interval: ${currentCard.intervalDays || 1}d</span>
+            <span>Card <b>${FLASHCARD_ACTIVE_INDEX + 1}</b> of <b>${allCards.length}</b></span>
+            <span class="sub-sm" style="color:var(--sub)">Vocabulary Deck</span>
           </div>
 
           <!-- 3D Flippable Card -->
@@ -138,22 +113,6 @@ function viewFlashcards() {
                     </div>
                   ` : ''}
                 </div>
-
-                <!-- Rating Buttons -->
-                <div class="fc-rating-row" onclick="event.stopPropagation()">
-                  <div class="fc-rating-label">Rate recall difficulty:</div>
-                  <div class="fc-rating-buttons">
-                    <button class="btn sm fc-rate-btn rate-difficult" data-a="fc-rate" data-v="difficult" data-card="${escapeHTML(currentCard.id)}">
-                      Difficult (1d)
-                    </button>
-                    <button class="btn sm fc-rate-btn rate-good" data-a="fc-rate" data-v="good" data-card="${escapeHTML(currentCard.id)}">
-                      Good (3d)
-                    </button>
-                    <button class="btn sm fc-rate-btn rate-easy" data-a="fc-rate" data-v="easy" data-card="${escapeHTML(currentCard.id)}">
-                      Easy (7d)
-                    </button>
-                  </div>
-                </div>
               </div>
 
             </div>
@@ -167,32 +126,27 @@ function viewFlashcards() {
             <button class="btn blue sm" data-a="fc-flip">
               ${uiIcon("refresh")} ${FLASHCARD_IS_FLIPPED ? 'Show Front' : 'Flip Card'}
             </button>
-            <button class="btn o sm" data-a="fc-next" ${FLASHCARD_ACTIVE_INDEX >= activeCards.length - 1 ? 'disabled' : ''}>
+            <button class="btn o sm" data-a="fc-next" ${FLASHCARD_ACTIVE_INDEX >= allCards.length - 1 ? 'disabled' : ''}>
               Next →
             </button>
           </div>
         </div>
       ` : `
-        <!-- Empty or All Caught Up State -->
+        <!-- Empty State -->
         <div class="card fc-empty-card">
           <div class="fc-empty-art" aria-hidden="true">
             <img src="assets/images/wisyo.png" alt="" style="width:110px;height:auto">
           </div>
-          <h3>${FLASHCARD_ACTIVE_FILTER === 'due' ? 'All Caught Up! 🎉' : 'No Cards Found'}</h3>
+          <h3>No Vocabulary Cards Yet</h3>
           <p class="sub">
-            ${FLASHCARD_ACTIVE_FILTER === 'due'
-              ? 'You have reviewed all due vocabulary cards for today! Keeping up with spaced repetition builds lasting reading comprehension.'
-              : 'No cards currently match this view.'}
+            Save interesting words while reading stories in the library, or add your own words below.
           </p>
           <div class="fc-empty-actions">
-            <button class="btn blue sm" data-a="fc-filter" data-v="all">
-              Study All ${stats.total} Cards Anyway
+            <button class="btn blue sm" data-a="fc-open-add">
+              ${uiIcon("add")} Add New Word
             </button>
             <button class="btn o sm" data-a="tab" data-v="practice">
-              Browse Stories to Save Words
-            </button>
-            <button class="btn o sm" data-a="fc-open-add">
-              + Add Custom Word
+              Browse Reading Library
             </button>
           </div>
         </div>

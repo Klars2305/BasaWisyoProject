@@ -1,21 +1,70 @@
-/* ==========================================================================
-   BasaWisyo Teacher: Teacher Reading Studio
-   Import custom materials, multi-skill question drafting, interactive question editor,
-   approval workflow (Draft -> Pending -> Approved -> Published), and class assignments.
-   ========================================================================== */
+/* One teacher reading-content workflow: Add passage, approval, and assignments. */
+const LEGACY_MATERIAL_LINKS_KEY = "basa_wisyo_legacy_material_links_v1";
+let TEACHER_STUDIO_SUBTAB = "queue";
 
-let TEACHER_STUDIO_TEXT = "";
-let TEACHER_STUDIO_TITLE = "";
-let TEACHER_STUDIO_AUTHOR = "";
-let TEACHER_STUDIO_LANG = "en";
-let TEACHER_STUDIO_DIFF = "medium";
-let TEACHER_STUDIO_Q_COUNT = 5;
-let TEACHER_STUDIO_QUESTIONS = [];
-let TEACHER_STUDIO_VOCAB = [];
-let TEACHER_STUDIO_IS_LOADING = false;
-let TEACHER_STUDIO_WARNING = "";
-let TEACHER_STUDIO_EDITING_ID = null;
-let TEACHER_STUDIO_SUBTAB = "editor"; // 'editor', 'queue', 'assignments'
+function readLegacyMaterialLinks() {
+  try {
+    const links = JSON.parse(localStorage.getItem(LEGACY_MATERIAL_LINKS_KEY) || "{}");
+    return links && typeof links === "object" && !Array.isArray(links) ? links : {};
+  }
+  catch (error) { return {}; }
+}
+
+function linkLegacyMaterialToPassage(materialId, passageId) {
+  try {
+    const links = readLegacyMaterialLinks();
+    links[materialId] = passageId;
+    localStorage.setItem(LEGACY_MATERIAL_LINKS_KEY, JSON.stringify(links));
+  } catch (error) { console.warn("Legacy material link could not be saved.", error); }
+}
+
+function legacyTeacherMaterials(actorId) {
+  return (typeof readLocalMaterials === "function" ? readLocalMaterials() : [])
+    .filter(material => material?.sourceType === "teacher_studio" && material.ownerId === actorId);
+}
+
+function legacyMaterialPassage(material) {
+  const status = ["draft", "pending", "rejected", "published"].includes(material.status)
+    ? material.status : "pending";
+  const questions = Array.isArray(material.questions) ? material.questions.map(question => ({
+    q: question?.q, o: question?.o, a: question?.a,
+    k: question?.k || "Literal", exp: question?.exp || undefined
+  })) : [];
+  return normalizePassage({
+    id: material.id, t: material.title, x: material.text, diff: material.difficulty,
+    lang: { en: "en-US", fil: "fil-PH", ceb: "ceb-PH" }[material.language] || "en-US",
+    qs: questions, status, ownerId: material.ownerId,
+    author: material.author || material.ownerName || "Teacher",
+    reviewNote: material.reviewNote || undefined
+  });
+}
+
+function migrateLegacyTeacherMaterials() {
+  const actor = AUTH.currentUser;
+  if (actor?.role !== "teacher") return 0;
+  const links = readLegacyMaterialLinks();
+  const existing = new Set(AUTH.customPassages.map(passage => passage?.id));
+  const migrated = [];
+  for (const material of legacyTeacherMaterials(actor.id)) {
+    if (existing.has(material.id) || links[material.id]) continue;
+    try {
+      const passage = legacyMaterialPassage(material);
+      migrated.push(passage);
+      existing.add(passage.id);
+    } catch (error) {
+      // Incomplete drafts remain visible below so their author can finish them.
+    }
+  }
+  if (!migrated.length) return 0;
+  try {
+    AUTH.persistPractices([...AUTH.customPassages, ...migrated]);
+    migrated.forEach(passage => linkLegacyMaterialToPassage(passage.id, passage.id));
+    return migrated.length;
+  } catch (error) {
+    console.warn("Legacy materials were kept in their original store.", error);
+    return 0;
+  }
+}
 
 /**
  * Renders Teacher Reading Studio view.
@@ -27,22 +76,27 @@ function viewTeacherReadingStudio() {
     return `<div class="card"><p>Access restricted to Teachers and Administrators. Please sign in with an authorized account.</p></div>`;
   }
 
-  const stats = typeof normalizeImportedText === "function"
-    ? normalizeImportedText(TEACHER_STUDIO_TEXT)
-    : { wordCount: 0, charCount: 0, estMinutes: 1, suggestedTier: "medium" };
-
   return `
     <div class="teacher-reading-studio-page">
+      <div class="subnav-segmented" role="tablist" aria-label="Materials section switcher">
+        <button class="subnav-tab active" data-a="tab" data-v="teacher-studio">
+          ${uiIcon("studio")} <span>Teacher Reading Studio</span>
+        </button>
+        <button class="subnav-tab" data-a="tab" data-v="practice">
+          ${uiIcon("practice")} <span>Passage Library</span>
+        </button>
+      </div>
+
       <!-- Studio Intro -->
       <div class="dashboard-intro">
         <div>
           <div class="lab" style="color:var(--teal-ink)">${uiIcon("teacher")} Teacher Workspace</div>
           <h2>Teacher Reading Studio</h2>
-          <p class="sub">Import curriculum passages, generate multi-skill questions with Wisyo AI, refine answer keys, and assign reading assessments to your classes.</p>
+          <p class="sub">Create passages in one editor, track admin approval, and manage class assignments.</p>
         </div>
         <div class="dashboard-intro-actions">
-          <button class="btn sm ${TEACHER_STUDIO_SUBTAB === 'editor' ? 'blue' : 'o'}" data-a="tstudio-subtab" data-v="editor">
-            ${uiIcon("add")} Material &amp; Questions
+          <button class="btn sm blue" data-a="practice-new">
+            ${uiIcon("add")} Add passage
           </button>
           <button class="btn sm ${TEACHER_STUDIO_SUBTAB === 'queue' ? 'blue' : 'o'}" data-a="tstudio-subtab" data-v="queue">
             ${uiIcon("badge")} Approval Status
@@ -66,188 +120,9 @@ function viewTeacherReadingStudio() {
         </div>
       </div>
 
-      ${TEACHER_STUDIO_SUBTAB === "queue" 
-        ? renderTeacherApprovalQueueView() 
-        : TEACHER_STUDIO_SUBTAB === "assignments" 
-          ? renderTeacherAssignmentsView() 
-          : renderTeacherEditorView(stats)}
-    </div>
-  `;
-}
-
-/**
- * Renders the primary material import and question editor tab.
- * @param {Object} stats 
- * @returns {string} HTML markup
- */
-function renderTeacherEditorView(stats) {
-  return `
-    <div class="teacher-studio-grid" style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start">
-      <!-- Left Column: Source Material & Interactive Question Editor -->
-      <div>
-        <!-- Material Source Card -->
-        <div class="card" style="margin-bottom:20px">
-          <div class="card-header teacher-step-header" style="margin-bottom:12px">
-            <div>
-              <div class="lab">Step 1 · Reading Content</div>
-              <h3 style="margin:2px 0">Passage Text &amp; Metadata</h3>
-            </div>
-            <div>
-              <input type="file" id="tstudio-file-input" accept=".txt,.docx,.pdf" style="display:none" data-a="tstudio-file-change">
-              <button type="button" class="btn sm o" data-a="tstudio-file-trigger">
-                ${uiIcon("upload")} Upload File (PDF/DOCX/TXT)
-              </button>
-            </div>
-          </div>
-
-          ${TEACHER_STUDIO_WARNING ? `
-            <div class="card" style="background:#FFF1F2;border-left:4px solid var(--coral);padding:10px 14px;margin-bottom:14px">
-              <b style="color:var(--coral);font-size:0.85rem">Notice:</b>
-              <div class="sub-sm" style="margin-top:2px">${escapeHTML(TEACHER_STUDIO_WARNING)}</div>
-            </div>
-          ` : ""}
-
-          <div class="teacher-meta-grid">
-            <label>
-              <span class="lab">Passage Title</span>
-              <input type="text" id="tstudio-title-input" class="auth-input" placeholder="e.g. The Mangrove Sanctuaries of Bohol" value="${escapeHTML(TEACHER_STUDIO_TITLE || stats.cleanTitle)}">
-            </label>
-            <label>
-              <span class="lab">Author / Curriculum Source</span>
-              <input type="text" id="tstudio-author-input" class="auth-input" placeholder="e.g. DepEd Region VII" value="${escapeHTML(TEACHER_STUDIO_AUTHOR || "DepEd Curriculum")}">
-            </label>
-          </div>
-
-          <label style="display:block;margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <span class="lab">Passage Text</span>
-              <span class="sub-sm"><b>${stats.wordCount}</b> words · <b>${stats.charCount}</b> chars</span>
-            </div>
-            <textarea id="tstudio-text-input" class="auth-input" rows="8" style="font-family:inherit;font-size:0.95rem;line-height:1.6;resize:vertical" placeholder="Paste or type curriculum passage text here...">${escapeHTML(TEACHER_STUDIO_TEXT)}</textarea>
-          </label>
-        </div>
-
-        <!-- Interactive Question Editor Card -->
-        <div class="card">
-          <div class="card-header teacher-step-header" style="margin-bottom:12px">
-            <div>
-              <div class="lab">Step 2 · Teacher Question Review</div>
-              <h3 style="margin:2px 0">Comprehension Questions (${TEACHER_STUDIO_QUESTIONS.length})</h3>
-            </div>
-            <button type="button" class="btn sm o" data-a="tstudio-add-question">
-              ${uiIcon("add")} Add Custom Question
-            </button>
-          </div>
-
-          ${TEACHER_STUDIO_QUESTIONS.length === 0 ? `
-            <div style="text-align:center;padding:30px 10px;background:var(--bg);border-radius:var(--radius-sm)">
-              <div style="font-size:2rem;margin-bottom:6px">💡</div>
-              <b>No Questions Generated Yet</b>
-              <p class="sub-sm" style="max-width:360px;margin:4px auto 0">
-                Click <b>Draft Questions with Wisyo AI</b> in the side panel to propose comprehension questions, or add custom questions manually.
-              </p>
-            </div>
-          ` : `
-            <div class="teacher-questions-list" style="display:flex;flex-direction:column;gap:14px">
-              ${TEACHER_STUDIO_QUESTIONS.map((q, qIdx) => `
-                <div class="card" style="margin:0;border:1px solid var(--border);background:var(--card-bg)">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                    <span class="sub-sm">
-                      Question ${qIdx + 1} of ${TEACHER_STUDIO_QUESTIONS.length} · 
-                      <b style="color:var(--navy)">${escapeHTML(q.k || "Literal")}</b>
-                    </span>
-                    <button type="button" class="icon-btn" data-a="tstudio-delete-q" data-v="${qIdx}" title="Delete question" aria-label="Delete question">
-                      ${uiIcon("trash")}
-                    </button>
-                  </div>
-
-                  <!-- Question Prompt -->
-                  <label style="display:block;margin-bottom:10px">
-                    <span class="lab">Question Prompt</span>
-                    <input type="text" class="auth-input tstudio-q-prompt" data-idx="${qIdx}" value="${escapeHTML(q.q)}">
-                  </label>
-
-                  <!-- 4 Options -->
-                  <div style="margin-bottom:10px">
-                    <span class="lab" style="display:block;margin-bottom:4px">Answer Choices (Select radio button for Correct Answer)</span>
-                    <div style="display:flex;flex-direction:column;gap:6px">
-                      ${q.o.map((opt, optIdx) => `
-                        <div style="display:flex;align-items:center;gap:8px">
-                          <input type="radio" name="correct_key_${qIdx}" value="${optIdx}" ${q.a === optIdx ? 'checked' : ''} data-a="tstudio-set-key" data-qidx="${qIdx}" data-optidx="${optIdx}" aria-label="Option ${String.fromCharCode(65 + optIdx)} correct">
-                          <span style="font-weight:700;font-size:0.85rem;width:20px">${String.fromCharCode(65 + optIdx)}</span>
-                          <input type="text" class="auth-input tstudio-opt-input" style="flex:1" data-qidx="${qIdx}" data-optidx="${optIdx}" value="${escapeHTML(opt)}">
-                        </div>
-                      `).join("")}
-                    </div>
-                  </div>
-
-                  <!-- Text Evidence Explanation -->
-                  <label style="display:block">
-                    <span class="lab">Text Evidence &amp; Explanation</span>
-                    <input type="text" class="auth-input tstudio-exp-input" data-idx="${qIdx}" placeholder="Cite the passage clue supporting this answer..." value="${escapeHTML(q.exp || "")}">
-                  </label>
-                </div>
-              `).join("")}
-            </div>
-          `}
-        </div>
-      </div>
-
-      <!-- Right Column: AI Generator & Workflow Controls -->
-      <div class="card" style="margin:0">
-        <div class="card-header" style="margin-bottom:12px">
-          <div>
-            <div class="lab">AI Drafting &amp; Controls</div>
-            <h3 style="margin:2px 0">Drafting Settings</h3>
-          </div>
-        </div>
-
-        <label style="display:block;margin-bottom:12px">
-          <span class="lab">Language</span>
-          <select id="tstudio-lang-select" class="auth-input">
-            <option value="en" ${TEACHER_STUDIO_LANG === 'en' ? 'selected' : ''}>English</option>
-            <option value="fil" ${TEACHER_STUDIO_LANG === 'fil' ? 'selected' : ''}>Filipino</option>
-            <option value="ceb" ${TEACHER_STUDIO_LANG === 'ceb' ? 'selected' : ''}>Cebuano / Bisaya</option>
-          </select>
-        </label>
-
-        <label style="display:block;margin-bottom:12px">
-          <span class="lab">Difficulty Level</span>
-          <select id="tstudio-diff-select" class="auth-input">
-            <option value="easy" ${TEACHER_STUDIO_DIFF === 'easy' ? 'selected' : ''}>Easy (Grades 7–8)</option>
-            <option value="medium" ${TEACHER_STUDIO_DIFF === 'medium' ? 'selected' : ''}>Medium (Grades 9–10)</option>
-            <option value="hard" ${TEACHER_STUDIO_DIFF === 'hard' ? 'selected' : ''}>Hard (Grades 11–12)</option>
-          </select>
-        </label>
-
-        <div style="margin-bottom:16px">
-          <span class="lab" style="display:block;margin-bottom:6px">Questions Count</span>
-          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px">
-            ${[5, 10, 15].map(cnt => `
-              <button type="button" class="btn sm ${TEACHER_STUDIO_Q_COUNT === cnt ? 'blue' : 'o'}" data-a="tstudio-qcount" data-v="${cnt}">
-                ${cnt} Qs
-              </button>
-            `).join("")}
-          </div>
-        </div>
-
-        <button type="button" class="btn o" data-a="tstudio-draft-ai" style="width:100%;margin-bottom:16px" ${TEACHER_STUDIO_IS_LOADING ? 'disabled' : ''}>
-          ${TEACHER_STUDIO_IS_LOADING ? 'Generating Draft Questions...' : `${uiIcon("sparkles")} Draft Questions with Wisyo AI`}
-        </button>
-
-        <!-- Save & Approval Actions -->
-        <div style="border-top:1px solid var(--border);padding-top:16px">
-          <span class="lab" style="display:block;margin-bottom:8px">Material Lifecycle</span>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <button type="button" class="btn blue" data-a="tstudio-save-draft" style="width:100%">
-              ${uiIcon("download")} Save as Teacher Draft
-            </button>
-            <button type="button" class="btn o" data-a="tstudio-submit-approval" style="width:100%">
-              ${uiIcon("send")} Submit for Admin Approval
-            </button>
-          </div>
-        </div>
-      </div>
+      ${TEACHER_STUDIO_SUBTAB === "assignments"
+        ? renderTeacherAssignmentsView()
+        : renderTeacherApprovalQueueView()}
     </div>
   `;
 }
@@ -257,65 +132,52 @@ function renderTeacherEditorView(stats) {
  * @returns {string} HTML markup
  */
 function renderTeacherApprovalQueueView() {
-  const teacher = typeof AUTH !== "undefined" ? AUTH.currentUser : { id: "teacher", role: "teacher" };
-  const allMaterials = typeof readLocalMaterials === "function" ? readLocalMaterials() : [];
-  const teacherMaterials = allMaterials.filter(m => m.ownerId === teacher?.id || m.ownerRole === "teacher");
+  const teacher = AUTH.currentUser;
+  const passages = AUTH.customPassages.flatMap(raw => {
+    try { return [normalizePassage(raw)]; }
+    catch (error) { return []; }
+  }).filter(passage => passage.ownerId === teacher.id);
+  const passageIds = new Set(passages.map(passage => passage.id));
+  const links = readLegacyMaterialLinks();
+  const incompleteLegacy = legacyTeacherMaterials(teacher.id)
+    .filter(material => !passageIds.has(material.id) && !links[material.id]);
 
   return `
     <div class="card">
       <div class="card-header" style="margin-bottom:16px">
         <div>
-          <div class="lab">${uiIcon("badge")} Material Lifecycle</div>
+          <div class="lab">${uiIcon("badge")} Passage Lifecycle</div>
           <h3 style="margin:2px 0">Approval &amp; Publication Status</h3>
         </div>
       </div>
-
-      ${teacherMaterials.length === 0 ? `
-        <div style="text-align:center;padding:30px 10px">
-          <p class="sub">You haven't saved any materials yet. Create a draft in the Material &amp; Questions tab.</p>
+      ${passages.length ? `<div class="teacher-practice-list">
+        ${passages.map(passage => `<article class="teacher-practice-row">
+          <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div><b>${escapeHTML(passage.t)}</b><div class="sub-sm">${escapeHTML(passage.diff)} · ${passage.qs.length} questions · ${wordCount(passage.x)} words</div></div>
+            <span class="pill">${escapeHTML(passage.status)}</span>
+          </div>
+          ${passage.reviewNote ? `<p class="sub-sm">Admin note: ${escapeHTML(passage.reviewNote)}</p>` : ""}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            ${["draft", "rejected"].includes(passage.status) ? `
+              <button class="btn o sm" data-a="practice-edit" data-v="${escapeHTML(passage.id)}">Edit</button>
+              <button class="btn o sm" data-a="practice-delete" data-v="${escapeHTML(passage.id)}">Delete</button>
+            ` : ""}
+            ${passage.status === "pending" ? `<button class="btn o sm" data-a="practice-withdraw" data-v="${escapeHTML(passage.id)}">Withdraw to edit</button>` : ""}
+            ${passage.status === "published" ? `<button class="btn o sm" data-a="tstudio-assign-material" data-v="${escapeHTML(passage.id)}">Assign</button>` : ""}
+          </div>
+        </article>`).join("")}
+      </div>` : `<p class="sub">No passages yet. Choose Add passage to create one.</p>`}
+      ${incompleteLegacy.length ? `<section style="margin-top:20px" aria-label="Legacy materials needing review">
+        <h4>Older materials needing completion</h4>
+        <p class="sub-sm">These remain in their original browser storage. Complete them in Add passage; existing assignment packages remain available.</p>
+        <div class="teacher-practice-list">
+          ${incompleteLegacy.map(material => `<article class="teacher-practice-row">
+            <b>${escapeHTML(material.title || "Untitled material")}</b>
+            <div class="sub-sm">${Array.isArray(material.questions) ? material.questions.length : 0} questions · ${escapeHTML(material.status || "draft")}</div>
+            <button class="btn o sm" data-a="tstudio-convert-legacy" data-v="${escapeHTML(material.id)}">Complete in Add passage</button>
+          </article>`).join("")}
         </div>
-      ` : `
-        <div class="table-responsive" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-          <table class="table" style="width:100%;min-width:540px">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Difficulty</th>
-                <th>Words</th>
-                <th>Questions</th>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${teacherMaterials.map(m => `
-                <tr>
-                  <td><b>${escapeHTML(m.title)}</b></td>
-                  <td><span class="badge-diff diff-${m.difficulty}">${m.difficulty.toUpperCase()}</span></td>
-                  <td>${m.wordCount || 0}</td>
-                  <td>${m.questions?.length || 0}</td>
-                  <td>v${m.version || 1}</td>
-                  <td>
-                    <span class="pill ${m.status === 'approved' || m.status === 'published' ? 'ok' : m.status === 'pending' ? 'blue' : 'warn'}">
-                      ${m.status.toUpperCase()}
-                    </span>
-                  </td>
-                  <td>
-                    <div style="display:flex;gap:6px">
-                      <button class="btn sm o" data-a="tstudio-load-edit" data-v="${escapeHTML(m.id)}">Edit</button>
-                      ${m.status === 'draft' ? `
-                        <button class="btn sm blue" data-a="tstudio-submit-approval-id" data-v="${escapeHTML(m.id)}">Submit</button>
-                      ` : ''}
-                      <button class="btn sm o" data-a="tstudio-assign-material" data-v="${escapeHTML(m.id)}">Assign</button>
-                    </div>
-                  </td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </div>
-      `}
+      </section>` : ""}
     </div>
   `;
 }
@@ -327,7 +189,7 @@ function renderTeacherApprovalQueueView() {
 function renderTeacherAssignmentsView() {
   const teacher = typeof AUTH !== "undefined" ? AUTH.currentUser : { id: "teacher", role: "teacher", section: "Grade 8 - Rizal" };
   const assignments = typeof listAssignments === "function" ? listAssignments({ role: "teacher", id: teacher?.id }) : [];
-  const allMaterials = typeof readLocalMaterials === "function" ? readLocalMaterials() : [];
+  const publishedPassages = getPublishedPassages();
 
   return `
     <div class="card">
@@ -345,20 +207,20 @@ function renderTeacherAssignmentsView() {
       </div>
 
       <!-- New Assignment Quick Form -->
-      <div class="card" style="background:var(--bg);margin-bottom:20px;border:1px solid var(--border)">
+      <div class="card teacher-assignment-create-card" style="background:var(--bg);margin-bottom:20px;border:1px solid var(--border)">
         <h4 style="margin:0 0 10px 0">Create New Class Assignment</h4>
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end">
+        <div class="teacher-assignment-form-grid">
           <label>
-            <span class="lab">Select Reading Material</span>
+            <span class="lab">Select Published Passage</span>
             <select id="tstudio-assign-mat-select" class="auth-input">
-              ${allMaterials.map(m => `
-                <option value="${escapeHTML(m.id)}">${escapeHTML(m.title)} (${m.questions?.length || 0} Qs · ${m.difficulty})</option>
+              ${publishedPassages.map(passage => `
+                <option value="${escapeHTML(passage.id)}">${escapeHTML(passage.t)} (${passage.qs.length} Qs · ${escapeHTML(passage.diff)})</option>
               `).join("")}
             </select>
           </label>
           <label>
             <span class="lab">Class Section</span>
-            <input type="text" id="tstudio-assign-section-input" class="auth-input" value="${escapeHTML(teacher?.section || "Grade 8 - Rizal")}">
+            <input type="text" id="tstudio-assign-section-input" class="auth-input" placeholder="e.g. Grade 8 - Rizal" value="${escapeHTML(teacher?.section || "Grade 8 - Rizal")}">
           </label>
           <label>
             <span class="lab">Due Date</span>
@@ -371,49 +233,77 @@ function renderTeacherAssignmentsView() {
               <option value="assessment">Formal Assessment</option>
             </select>
           </label>
-          <button type="button" class="btn blue" data-a="tstudio-create-assignment-action" style="padding:10px 16px">
+          <button type="button" class="btn blue teacher-assign-btn" data-a="tstudio-create-assignment-action" style="padding:10px 16px">
             Assign to Class
           </button>
         </div>
       </div>
 
-      <!-- Active Assignments Table -->
+      <!-- Active Assignments: Desktop Table & Mobile Cards -->
       ${assignments.length === 0 ? `
         <p class="sub" style="text-align:center;padding:20px">No active assignments yet. Create one above to assign reading materials to your students.</p>
       ` : `
-        <table class="table" style="width:100%">
-          <thead>
-            <tr>
-              <th>Assignment Title</th>
-              <th>Class Section</th>
-              <th>Due Date</th>
-              <th>Mode</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${assignments.map(a => `
+        <!-- Desktop Table View -->
+        <div class="desktop-assignments-table table-responsive" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <table class="table" style="width:100%;min-width:620px">
+            <thead>
               <tr>
-                <td><b>${escapeHTML(a.title)}</b></td>
-                <td>${escapeHTML(a.targetGroup || a.section || "General")}</td>
-                <td>${escapeHTML(a.dueDate || "Flexible")}</td>
-                <td><span class="pill ${a.mode === 'assessment' ? 'warn' : 'ok'}">${escapeHTML(a.mode || 'practice').toUpperCase()}</span></td>
-                <td><span class="pill blue">${escapeHTML(a.status || 'active').toUpperCase()}</span></td>
-                <td>
-                  <div style="display:flex;gap:6px">
-                    <button class="btn sm o" data-a="tstudio-export-pkg" data-v="${escapeHTML(a.id)}" title="Export content package for student devices">
-                      ${uiIcon("download")} Export Package
-                    </button>
-                    <button class="btn sm o" data-a="tstudio-delete-assignment" data-v="${escapeHTML(a.id)}" title="Remove assignment">
-                      ${uiIcon("trash")}
-                    </button>
-                  </div>
-                </td>
+                <th>Assignment Title</th>
+                <th>Class Section</th>
+                <th>Due Date</th>
+                <th>Mode</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            `).join("")}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${assignments.map(a => `
+                <tr>
+                  <td><b>${escapeHTML(a.title)}</b></td>
+                  <td>${escapeHTML(a.targetGroup || a.section || "General")}</td>
+                  <td>${escapeHTML(a.dueDate || "Flexible")}</td>
+                  <td><span class="pill ${a.mode === 'assessment' ? 'warn' : 'ok'}">${escapeHTML(a.mode || 'practice').toUpperCase()}</span></td>
+                  <td><span class="pill blue">${escapeHTML(a.status || 'active').toUpperCase()}</span></td>
+                  <td>
+                    <div style="display:flex;gap:6px">
+                      <button class="btn sm o" data-a="tstudio-export-pkg" data-v="${escapeHTML(a.id)}" title="Export content package for student devices">
+                        ${uiIcon("download")} Export Package
+                      </button>
+                      <button class="btn sm o" data-a="tstudio-delete-assignment" data-v="${escapeHTML(a.id)}" title="Remove assignment">
+                        ${uiIcon("trash")}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Stacked Card View -->
+        <div class="mobile-assignments-list">
+          ${assignments.map(a => `
+            <div class="card assignment-mobile-card" style="margin:0 0 12px 0;padding:14px;border:1px solid var(--border);background:var(--card-bg)">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+                <b style="font-size:0.95rem;color:var(--text)">${escapeHTML(a.title)}</b>
+                <span class="pill ${a.mode === 'assessment' ? 'warn' : 'ok'}">${escapeHTML(a.mode || 'practice').toUpperCase()}</span>
+              </div>
+              <div class="sub-sm" style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px;color:var(--sub)">
+                <div><b>Section:</b> ${escapeHTML(a.targetGroup || a.section || "General")}</div>
+                <div><b>Due:</b> ${escapeHTML(a.dueDate || "Flexible")}</div>
+                <div><b>Status:</b> <span class="pill blue" style="font-size:0.75rem">${escapeHTML(a.status || 'active').toUpperCase()}</span></div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn sm o" data-a="tstudio-export-pkg" data-v="${escapeHTML(a.id)}" style="flex:1;min-height:44px;justify-content:center">
+                  ${uiIcon("download")} Export
+                </button>
+                <button class="btn sm o" data-a="tstudio-delete-assignment" data-v="${escapeHTML(a.id)}" style="flex:1;min-height:44px;justify-content:center;color:var(--coral)">
+                  ${uiIcon("trash")} Remove
+                </button>
+              </div>
+            </div>
+          `).join("")}
+        </div>
       `}
     </div>
   `;

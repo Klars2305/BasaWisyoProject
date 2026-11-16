@@ -564,57 +564,168 @@ const PRACTICE_DATA = {
   ]
 };
 
-// Calibration Placement Test Passages (4 passages spanning Easy, Medium, Hard, Extreme)
+// Calibration Placement Test Passages (3 passages, 5 questions each = 15 questions total)
+// Covering: Literal comprehension, Vocabulary, Inference, Sequencing, and Main idea.
 const PLACEMENT_TEST = [
   {
     id: "pl_easy",
-    t: "Placement 1: A Fisher’s Morning",
+    t: "Placement Step 1: A Fisher’s Morning in Bohol",
     diff: "easy",
-    x: "Bayani woke up early to help his uncle repair their small wooden banca. They replaced two broken bamboo outriggers and sealed the joints with tree resin. By dawn, the boat floated smoothly on the gentle morning sea.",
-    qs: [{
-      q: "What did Bayani and his uncle use to seal the boat's joints?",
-      o: ["Plastic tape", "Tree resin", "Cement", "Banana leaves"],
-      a: 1,
-      k: "Literal"
-    }]
+    x: "Bayani woke up before sunrise to help his uncle repair their small wooden banca by the shore of Bohol. Together, they replaced two worn-out bamboo outriggers and sealed the hull joints with fragrant tree resin. By dawn, the tide had risen, and the boat floated smoothly on the gentle morning sea, completely ready for the day's catch.",
+    qs: [
+      {
+        q: "What material did Bayani and his uncle use to seal the boat's joints?",
+        o: ["Plastic tape", "Tree resin", "Cement paste", "Banana fiber"],
+        a: 1,
+        k: "Literal"
+      },
+      {
+        q: "In this passage, what does the word 'outrigger' refer to?",
+        o: ["A stabilizing bamboo float attached to the side of a boat", "A sharp wooden harpoon used for fishing", "A canvas sail catching the wind", "An anchor dropped to the seabed"],
+        a: 0,
+        k: "Vocabulary"
+      },
+      {
+        q: "Why did Bayani and his uncle finish their repairs before sunrise?",
+        o: ["To avoid being seen by other fishers", "Because wood cannot be worked in daylight", "So the banca was ready to launch as the morning tide rose", "They wanted to escape a sudden storm"],
+        a: 2,
+        k: "Inference"
+      },
+      {
+        q: "According to the story, what did they do immediately after replacing the outriggers?",
+        o: ["Floated the boat on the morning sea", "Woke up before dawn", "Sealed the hull joints with tree resin", "Cleaned their fishing nets"],
+        a: 2,
+        k: "Sequencing"
+      },
+      {
+        q: "Which sentence expresses the main idea of this story?",
+        o: ["Wooden bancas cannot withstand ocean tides", "Early teamwork and careful craft prepare a boat for safe fishing", "Tree resin is scarce in coastal villages", "Fishing is easiest during high tide"],
+        a: 1,
+        k: "Main idea"
+      }
+    ]
   },
   {
     id: "pl_med",
-    t: "Placement 2: The Coral Patrol",
+    t: "Placement Step 2: The Coral Patrol of Davao Gulf",
     diff: "medium",
-    x: "Community fishers in Davao Gulf formed volunteer sea patrols to stop destructive blast fishing. Since the patrols began two years ago, damaged reefs have slowly sprouted new coral branches, and schools of yellowfin tuna have returned.",
-    qs: [{
-      q: "What was the direct outcome of the volunteer patrols?",
-      o: ["Fishermen stopped working at sea", "Coral reefs began recovering and fish returned", "Ferries were prohibited from docking", "The government closed the market"],
-      a: 1,
-      k: "Inference"
-    }]
+    x: "Community fishers in Davao Gulf formed volunteer sea patrols after witnessing decades of reef destruction from illegal blast fishing. The volunteers coordinated night watches and marked marine boundaries with solar-powered buoys. Since the patrols began two years ago, damaged barrier reefs have slowly sprouted vibrant new coral branches, and returning schools of yellowfin tuna have revitalized the local coastal economy.",
+    qs: [
+      {
+        q: "How long have the volunteer community patrols been protecting Davao Gulf?",
+        o: ["Two years", "Ten years", "Six months", "Two weeks"],
+        a: 0,
+        k: "Literal"
+      },
+      {
+        q: "In this passage, what does the word 'sprouted' mean?",
+        o: ["Broke into pieces", "Began to grow new branches", "Turned pale white", "Sank beneath the sand"],
+        a: 1,
+        k: "Vocabulary"
+      },
+      {
+        q: "Why did schools of yellowfin tuna return to the coastal waters of the gulf?",
+        o: ["The fishers fed them artificial food pellets", "Volunteers built concrete dams", "Reef recovery restored natural marine habitats and feeding grounds", "Commercial ferry boats were banned from docking"],
+        a: 2,
+        k: "Inference"
+      },
+      {
+        q: "Which event occurred first in the timeline of the community's environmental story?",
+        o: ["Reefs sprouted new coral branches", "Schools of yellowfin tuna returned", "Fishers observed reef destruction from destructive blast fishing", "Volunteers installed solar-powered marine buoys"],
+        a: 2,
+        k: "Sequencing"
+      },
+      {
+        q: "What is the central message conveyed by the passage?",
+        o: ["Blast fishing is profitable for coastal towns", "Community vigilance and marine protection can successfully restore marine life", "Yellowfin tuna only breed in polluted harbors", "Night sea patrols should be replaced by drones"],
+        a: 1,
+        k: "Main idea"
+      }
+    ]
   },
   {
     id: "pl_hard",
-    t: "Placement 3: The Ink of Liberty",
+    t: "Placement Step 3: Voices of La Solidaridad",
     diff: "hard",
-    x: "During the 19th-century reform movement, exiled Filipino writers in Spain smuggled copies of La Solidaridad into Manila inside coffee sacks. They understood that educating citizens on their legal rights was far more dangerous to tyrannical authorities than any armed revolt.",
-    qs: [{
-      q: "Why did colonial authorities fear the smuggled journals?",
-      o: ["The journals were physically heavy", "Civic education and knowledge of rights threatened tyrannical power", "The journals carried infectious diseases", "They competed with Spanish book publishers"],
-      a: 1,
-      k: "Critical reading"
-    }]
-  },
-  {
-    id: "pl_extreme",
-    t: "Placement 4: Intergenerational Ecology",
-    diff: "extreme",
-    x: "In Oposa v. Factoran, the high court recognized that youth have standing to sue for ecological conservation on behalf of generations yet unborn. The ruling held that the present generation is merely a temporary trustee of nature, bound by a fiduciary obligation to pass on a habitable world.",
-    qs: [{
-      q: "Under this legal doctrine, what is the role of the present generation regarding nature?",
-      o: ["Absolute owners entitled to exhaust all resources for profit", "Temporary trustees bound by a duty to preserve the earth for future generations", "Passive observers without legal accountability", "Lenders who must charge interest to future citizens"],
-      a: 1,
-      k: "Main idea"
-    }]
+    x: "During the 19th-century Propaganda Movement, exiled Filipino reformists in Spain published La Solidaridad to expose colonial abuses and advocate for civic equality. Rather than pursuing armed confrontation, writers like Marcelo H. del Pilar and Graciano López Jaena smuggled printed copies into Manila concealed inside sacks of dried coffee beans. They argued that cultivating civic consciousness and teaching citizens their legal rights posed a far more enduring challenge to authoritarian rule than spontaneous violence.",
+    qs: [
+      {
+        q: "Where did exiled reformists print and publish La Solidaridad?",
+        o: ["In Manila", "In Spain", "In Bohol", "In Cebu"],
+        a: 1,
+        k: "Literal"
+      },
+      {
+        q: "In this text, what does the phrase 'authoritarian rule' mean?",
+        o: ["A government that promotes democratic debate", "A system exercising strict, oppressive power without public consent", "A community managed entirely by volunteer fishers", "A federation of independent public schools"],
+        a: 1,
+        k: "Vocabulary"
+      },
+      {
+        q: "Why did colonial authorities fear civic education and legal literacy more than armed revolt?",
+        o: ["Printed papers were heavier than weapons", "Informed citizens who understand their legal rights cannot be easily intimidated or misled", "Colonial governors were investors in rival print shops", "The smuggled journals carried contagious tropical fevers"],
+        a: 1,
+        k: "Inference"
+      },
+      {
+        q: "According to the passage, what occurred after the essays were published in Spain?",
+        o: ["The authors declared an immediate military strike", "Copies were concealed inside coffee sacks and smuggled to Manila", "Reformers abandoned writing to become coffee merchants", "The colonial administration granted full representation"],
+        a: 1,
+        k: "Sequencing"
+      },
+      {
+        q: "What is the primary argument presented in this passage?",
+        o: ["Armed revolts are the only effective method of reform", "Coffee bean sacks make the best trade packaging", "Intellectual enlightenment and civic literacy are formidable instruments for freedom", "19th-century newspapers were unpopular among Filipino readers"],
+        a: 2,
+        k: "Main idea"
+      }
+    ]
   }
 ];
+
+// Optional Advanced Verification Passage (5 questions)
+// Offered only to students demonstrating exceptionally high mastery across all 3 placement passages.
+const PLACEMENT_VERIFICATION_PASSAGE = [
+  {
+    id: "pl_verify",
+    t: "Advanced Verification: Intergenerational Ecological Justice",
+    diff: "extreme",
+    x: "In the landmark Philippine jurisprudence of Oposa v. Factoran, the Supreme Court recognized the novel legal doctrine of intergenerational responsibility. Represented by their parents, a group of Filipino minors petitioned to cancel all commercial timber licenses, asserting their constitutional right to a balanced and healthful ecology. The landmark decision ruled that the youth have legal personality to sue not only for themselves, but also on behalf of generations yet unborn, establishing that each generation holds nature in temporary trust with a fiduciary obligation to preserve the earth.",
+    qs: [
+      {
+        q: "What legal doctrine was established in the landmark case of Oposa v. Factoran?",
+        o: ["Intergenerational ecological responsibility", "Commercial timber deregulation", "Statute of limitations on reforestation", "Exclusive corporate mineral rights"],
+        a: 0,
+        k: "Literal"
+      },
+      {
+        q: "What is the meaning of 'fiduciary obligation' in the context of this ruling?",
+        o: ["A commercial loan contract with high interest", "A solemn duty of trust to protect and preserve vital resources for others", "An exemption from ecological accountability", "A license permitting unrestricted forest logging"],
+        a: 1,
+        k: "Vocabulary"
+      },
+      {
+        q: "Why did the high court recognize the standing of minors to sue on behalf of unborn generations?",
+        o: ["Because adult citizens refused to participate in court cases", "Because children pay higher municipal property taxes", "Because the irreversible depletion of rainforests deprives unborn citizens of a habitable world", "Because timber companies requested child labor regulations"],
+        a: 2,
+        k: "Inference"
+      },
+      {
+        q: "What was the initial action taken by the Filipino youth before the Supreme Court issued its landmark ruling?",
+        o: ["They petitioned through their parents to cancel commercial logging licenses", "They signed a commercial lumber concession contract", "They drafted a new national constitution", "They dissolved the Department of Environment and Natural Resources"],
+        a: 0,
+        k: "Sequencing"
+      },
+      {
+        q: "What is the overarching principle established by the court regarding humanity's relationship with nature?",
+        o: ["The present generation possesses absolute ownership to exhaust natural resources for profit", "The present generation acts as temporary stewards holding a legal duty to preserve ecology for posterity", "Future generations must purchase environmental rights from current commercial holders", "Courts have no jurisdiction over environmental conservation matters"],
+        a: 1,
+        k: "Main idea"
+      }
+    ]
+  }
+];
+
 
 // 40 Realistic Sample Students for Phil-IRI Class Reports
 const CLASS_ROSTER = [

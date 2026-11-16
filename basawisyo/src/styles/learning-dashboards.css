@@ -130,6 +130,12 @@
   .teacher-page .metric-grid, .admin-page .metric-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .teacher-page .assignment-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+@media (max-width: 600px) {
+  .profile-page .profile-heading { flex-wrap: wrap; }
+  .profile-page .profile-heading > div:nth-child(2) { flex: 1 1 calc(100% - 72px); min-width: 0; }
+  .profile-page .profile-heading > div:last-child { width: 100%; margin-left: 0 !important; margin-top: 6px; }
+  .profile-page .profile-heading > div:last-child .btn { width: 100%; justify-content: center; white-space: nowrap; }
+}
 @media (max-width: 359px) {
   .profile-page .profile-summary, .teacher-page .metric-grid, .admin-page .metric-grid { grid-template-columns: minmax(0, 1fr); }
   .teacher-page .metric-box:last-child, .admin-page .metric-box:last-child { grid-column: auto; }

@@ -9,9 +9,56 @@ let WISYO_STATUS_CHECKED = false;
 let WISYO_STATUS_PENDING = null;
 let WISYO_RETRY_AT = 0;
 let WISYO_OFFLINE_REASON = "";
+let WISYO_API_BASE = "";
+
+function getWisyoStorageKey() {
+  const uid = (typeof AUTH !== "undefined" && AUTH.currentUser?.id) ? AUTH.currentUser.id : "guest";
+  return `basawisyo_chat_history_${uid}`;
+}
+
+function loadWisyoChatHistory() {
+  try {
+    if (typeof localStorage !== "undefined") {
+      const raw = localStorage.getItem(getWisyoStorageKey());
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    }
+  } catch (_) {}
+  return [["a", "Mabuhay! I'm Wisyo. Ask about reading, a word, or your current passage. I use Groq when it is available and switch to offline help when it is not."]];
+}
+
+function saveWisyoChatHistory() {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(getWisyoStorageKey(), JSON.stringify(CHAT_HISTORY));
+    }
+  } catch (_) {}
+}
+
+function clearWisyoChat() {
+  WISYO_REQUEST_ID++;
+  WISYO_BUSY = false;
+  CHAT_HISTORY = [["a", "Mabuhay! I'm Wisyo. Ask about reading, a word, or your current passage. I use Groq when it is available and switch to offline help when it is not."]];
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(getWisyoStorageKey());
+    }
+  } catch (_) {}
+  renderChat();
+  updateWisyoModeUI();
+}
+
+function initWisyoChatForCurrentAccount() {
+  CHAT_HISTORY = loadWisyoChatHistory();
+  if (typeof renderChat === "function") renderChat();
+  if (typeof updateWisyoModeUI === "function") updateWisyoModeUI();
+}
 
 function wisyoReadingContext() {
   const quiz = ACTIVE_QUIZ;
+  const isPlacement = quiz?.mode === "pl";
   const step = quiz?.steps?.[quiz.idx];
   const recentMistake = S?.miss ? {
     q: String(S.miss.q || ""),
@@ -27,7 +74,7 @@ function wisyoReadingContext() {
   } : null;
 
   if (!step?.P) {
-    return recentMistake ? { recentMistake } : {};
+    return recentMistake ? { recentMistake, isPlacement } : { isPlacement };
   }
 
   const selectedAnswer = quiz.isAnswered && Number.isInteger(quiz.selectedChoice) && step.q?.o?.[quiz.selectedChoice]
@@ -47,18 +94,41 @@ function wisyoReadingContext() {
       answered: Boolean(quiz.isAnswered),
       selectedAnswer
     } : undefined,
-    recentMistake
+    recentMistake,
+    isPlacement
   };
 }
 
 function updateWisyoModeUI(message = "") {
-  $("#ai-mode-tag").textContent = WISYO_MODE === "online" ? "Groq AI" : "Offline help";
-  $("#ai-subtitle").textContent = WISYO_MODE === "online"
-    ? `${WISYO_PROVIDER} can use the current passage and recent chat to help you read.`
-    : "Passage tips and vocabulary stay in this browser.";
-  $("#ai-mode-status").textContent = message || WISYO_OFFLINE_REASON || (WISYO_MODE === "online"
-    ? `Groq is configured. Messages, the current passage, and recent chat are sent when you ask Wisyo.`
-    : "Using offline help. Add a Groq key to the local server for automatic online answers.");
+  const isPrem = typeof isUserPremium === "function" && isUserPremium();
+  const tag = $("#ai-mode-tag");
+  if (tag) {
+    if (isPrem && WISYO_MODE === "online") {
+      tag.textContent = "Wisyo Plus 👑";
+      if (tag.style) {
+        tag.style.background = "#fef3c7";
+        tag.style.color = "#92400e";
+      }
+    } else {
+      tag.textContent = WISYO_MODE === "online" ? "Groq AI" : "Offline help";
+      if (tag.style) {
+        tag.style.background = "";
+        tag.style.color = "";
+      }
+    }
+  }
+  const sub = $("#ai-subtitle");
+  if (sub) {
+    sub.textContent = WISYO_MODE === "online"
+      ? (isPrem ? "High-thinking Wisyo Plus mode active with advanced reasoning." : `${WISYO_PROVIDER} can use the current passage and recent chat to help you read.`)
+      : "Passage tips and vocabulary stay in this browser.";
+  }
+  const status = $("#ai-mode-status");
+  if (status) {
+    status.textContent = message || WISYO_OFFLINE_REASON || (WISYO_MODE === "online"
+      ? (isPrem ? "Wisyo Plus active: generous high-thinking tutoring with deep reading reasoning." : `Groq is configured. Messages, the current passage, and recent chat are sent when you ask Wisyo.`)
+      : "Using offline help. Add a Groq key to the local server for automatic online answers.");
+  }
   const send = $("#ai-send-button");
   if (send) send.disabled = WISYO_BUSY;
 }
@@ -67,7 +137,23 @@ async function checkWisyoOnlineStatus() {
   if (WISYO_STATUS_PENDING) return WISYO_STATUS_PENDING;
   WISYO_STATUS_PENDING = (async () => {
     try {
-      const response = await fetch("/api/chat/status", { signal: AbortSignal.timeout(3000) });
+      let response;
+      try {
+        response = await fetch(`${WISYO_API_BASE}/api/chat/status`, { signal: AbortSignal.timeout(3000) });
+      } catch (primaryErr) {
+        // Fallback probe for localhost port 8765 if browsing from another local port (e.g. 3000 or 5500)
+        if (typeof window !== "undefined" && window.location && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") && window.location.port !== "8765") {
+          try {
+            const probe = await fetch("http://127.0.0.1:8765/api/chat/status", { signal: AbortSignal.timeout(2000) });
+            if (probe.ok) {
+              WISYO_API_BASE = "http://127.0.0.1:8765";
+              response = probe;
+            }
+          } catch (_) {}
+        }
+        if (!response) throw primaryErr;
+      }
+
       if (!response.ok) {
         WISYO_STATUS_CHECKED = true;
         WISYO_ONLINE_AVAILABLE = false;
@@ -103,11 +189,16 @@ async function checkWisyoOnlineStatus() {
 
 function aiOpen(defaultPrompt) {
   const dialog = $("#ai");
-  if (dialog.hidden) dialog._returnFocus = document.activeElement;
-  dialog.hidden = false;
-  setTimeout(() => $("#aii").focus(), 80);
+  if (dialog) {
+    if (dialog.hidden) dialog._returnFocus = document.activeElement;
+    dialog.hidden = false;
+  }
+  if (typeof document !== "undefined" && document.body) {
+    document.body.classList.add("wisyo-chat-open");
+  }
+  setTimeout(() => $("#aii")?.focus?.(), 80);
   if (!CHAT_HISTORY.length) {
-    CHAT_HISTORY.push(["a", "Mabuhay! I'm Wisyo. Ask about reading, a word, or your current passage. I use Groq when it is available and switch to offline help when it is not."]);
+    CHAT_HISTORY = loadWisyoChatHistory();
   }
   renderChat();
   updateWisyoModeUI();
@@ -115,16 +206,40 @@ function aiOpen(defaultPrompt) {
   if (defaultPrompt) statusCheck.then(() => aiSend(defaultPrompt));
 }
 
+function aiClose() {
+  const dialog = $("#ai");
+  if (dialog) {
+    dialog.hidden = true;
+    if (typeof document !== "undefined" && document.body) {
+      document.body.classList.remove("wisyo-chat-open");
+    }
+    if (dialog._returnFocus?.focus) dialog._returnFocus.focus();
+  }
+}
+
 function renderChat() {
   const container = $("#aim");
-  container.innerHTML = CHAT_HISTORY.map(([role, message]) => {
+  if (!container) return;
+  const esc = typeof escapeHTML === "function" ? escapeHTML : (s => String(s).replace(/"/g, '&quot;'));
+
+  container.innerHTML = CHAT_HISTORY.map(([role, message], idx) => {
     const isUser = role === "u";
+    const isUnavailable = !isUser && typeof message === "string" && message.includes("Groq is unavailable");
+    const prevUserMessage = (isUnavailable && idx > 0 && CHAT_HISTORY[idx - 1]?.[0] === "u") ? CHAT_HISTORY[idx - 1][1] : "";
+
     return `<div class="msg-row ${isUser ? "u" : "a"}">
       ${isUser ? "" : `<div class="msg-avatar"><img src="${LG}" alt="Wisyo" class="mascot-img"></div>`}
       <div class="msg-body ${isUser ? "u" : "a"}">
         ${message === "…"
           ? '<div class="wisyo-replying" role="status" aria-live="polite"><span class="wisyo-replying-text">Wisyo is replying…</span> <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div>'
           : formatChatText(message)}
+        ${isUnavailable && prevUserMessage ? `
+          <div style="margin-top:8px">
+            <button class="btn sm o wisyo-retry-btn" data-a="ai-retry" data-v="${esc(prevUserMessage)}">
+              ↻ Retry with Groq AI
+            </button>
+          </div>
+        ` : ""}
       </div>
     </div>`;
   }).join("");
@@ -204,6 +319,9 @@ function offlineWisyoResponse(input, context = wisyoReadingContext()) {
   const language = wisyoLanguage(query);
 
   if (/mistake|sayop|mali|wrong answer|explain why|why was/i.test(query)) {
+    if (context?.isPlacement && question) {
+      return "You are currently taking your diagnostic placement assessment! Take your time to read each sentence carefully. Diagnostic tests help Wisyo find your personal reading journey, so question hints will unlock once you complete placement.";
+    }
     const miss = context?.recentMistake || S.miss;
     const qText = miss?.q || miss?.question;
     const okText = miss?.ok || miss?.correctAnswer;
@@ -240,6 +358,9 @@ function offlineWisyoResponse(input, context = wisyoReadingContext()) {
   }
 
   if (question && !question.answered) {
+    if (context?.isPlacement) {
+      return "You are currently taking your diagnostic placement assessment! Take your time to read each sentence carefully. Diagnostic tests help Wisyo find your personal reading journey, so question hints will unlock once you complete placement.";
+    }
     return wisyoHint(question, passage, language);
   }
 
@@ -267,6 +388,9 @@ function offlineWisyoResponse(input, context = wisyoReadingContext()) {
   }
 
   if (question && /hint|clue|tabang|help|unsaon|how|answer/i.test(query)) {
+    if (context?.isPlacement) {
+      return "You are currently taking your diagnostic placement assessment! Take your time to read each sentence carefully. Diagnostic tests help Wisyo find your personal reading journey, so question hints will unlock once you complete placement.";
+    }
     return `Reread “${question.text}” and look for a matching sentence in the passage. If you missed it, ask me to explain your last mistake.`;
   }
 
@@ -285,6 +409,32 @@ function offlineWisyoResponse(input, context = wisyoReadingContext()) {
   return "Offline help covers reading skills and the built-in vocabulary. Open a passage for specific hints or evidence.";
 }
 
+function getDailyWisyoUsageKey() {
+  const uid = (typeof AUTH !== "undefined" && AUTH.currentUser?.id) ? AUTH.currentUser.id : "guest";
+  const dateStr = new Date().toISOString().slice(0, 10);
+  return `basawisyo_ai_daily_${dateStr}_${uid}`;
+}
+
+function getDailyWisyoCount() {
+  try {
+    if (typeof localStorage !== "undefined") {
+      return parseInt(localStorage.getItem(getDailyWisyoUsageKey()) || "0", 10);
+    }
+  } catch (_) {}
+  return 0;
+}
+
+function incrementDailyWisyoCount() {
+  try {
+    if (typeof localStorage !== "undefined") {
+      const next = getDailyWisyoCount() + 1;
+      localStorage.setItem(getDailyWisyoUsageKey(), String(next));
+      return next;
+    }
+  } catch (_) {}
+  return 1;
+}
+
 async function aiSend(userText) {
   const clean = String(userText || "").trim();
   if (!clean || WISYO_BUSY) return;
@@ -292,9 +442,29 @@ async function aiSend(userText) {
     showToast("Ask Wisyo using 1,500 characters or fewer.");
     return;
   }
+  const isPrem = typeof isUserPremium === "function" && isUserPremium();
+  const context = wisyoReadingContext();
+
+  // Free quota check: 10 messages/day
+  if (!isPrem) {
+    const count = getDailyWisyoCount();
+    if (count >= 10) {
+      if (typeof openUpgradeModal === "function") {
+        openUpgradeModal("ai", "You have used your 10 free Wisyo AI questions for today! Upgrade to Wisyo Plus for generous high-thinking tutoring or continue with offline reading assistance.");
+      }
+      CHAT_HISTORY.push(
+        ["u", clean],
+        ["a", `⭐ You have reached your 10 free daily AI questions for today. Upgrade to **Wisyo Plus** for generous high-thinking tutoring! Here is offline help for now:\n\n${offlineWisyoResponse(clean, context)}`]
+      );
+      saveWisyoChatHistory();
+      renderChat();
+      return;
+    }
+  }
+
+  incrementDailyWisyoCount();
   const previous = CHAT_HISTORY.slice(1).filter(([, message]) => message !== "…")
     .slice(-8).map(([role, text]) => ({ role: role === "u" ? "user" : "assistant", text: text.slice(0, 1500) }));
-  const context = wisyoReadingContext();
   CHAT_HISTORY.push(["u", clean], ["a", "…"]);
   const replyIndex = CHAT_HISTORY.length - 1;
   const requestId = ++WISYO_REQUEST_ID;
@@ -308,10 +478,10 @@ async function aiSend(userText) {
     }
     let reply;
     if (WISYO_MODE === "online") {
-      const response = await fetch("/api/chat", {
+      const response = await fetch(`${WISYO_API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: clean, history: previous, context }),
+        body: JSON.stringify({ message: clean, history: previous, context, isPremium: isPrem }),
         signal: AbortSignal.timeout(15000)
       });
       const result = await response.json();
@@ -340,6 +510,7 @@ async function aiSend(userText) {
   } finally {
     if (requestId === WISYO_REQUEST_ID) {
       WISYO_BUSY = false;
+      saveWisyoChatHistory();
       updateWisyoModeUI(failureStatus);
       renderChat();
     }

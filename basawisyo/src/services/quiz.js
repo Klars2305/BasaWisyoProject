@@ -139,6 +139,12 @@ function runKaraokeCelebrationTicker(targetPct, score, total) {
 }
 
 function startQuiz(passages, mode, title) {
+  if (mode !== "pl" && AUTH.currentUser?.role === "student" && S.lvl === null) {
+    CURRENT_TAB = "assess";
+    renderApp();
+    showToast("Complete your placement assessment before starting practice.", "warn");
+    return;
+  }
   clearKaraokeTimers();
 
   QUIZ_RESULT = null;
@@ -417,6 +423,9 @@ function handleAnswer(choiceIdx) {
     };
   }
 
+  step.userAnswer = choiceIdx;
+  step.userCorrect = isCorrect;
+
   if (isCorrect) {
     qz.correctCount++;
     if (qz.mode === "pr") qz.correctQuestions.push({ index: qz.idx, skill: q.k || "General" });
@@ -537,7 +546,8 @@ function handleQuizNext() {
 
 function finishQuiz() {
   const qz = ACTIVE_QUIZ;
-  if (!qz) return;
+  if (!qz || qz._isFinalized) return;
+  qz._isFinalized = true;
   const isPlacement = qz.mode === "pl";
   const score = qz.correctCount;
   const total = qz.steps.length;
@@ -561,12 +571,81 @@ function finishQuiz() {
   S.ss += 1;
 
   if (isPlacement) {
-    // Calibrate placement based on 4-point scale:
-    // 0-1: Frustration, 2: Instructional, 3: Independent, 4: Mastery
-    if (score <= 1) S.lvl = 0;
-    else if (score === 2) S.lvl = 1;
-    else if (score === 3) S.lvl = 2;
-    else S.lvl = 3;
+    const isVerification = qz.steps.some(s => s.P.id === "pl_verify");
+
+    if (isVerification) {
+      // 5-question advanced verification for students with strong performance
+      if (score >= 4) {
+        S.lvl = 3; // Confirmed Mastery
+        S.placementVerified = true;
+      } else {
+        S.lvl = 2; // Remains Proficient
+        S.placementVerified = false;
+      }
+      S.placementCandidate = false;
+    } else if (total >= 15) {
+      // 15-question progressive placement assessment (5 questions each across 3 passages)
+      const p1Steps = qz.steps.filter(s => s.P.id === "pl_easy");
+      const p2Steps = qz.steps.filter(s => s.P.id === "pl_med");
+      const p3Steps = qz.steps.filter(s => s.P.id === "pl_hard");
+
+      const p1Correct = p1Steps.filter(s => s.userCorrect).length;
+      const p2Correct = p2Steps.filter(s => s.userCorrect).length;
+      const p3Correct = p3Steps.filter(s => s.userCorrect).length;
+
+      // Evidence-based placement logic:
+      // - Difficulty with basic (<3/5): Foundation support (Level 0)
+      // - Strong basic (>=3/5), weak intermediate (<3/5): Developing (Level 1)
+      // - Strong basic and intermediate (>=3/5 on both): Proficient (Level 2)
+      // - Strong across all passages (>=4/5 across all, or total >= 13):
+      //   Advanced candidate; further verification required before granting Mastery!
+      if (p1Correct < 3) {
+        S.lvl = 0;
+        S.placementCandidate = false;
+      } else if (p2Correct < 3) {
+        S.lvl = 1;
+        S.placementCandidate = false;
+      } else if (p1Correct >= 4 && p2Correct >= 4 && p3Correct >= 4) {
+        S.lvl = 2; // Level 2 provisional
+        S.placementCandidate = true; // Advanced candidate eligible for verification passage
+      } else if (p3Correct >= 3) {
+        S.lvl = 2; // Proficient
+        S.placementCandidate = false;
+      } else {
+        S.lvl = 1; // Developing
+        S.placementCandidate = false;
+      }
+
+      // Record detailed breakdown by skill and passage
+      const skills = {};
+      qz.steps.forEach(s => {
+        const sk = s.q.k || "General";
+        if (!skills[sk]) skills[sk] = { correct: 0, total: 0 };
+        skills[sk].total += 1;
+        if (s.userCorrect) skills[sk].correct += 1;
+      });
+
+      S.placementReport = {
+        date: new Date().toISOString(),
+        totalScore: score,
+        totalQuestions: total,
+        p1Score: p1Correct,
+        p2Score: p2Correct,
+        p3Score: p3Correct,
+        skills,
+        level: S.lvl,
+        isCandidate: S.placementCandidate,
+        verified: false
+      };
+    } else {
+      // Legacy 4-question test harness compatibility:
+      // Perfect score must NOT automatically grant Mastery (Level 3)!
+      if (score <= 1) S.lvl = 0;
+      else if (score === 2) S.lvl = 1;
+      else if (score === 3) S.lvl = 2;
+      else S.lvl = 2; // 4/4 capped at Level 2 (Proficient / Advanced Candidate)
+      S.placementCandidate = score === total && total >= 4;
+    }
 
     if (S.l0 === null) S.l0 = S.lvl;
 
@@ -577,7 +656,11 @@ function finishQuiz() {
       S.guestToken = guestToken;
     } else if (AUTH.currentUser.role === "student") {
       AUTH.currentUser.lvl = S.lvl;
+      if (typeof S.wpm === "number") AUTH.currentUser.wpm = S.wpm;
+      else if (qz.timeElapsed && qz.totalWords) AUTH.currentUser.wpm = Math.round((qz.totalWords / qz.timeElapsed) * 60);
+      AUTH.currentUser.comp = Math.round((score / qz.steps.length) * 100);
       AUTH.currentUser.wordsRead = S.w;
+      AUTH.currentUser.placementCandidate = S.placementCandidate;
       AUTH.saveUsers();
       AUTH.saveSession();
     }
@@ -628,6 +711,12 @@ function finishQuiz() {
     timestamp: Date.now()
   });
   if (S.attempts.length > 50) S.attempts = S.attempts.slice(-50);
+  save();
+
+  if (AUTH.currentUser && AUTH.currentUser.role === "student") {
+    AUTH.currentUser.wordsRead = S.w;
+    AUTH.saveUsers();
+  }
 
   const streak = !isPlacement ? updateDailyStreak() : (S.streak || 1);
 

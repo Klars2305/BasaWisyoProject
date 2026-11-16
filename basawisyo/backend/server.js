@@ -2,6 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { createChatHandler } = require("./routes/chat");
+const { createDataHandler } = require("./routes/data");
 const { loadLocalConfig } = require("./config");
 
 const root = path.resolve(__dirname, "..");
@@ -22,10 +23,12 @@ const types = {
 
 function createAppServer(options = {}) {
   const chat = createChatHandler(options);
-  return http.createServer((req, res) => {
+  const data = createDataHandler(options);
+  const server = http.createServer((req, res) => {
     const pathname = new URL(req.url, "http://127.0.0.1").pathname;
     if (pathname.startsWith("/api/")) {
-      chat(req, res);
+      if (pathname.startsWith("/api/data/")) data(req, res);
+      else chat(req, res);
       return;
     }
     if (req.method !== "GET" && req.method !== "HEAD") {
@@ -54,14 +57,19 @@ function createAppServer(options = {}) {
       fs.createReadStream(file).pipe(res);
     });
   });
+  server.on("close", data.close);
+  return server;
 }
 
 if (require.main === module) {
   loadLocalConfig();
+  if (process.env.GROQ_API_KEY && !process.env.GROQ_MODEL) {
+    process.env.GROQ_MODEL = "llama-3.3-70b-versatile";
+  }
   const port = Number(process.env.PORT || 8765);
   createAppServer().listen(port, "127.0.0.1", () => {
     console.log(`BasaWisyo local server: http://127.0.0.1:${port}/index.html`);
-    console.log(process.env.GROQ_API_KEY ? "GroqCloud AI configured"
+    console.log(process.env.GROQ_API_KEY ? `GroqCloud AI configured (Model: ${process.env.GROQ_MODEL})`
       : process.env.OPENAI_API_KEY ? "OpenAI AI configured"
         : "Offline help only (set GROQ_API_KEY for online AI)");
   });

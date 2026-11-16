@@ -1,6 +1,6 @@
 /* Public entry. Kept separate from login.html and the application shell. */
 body.auth-entry:has(#welcome-screen:not([hidden])) {
-  background: #dceafe;
+  background: var(--bg, #f3f6fc);
 }
 body.auth-entry #welcome-screen {
   position: relative;
@@ -21,8 +21,8 @@ body.auth-entry #welcome-screen::after {
   transform: rotate(-19deg);
   pointer-events: none;
 }
-body.auth-entry #welcome-screen::before { left: -12%; top: -14%; box-shadow: 38px 31px 0 #ffc42c; }
-body.auth-entry #welcome-screen::after { right: -12%; bottom: -15%; transform: rotate(161deg); box-shadow: 38px 31px 0 #ffc42c; }
+body.auth-entry #welcome-screen::before { left: -12%; top: -14%; box-shadow: 0 20px 40px rgba(0, 0, 0, .08); }
+body.auth-entry #welcome-screen::after { right: -12%; bottom: -15%; transform: rotate(161deg); box-shadow: 0 20px 40px rgba(0, 0, 0, .08); }
 
 #welcome-screen .welcome-layout {
   width: min(860px, calc(100vw - 48px));
@@ -31,7 +31,7 @@ body.auth-entry #welcome-screen::after { right: -12%; bottom: -15%; transform: r
   border: 1.5px solid rgba(255,255,255,.88);
   border-radius: clamp(20px, 2.5vw, 28px);
   background: #fff;
-  box-shadow: 0 20px 60px rgba(7, 51, 117, .18);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .12);
 }
 #welcome-screen .login-story {
   justify-content: flex-start;
@@ -63,7 +63,7 @@ body.auth-entry #welcome-screen::after { right: -12%; bottom: -15%; transform: r
   border-radius: 22px;
   background: #fff;
   transform: rotate(-8deg);
-  box-shadow: 10px 8px 0 #ffc52e, 0 14px 28px rgba(0,12,49,.26);
+  box-shadow: 0 14px 28px rgba(0,0,0,.12);
   margin: 2px 0 clamp(10px, 1.8vh, 18px);
 }
 #welcome-screen .welcome-mascot-card img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
@@ -71,7 +71,7 @@ body.auth-entry #welcome-screen::after { right: -12%; bottom: -15%; transform: r
 #welcome-screen .login-story h1 span { color: #ffc329; }
 #welcome-screen .login-story-content p { max-width: 32ch; color: #f1f7ff; font-size: clamp(.84rem, 1vw, .92rem); line-height: 1.45; }
 #welcome-screen .welcome-book-art { display: block; align-self: center; width: min(90%, 260px); height: auto; max-height: 130px; object-fit: contain; margin: auto 0 0; filter: drop-shadow(0 8px 8px rgba(0,18,62,.24)); }
-#welcome-screen .login-story-footer { display: flex; align-items: center; gap: 8px; align-self: flex-start; margin: 4px 0 0; padding: 7px 12px; border: 1px solid rgba(190,224,255,.4); border-radius: 999px; background: rgba(37,137,230,.28); color: #fff; font-size: .72rem; line-height: 1.25; }
+#welcome-screen .login-story-footer { display: flex; align-items: center; gap: 8px; align-self: flex-start; margin: 4px 0 0; padding: 7px 12px; border: 1px solid rgba(190,224,255,.4); border-radius: 999px; background: rgba(37,137,230,.28); color: #fff; font-size: 0.75rem; line-height: 1.25; }
 #welcome-screen .login-story-footer svg { width: 18px; height: 18px; flex: none; }
 
 #welcome-screen .login-panel { position: relative; padding: clamp(20px, 2.6vw, 36px); background: radial-gradient(circle at 10% 40%, #f3f8ff, #fff 52%); }
@@ -92,9 +92,9 @@ body.auth-entry #welcome-screen::after { right: -12%; bottom: -15%; transform: r
 #welcome-screen .entry-actions a:hover { transform: translateY(-1.5px); }
 #welcome-screen .entry-actions button:active,
 #welcome-screen .entry-actions a:active { transform: translateY(1px); }
-#welcome-screen .entry-primary { border: 1px solid #0769dd; background: linear-gradient(180deg, #168cff, #0057ce); color: #fff; box-shadow: 0 5px 12px rgba(0,92,207,.22); }
+#welcome-screen .entry-primary { border: 1px solid #0769dd; background: linear-gradient(180deg, #168cff, #0057ce); color: #fff; box-shadow: 0 5px 12px rgba(0,0,0,.15); }
 #welcome-screen .entry-primary:hover { background: linear-gradient(180deg, #0d7df0, #034eae); }
-#welcome-screen .entry-secondary { border: 1.5px solid #9ec5ff; background: #fff; color: #08265d; box-shadow: 0 3px 8px rgba(9,76,167,.08); }
+#welcome-screen .entry-secondary { border: 1.5px solid #9ec5ff; background: #fff; color: #08265d; box-shadow: 0 3px 8px rgba(0,0,0,.08); }
 #welcome-screen .entry-secondary:hover { background: #edf6ff; border-color: #438dee; color: #08265d; }
 #welcome-screen .entry-action-icon,
 #welcome-screen .entry-action-arrow { width: 20px; height: 20px; }
@@ -146,7 +146,7 @@ body.auth-entry #welcome-screen::after { right: -12%; bottom: -15%; transform: r
     width: 68px;
     padding: 5px;
     border-radius: 16px;
-    box-shadow: 6px 5px 0 #ffc52e;
+    box-shadow: 0 8px 18px rgba(0,0,0,.10);
     margin: 0;
   }
   #welcome-screen .welcome-mascot-card img { border-radius: 11px; }

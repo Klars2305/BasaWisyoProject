@@ -5,10 +5,14 @@ function viewHome() {
   const journey = role === "student" || role === "guest" ? journeySummary() : null;
   const publishedPassages = getPublishedPassages();
   const tierCounts = DIFF_KEYS.map(key => publishedPassages.filter(passage => passage.diff === key).length);
-  const tierPill = index => journey && index > journey.tier
-    ? `<span class="pill">${uiIcon("lock")} Locked</span>`
-    : `<span class="pill ok">${tierCounts[index]} Passages</span>`;
+  const isUnassessedStudent = role === "student" && S.lvl === null;
+  const tierPill = index => isUnassessedStudent
+    ? `<span class="pill">${uiIcon("lock")} Placement Required</span>`
+    : journey && index > journey.tier
+      ? `<span class="pill">${uiIcon("lock")} Locked</span>`
+      : `<span class="pill ok">${tierCounts[index]} Passages</span>`;
   const assignmentLocked = id => {
+    if (isUnassessedStudent) return true;
     const passage = publishedPassages.find(item => item.id === id);
     return passage && journey && DIFF_KEYS.indexOf(passage.diff) > journey.tier;
   };
@@ -49,9 +53,9 @@ function viewHome() {
                       <b>${escapeHTML(a.title)}</b>
                       <span class="sub-sm" style="margin-left:6px">Due: ${escapeHTML(a.dueDate)}</span>
                     </div>
-                    <button class="btn sm" data-a="read-passage" data-v="${escapeHTML(a.passageId)}"
-                      ${assignmentLocked(a.passageId) ? 'disabled title="Complete earlier tiers or ask your teacher to unlock this tier"' : ""}>
-                      ${assignmentLocked(a.passageId) ? "Tier locked" : "Read Now"}
+                    <button class="btn sm" ${isUnassessedStudent ? 'data-a="tab" data-v="assess"' : `data-a="read-passage" data-v="${escapeHTML(a.passageId)}"`}
+                      ${!isUnassessedStudent && assignmentLocked(a.passageId) ? 'disabled title="Complete earlier tiers or ask your teacher to unlock this tier"' : ""}>
+                      ${isUnassessedStudent ? "Take Placement First" : assignmentLocked(a.passageId) ? "Tier locked" : "Read Now"}
                     </button>
                   </div>
                 `).join("")}

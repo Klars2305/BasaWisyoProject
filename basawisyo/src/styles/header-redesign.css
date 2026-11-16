@@ -1,177 +1,767 @@
-/* The header keeps account, reading status, and session controls in one place. */
+/* ==========================================================================
+   BasaWisyo Modern Header Redesign (Phil-IRI Edition)
+   Matches high-fidelity mobile & desktop responsive design specifications.
+   ========================================================================== */
+
+/* Mobile app padding adaptation to prevent viewport clipping */
+@media (max-width: 600px) {
+  #app {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
 .app-header {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  margin: 0 0 12px;
-  padding: 12px;
-  overflow: hidden;
-  border: 1px solid #a5c5ff;
-  border-radius: var(--radius-lg);
-  background: radial-gradient(ellipse 85% 110% at 52% 12%, rgba(255,255,255,.96) 0%, rgba(255,255,255,.72) 56%, transparent 57%), linear-gradient(125deg, #d8e9ff 0%, #f7faff 63%, #a9c9ff 100%);
-  box-shadow: 0 12px 32px rgba(30, 75, 150, .11);
-}
-.app-header::before {
-  content: "";
-  position: absolute;
-  inset: auto -8% -130% -10%;
-  height: 150%;
-  border-radius: 50%;
-  background: rgba(255,255,255,.46);
-  transform: rotate(-5deg);
-  pointer-events: none;
-}
-.app-header > * { position: relative; z-index: 1; }
-.app-header .brand { min-width: 0; gap: 10px; }
-.app-header .brand-avatar {
-  width: 48px;
-  height: 48px;
-  border: 3px solid #f5ab1d;
-  border-radius: var(--radius-md);
-  background: #f5ab1d;
-  box-shadow: 0 0 0 3px rgba(255,255,255,.72);
-}
-.app-header .brand-text h1 { font-size: clamp(1.22rem, 3.5vw, 1.55rem); line-height: 1.12; }
-.app-header .brand-text span { margin-top: 3px; color: #49638f; font-size: .75rem; font-weight: 600; line-height: 1.3; }
-.app-header .hdr-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 7px;
-  grid-column: 1 / -1;
-  min-width: 0;
-  padding: 6px;
-  border: 1px solid rgba(207,222,250,.85);
-  border-radius: var(--radius-lg);
-  background: rgba(255,255,255,.87);
-  box-shadow: 0 7px 18px rgba(24,55,117,.06);
-}
-.app-header .user-hdr-badge {
-  order: 1;
-  flex: 1 1 130px;
-  display: flex;
-  gap: 7px;
-  min-width: 0;
-  max-width: none;
-  min-height: 44px;
-  margin: 0;
-  padding: 0 3px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  box-shadow: none;
-  text-align: left;
-}
-.app-header .user-hdr-badge:hover { background: rgba(37,137,230,.07); transform: none; }
-.app-header .user-avatar-dot {
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  font-size: .9rem;
-  background: #102c69;
-}
-.app-header .header-user-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.app-header .header-user-line { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-width: 0; line-height: 1.1; }
-.app-header #hdr-user-name { display: block; max-width: 98px; color: #0d1b3e; font-size: .88rem; font-weight: 700; }
-.app-header .user-role-badge { flex: none; padding: 3px 6px; font-size: .6875rem; letter-spacing: .02em; }
-.app-header .header-user-meta { display: flex; align-items: center; gap: 5px; min-width: 0; }
-.app-header .header-status-dot { flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: #20bc71; }
-.app-header #lv-pill { min-width: 0; padding: 0; overflow: hidden; background: transparent; color: #4b648e; font-size: .75rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.app-header #lv-pill[hidden], .app-header #hdr-hearts-container[hidden], .app-header #hdr-streak-container[hidden], .app-header .header-status-dot[hidden] { display: none; }
-.app-header #hdr-hearts-container { order: 4; flex: 1 1 100%; display: flex; justify-content: flex-start; }
-.app-header #hdr-hearts-container .heart-pill { min-height: var(--control-height); }
-.app-header #hdr-streak-container {
-  order: 2;
-  flex: 0 0 60px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 52px;
-  border: 1px solid #ffdfc8;
-  border-radius: var(--radius-md);
-  background: #fff2e9;
-}
-.app-header #hdr-streak-container .streak-pill,
-.app-header #hdr-streak-container .streak-pill.streak-zero {
-  gap: 2px;
-  min-height: 0;
-  padding: 0;
-  border: 0;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 16px;
+  padding: 6px 0 0;
+  border: none;
   background: transparent;
   box-shadow: none;
-  color: #102c69;
-  cursor: default;
-  font-size: 1rem;
 }
-.app-header #hdr-streak-container .streak-pill:hover { background: transparent; transform: none; }
-.app-header #hdr-streak-container::after { content: "Day Streak"; color: #536987; font-size: .75rem; font-weight: 600; white-space: nowrap; }
-.app-header .header-session-btn {
-  order: 3;
+
+/* ==========================================================================
+   Top Brand & Navigation Bar
+   ========================================================================== */
+.app-header .header-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+/* Golden squircle brand avatar */
+.app-header .brand-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f5ab1d 0%, #ffc247 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffd66b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.app-header .brand-avatar .mascot-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.app-header .brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-header .brand-title {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-display, "Bricolage Grotesque", system-ui, sans-serif);
+  font-size: clamp(1.28rem, 3.8vw, 1.55rem);
+  font-weight: 800;
+  color: #0f1f40;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.app-header .brand-sunburst {
+  position: absolute;
+  top: -11px;
+  right: -5px;
+  width: 22px;
+  height: 18px;
+  pointer-events: none;
+}
+
+.app-header .brand-sunburst svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.app-header #header-status {
+  font-family: var(--font-body, "Lexend", system-ui, sans-serif);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #5a7194;
+  line-height: 1.25;
+  margin-top: 1px;
+}
+
+/* Circular theme toggle button */
+.app-header .header-theme-btn {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1.5px solid #dce8f8;
+  color: #0f1f40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+  flex-shrink: 0;
+}
+
+.app-header .header-theme-btn:hover {
+  background: #f8fbff;
+  border-color: #156ec4;
+  transform: translateY(-1px);
+}
+
+.app-header .theme-icon-group {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  flex: 0 0 auto;
-  min-width: 88px;
-  min-height: 44px;
-  padding: 8px 9px;
-  border: 1.5px solid #a9c4ff;
-  border-radius: 999px;
-  background: rgba(255,255,255,.75);
-  color: #102c69;
-  font: 700 var(--text-label) var(--font-body);
-  cursor: pointer;
-  transition: background .16s ease, border-color .16s ease, transform .16s ease;
+  width: 20px;
+  height: 20px;
 }
-.app-header .header-session-btn:hover { background: #eff6ff; border-color: #2589e6; transform: translateY(-1px); }
-.app-header .header-theme-btn {
-  grid-column: 2;
-  grid-row: 1;
-  width: 44px;
-  height: 44px;
-  border-color: #b8cefa;
-  background: rgba(255,255,255,.83);
-  color: #102c69;
-  box-shadow: 0 3px 9px rgba(37,85,153,.08);
-}
-.app-header .header-theme-btn:hover { background: #fff; }
 
+.app-header .theme-moon {
+  color: #0f1f40;
+  display: block;
+}
+
+.app-header .theme-star {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: block;
+}
+
+/* ==========================================================================
+   Floating User Card Container
+   ========================================================================== */
+.app-header .header-user-card {
+  position: relative;
+  background: #ffffff;
+  border: 1.5px solid #ddecff;
+  border-radius: 24px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  margin-top: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Corner decorative ribbon wave */
+.app-header .header-card-corner-wave {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 86px;
+  height: 68px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.app-header .header-card-corner-wave svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Card Body (Avatar, Identity, Wisyo Plus) */
+.app-header .header-card-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-header .user-hdr-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  font-family: inherit;
+}
+
+.app-header .user-hdr-badge:hover {
+  opacity: 0.94;
+}
+
+.app-header .user-avatar-dot {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3.5px solid #f5ab1d;
+  background: #156ec4;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.25rem;
+}
+
+.app-header .hdr-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.app-header .header-user-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.app-header .header-user-name-line {
+  display: block;
+  min-width: 0;
+}
+
+.app-header #hdr-user-name {
+  display: block;
+  font-family: var(--font-display, "Bricolage Grotesque", system-ui, sans-serif);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f1f40;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
+}
+
+.app-header .user-role-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.app-header .user-role-badge.role-student {
+  background: #dbeafe;
+  color: #1a62c9;
+}
+
+.app-header .user-role-badge.role-guest {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.app-header .user-role-badge.role-teacher {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.app-header .user-role-badge.role-admin {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.app-header .header-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1px;
+  min-width: 0;
+}
+
+.app-header .header-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  outline: 2px solid rgba(34, 197, 94, 0.4);
+  flex-shrink: 0;
+}
+
+.app-header #lv-pill {
+  padding: 0;
+  background: transparent;
+  color: #5a7194;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 0;
+  box-shadow: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Card top right actions (Wisyo Plus button & hearts) */
+.app-header .header-card-top-right {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.app-header #hdr-hearts-container {
+  display: flex;
+  align-items: center;
+}
+
+.app-header #hdr-upgrade-container .hdr-upgrade-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff9e6;
+  border: 1.5px solid #fcd34d;
+  color: #78350f;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: all 0.16s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.app-header #hdr-upgrade-container .hdr-upgrade-pill:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+
+.app-header .upgrade-crown {
+  font-size: 0.92rem;
+}
+
+.app-header .upgrade-chevron {
+  color: #92400e;
+  margin-left: 1px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Bottom Segmented Action Pill
+   ========================================================================== */
+.app-header .header-card-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  padding: 3px 5px;
+  background: #f6f9fe;
+  border: 1.5px solid #e3eefb;
+  border-radius: 999px;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-header #hdr-streak-container {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: background 0.16s ease;
+}
+
+.app-header #hdr-streak-container:hover {
+  background: rgba(37, 137, 230, 0.06);
+}
+
+.app-header .streak-pill-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 6px;
+  min-width: 0;
+}
+
+.app-header .streak-flame-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff3eb 0%, #ffe4d6 100%);
+  border: 1.2px solid #ffd2be;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.10);
+  flex-shrink: 0;
+}
+
+.app-header .streak-info-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+  min-width: 0;
+}
+
+.app-header .streak-count {
+  font-family: var(--font-display, "Bricolage Grotesque", system-ui, sans-serif);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f1f40;
+}
+
+.app-header .streak-label {
+  font-family: var(--font-body, "Lexend", system-ui, sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #5a7194;
+  white-space: nowrap;
+}
+
+.app-header .streak-chevron {
+  color: #8da2bf;
+  margin-left: auto;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.app-header .header-card-divider {
+  width: 1.5px;
+  height: 26px;
+  background: #dce7f6;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.app-header .header-session-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1.5px solid #156ec4;
+  color: #0f1f40;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: all 0.16s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.app-header .header-session-btn:hover {
+  background: #eff6ff;
+  border-color: #1a73e8;
+  transform: translateY(-1px);
+}
+
+.app-header .session-icon {
+  color: #0f1f40;
+  flex-shrink: 0;
+}
+
+.app-header .header-session-btn .chevron-icon {
+  color: #0f1f40;
+  flex-shrink: 0;
+}
+
+/* Hidden elements */
+.app-header [hidden],
+.app-header #lv-pill[hidden],
+.app-header #hdr-hearts-container[hidden],
+.app-header #hdr-streak-container[hidden],
+.app-header #hdr-upgrade-container[hidden],
+.app-header .header-status-dot[hidden] {
+  display: none !important;
+}
+
+.app-header #hdr-streak-container[hidden] ~ .header-card-divider {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+
+/* Desktop viewports (>= 900px) */
 @media (min-width: 900px) {
-  .app-header { display: flex; min-height: 84px; gap: 12px; padding: 10px 16px; }
-  .app-header .brand { flex: 1 1 auto; }
-  .app-header .brand-avatar { width: 54px; height: 54px; border-radius: var(--radius-md); }
-  .app-header .brand-text span { font-size: .82rem; }
-  .app-header .hdr-actions { flex: 0 0 auto; flex-wrap: nowrap; padding: 6px; border-radius: 999px; }
-  .app-header .user-hdr-badge { flex: 0 1 205px; min-width: 168px; padding: 2px 10px 2px 3px; }
-  .app-header #hdr-user-name { max-width: 115px; }
-  .app-header #hdr-hearts-container { order: 2; flex: 0 0 auto; }
-  .app-header #hdr-streak-container { order: 3; flex-basis: 82px; border-radius: 24px; }
-  .app-header .header-session-btn { order: 4; min-width: 110px; }
-  .app-header .header-theme-btn { flex: 0 0 46px; width: 46px; height: 46px; }
+  .app-header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 10px 0 0;
+  }
+  .app-header .header-top-bar {
+    width: 100%;
+  }
+  .app-header .header-user-card {
+    margin-top: 0;
+    width: 100%;
+    padding: 16px 20px 14px;
+  }
+  .app-header #hdr-user-name {
+    max-width: 260px;
+  }
+  .app-header .streak-pill-content {
+    gap: 12px;
+  }
 }
-@media (max-width: 365px) {
-  .app-header .hdr-actions { gap: 6px; }
-  .app-header .user-hdr-badge { flex-basis: 100%; }
-  .app-header #hdr-streak-container { flex: 1 1 72px; }
-  .app-header .header-session-btn { flex: 1 1 90px; }
+
+/* Small mobile viewports (<= 360px) */
+@media (max-width: 360px) {
+  .app-header .brand-title {
+    font-size: 1.18rem;
+  }
+  .app-header #header-status {
+    font-size: 0.75rem;
+  }
+  .app-header .brand-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+  .app-header .brand-avatar .mascot-img {
+    width: 30px;
+    height: 30px;
+  }
+  .app-header .header-theme-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .app-header .header-user-card {
+    padding: 10px 10px 10px;
+    border-radius: 20px;
+  }
+  .app-header .user-avatar-dot {
+    width: 50px;
+    height: 50px;
+    border-width: 2.5px;
+  }
+  .app-header #hdr-user-name {
+    font-size: 1.1rem;
+    max-width: 95px;
+  }
+  .app-header #hdr-upgrade-container .hdr-upgrade-pill {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+    gap: 3px;
+  }
+  .app-header .header-card-footer {
+    padding: 2px 4px;
+    gap: 2px;
+  }
+  .app-header .streak-pill-content {
+    gap: 5px;
+    padding: 2px 4px;
+  }
+  .app-header .streak-flame-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 0.92rem;
+  }
+  .app-header .streak-count {
+    font-size: 1rem;
+  }
+  .app-header .streak-label {
+    font-size: 0.75rem;
+  }
+  .app-header .header-session-btn {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
 }
+
+/* ==========================================================================
+   Dark Mode Theme Styles
+   ========================================================================== */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .app-header { border-color: #4c70ad; background: linear-gradient(120deg, #152c56, #101c3e); }
-  :root:not([data-theme="light"]) .app-header .hdr-actions { border-color: #415b8a; background: rgba(14,28,61,.9); }
-  :root:not([data-theme="light"]) .app-header #hdr-user-name, :root:not([data-theme="light"]) .app-header .brand-text span { color: #eaf0ff; }
-  :root:not([data-theme="light"]) .app-header #lv-pill { color: #bacbf1; }
-  :root:not([data-theme="light"]) .app-header .header-session-btn, :root:not([data-theme="light"]) .app-header .header-theme-btn { background: #172e5d; color: #eaf0ff; border-color: #6687c6; }
+  :root:not([data-theme="light"]) .app-header .brand-title {
+    color: #f1f5f9;
+  }
+  :root:not([data-theme="light"]) .app-header #header-status {
+    color: #94a3b8;
+  }
+  :root:not([data-theme="light"]) .app-header .header-theme-btn {
+    background: #172544;
+    border-color: #2b3e64;
+    color: #f5ab1d;
+  }
+  :root:not([data-theme="light"]) .app-header .theme-moon {
+    color: #f5ab1d;
+  }
+  :root:not([data-theme="light"]) .app-header .header-user-card {
+    background: #111e38;
+    border-color: #223558;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  }
+  :root:not([data-theme="light"]) .app-header #hdr-user-name {
+    color: #f8fafc;
+  }
+  :root:not([data-theme="light"]) .app-header .user-role-badge.role-student {
+    background: #1e335b;
+    color: #7cb3ff;
+  }
+  :root:not([data-theme="light"]) .app-header .user-role-badge.role-guest {
+    background: #1e293b;
+    color: #94a3b8;
+  }
+  :root:not([data-theme="light"]) .app-header #lv-pill {
+    color: #94a3b8;
+  }
+  :root:not([data-theme="light"]) .app-header #hdr-upgrade-container .hdr-upgrade-pill {
+    background: #2b2314;
+    border-color: #785317;
+    color: #ffd166;
+  }
+  :root:not([data-theme="light"]) .app-header .upgrade-chevron {
+    color: #ffd166;
+  }
+  :root:not([data-theme="light"]) .app-header .header-card-footer {
+    background: #0d172b;
+    border-color: #1f3050;
+  }
+  :root:not([data-theme="light"]) .app-header .streak-flame-badge {
+    background: radial-gradient(circle, #2d1f18 0%, #1f1510 100%);
+    border-color: #5c3523;
+  }
+  :root:not([data-theme="light"]) .app-header .streak-count {
+    color: #f8fafc;
+  }
+  :root:not([data-theme="light"]) .app-header .streak-label {
+    color: #94a3b8;
+  }
+  :root:not([data-theme="light"]) .app-header .header-card-divider {
+    background: #1f3050;
+  }
+  :root:not([data-theme="light"]) .app-header .header-session-btn {
+    background: #172544;
+    border-color: #3b82f6;
+    color: #f8fafc;
+  }
+  :root:not([data-theme="light"]) .app-header .session-icon,
+  :root:not([data-theme="light"]) .app-header .header-session-btn .chevron-icon {
+    color: #f8fafc;
+  }
 }
-:root[data-theme="dark"] .app-header { border-color: #4c70ad; background: linear-gradient(120deg, #152c56, #101c3e); }
-:root[data-theme="dark"] .app-header .hdr-actions { border-color: #415b8a; background: rgba(14,28,61,.9); }
-:root[data-theme="dark"] .app-header #hdr-user-name, :root[data-theme="dark"] .app-header .brand-text span { color: #eaf0ff; }
-:root[data-theme="dark"] .app-header #lv-pill { color: #bacbf1; }
-:root[data-theme="dark"] .app-header .header-session-btn, :root[data-theme="dark"] .app-header .header-theme-btn { background: #172e5d; color: #eaf0ff; border-color: #6687c6; }
+
+:root[data-theme="dark"] .app-header .brand-title {
+  color: #f1f5f9;
+}
+:root[data-theme="dark"] .app-header #header-status {
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .app-header .header-theme-btn {
+  background: #172544;
+  border-color: #2b3e64;
+  color: #f5ab1d;
+}
+:root[data-theme="dark"] .app-header .theme-moon {
+  color: #f5ab1d;
+}
+:root[data-theme="dark"] .app-header .header-user-card {
+  background: #111e38;
+  border-color: #223558;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .app-header #hdr-user-name {
+  color: #f8fafc;
+}
+:root[data-theme="dark"] .app-header .user-role-badge.role-student {
+  background: #1e335b;
+  color: #7cb3ff;
+}
+:root[data-theme="dark"] .app-header .user-role-badge.role-guest {
+  background: #1e293b;
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .app-header #lv-pill {
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .app-header #hdr-upgrade-container .hdr-upgrade-pill {
+  background: #2b2314;
+  border-color: #785317;
+  color: #ffd166;
+}
+:root[data-theme="dark"] .app-header .upgrade-chevron {
+  color: #ffd166;
+}
+:root[data-theme="dark"] .app-header .header-card-footer {
+  background: #0d172b;
+  border-color: #1f3050;
+}
+:root[data-theme="dark"] .app-header .streak-flame-badge {
+  background: radial-gradient(circle, #2d1f18 0%, #1f1510 100%);
+  border-color: #5c3523;
+}
+:root[data-theme="dark"] .app-header .streak-count {
+  color: #f8fafc;
+}
+:root[data-theme="dark"] .app-header .streak-label {
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .app-header .header-card-divider {
+  background: #1f3050;
+}
+:root[data-theme="dark"] .app-header .header-session-btn {
+  background: #172544;
+  border-color: #3b82f6;
+  color: #f8fafc;
+}
+:root[data-theme="dark"] .app-header .session-icon,
+:root[data-theme="dark"] .app-header .header-session-btn .chevron-icon {
+  color: #f8fafc;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .app-header .header-session-btn { transition: none; }
-  .app-header .header-session-btn:hover { transform: none; }
+  .app-header .header-session-btn,
+  .app-header .header-theme-btn,
+  .app-header #hdr-upgrade-container .hdr-upgrade-pill {
+    transition: none;
+  }
+  .app-header .header-session-btn:hover,
+  .app-header .header-theme-btn:hover,
+  .app-header #hdr-upgrade-container .hdr-upgrade-pill:hover {
+    transform: none;
+  }
 }

@@ -12,18 +12,21 @@ const WISYO_INSTRUCTIONS = [
   "Keep explanations concise and encouraging. Do not request personal student information."
 ].join(" ");
 
-function buildGroqRequest({ message, history = [], context = {} }, model = DEFAULT_MODEL) {
+function buildGroqRequest({ message, history = [], context = {}, isPremium = false }, model = DEFAULT_MODEL) {
   const passage = context.passage;
+  const isPlacement = Boolean(context.isPlacement);
   const readingContext = passage
-    ? `Reading context (reference only):\nTitle: ${passage.title}\nPassage: ${passage.text}\n${context.question ? `Current question: ${context.question.text}\nSkill: ${context.question.skill}\nQuestion answered: ${context.question.answered ? "yes" : "no"}` : ""}`
+    ? `Reading context (reference only):\nTitle: ${passage.title}\nPassage: ${passage.text}\n${isPlacement ? "ASSESSMENT MODE: Diagnostic placement assessment in progress. Do not reveal or hint at answers to test questions.\n" : ""}${context.question ? `Current question: ${context.question.text}\nSkill: ${context.question.skill}\nQuestion answered: ${context.question.answered ? "yes" : "no"}` : ""}`
     : "No reading passage is open. Give general reading help and say when passage-specific evidence is unavailable.";
+  const systemPrompt = isPremium
+    ? `${WISYO_INSTRUCTIONS} You are in Wisyo Plus Advanced Tutoring mode. Provide deep, Socratic reading guidance with step-by-step reasoning clues, linguistic context, and clear multi-level comprehension analysis.`
+    : WISYO_INSTRUCTIONS;
   return {
     model,
     temperature: 0.2,
-    reasoning_effort: "low",
-    max_completion_tokens: 700,
+    max_completion_tokens: isPremium ? 1000 : 700,
     messages: [
-      { role: "system", content: WISYO_INSTRUCTIONS },
+      { role: "system", content: systemPrompt },
       { role: "user", content: readingContext },
       ...history.map(turn => ({ role: turn.role, content: turn.text })),
       { role: "user", content: message }

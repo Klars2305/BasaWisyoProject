@@ -140,6 +140,17 @@ function saveFlashcard({
 
   const existingIdx = deck.findIndex(c => c.id === id || c.word.toLowerCase() === cleanWord.toLowerCase());
 
+  const isPrem = typeof isUserPremium === "function" && isUserPremium();
+  const FREE_CARD_LIMIT = 30;
+  if (!isPrem && existingIdx < 0 && deck.length >= FREE_CARD_LIMIT) {
+    if (typeof openUpgradeModal === "function") {
+      openUpgradeModal("flashcards", `You have reached the 30-card free deck capacity (${deck.length}/${FREE_CARD_LIMIT}). Upgrade to Wisyo Plus for unlimited flashcard storage!`);
+    } else if (typeof showToast === "function") {
+      showToast("Free flashcard limit (30) reached! Upgrade to Wisyo Plus for unlimited cards.", "warn");
+    }
+    return null;
+  }
+
   let card;
   if (existingIdx >= 0) {
     card = deck[existingIdx];

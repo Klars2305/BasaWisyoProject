@@ -37,7 +37,8 @@ function viewAdmin() {
         <p class="sub">${escapeHTML(admin.school)} · Accounts and curriculum in this browser</p>
       </div>
       <div class="dashboard-intro-actions">
-        <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add Practice</button>
+        <button class="btn o" data-a="tour-replay" title="Replay the admin onboarding walkthrough">🎓 Replay Tour</button>
+        <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add passage</button>
         <button class="btn o" data-a="admin-export-backup">${uiIcon("backup")} Export Backup</button>
       </div>
     </div>
@@ -177,7 +178,7 @@ function renderAdminCurriculumTab() {
           <div class="lab">Leveled Reading Curriculum</div>
           <p class="sub" style="margin:2px 0 0 0">Built-in and custom passage records; only published valid passages appear to readers.</p>
         </div>
-        <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add New Practice</button>
+        <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add passage</button>
       </div>
 
       <p class="sub">${pendingCount ? `${pendingCount} teacher practice${pendingCount === 1 ? "" : "s"} awaiting review. Approve to add to the student library, or reject with a reason.` : "No teacher practices are awaiting review."}</p>

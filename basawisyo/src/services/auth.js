@@ -69,8 +69,9 @@ const AUTH = {
         const found = this.users.find(u => u.id === sess.id);
         if (found && found.status !== "suspended") {
           this.currentUser = found;
-          // Sync student stats with local S if student
-          if (found.role === "student" && found.lvl !== undefined) {
+          if (typeof switchAccountState === "function") {
+            switchAccountState(found);
+          } else if (found.role === "student" && found.lvl !== undefined) {
             S.lvl = found.lvl;
           }
         } else {
@@ -214,6 +215,7 @@ const AUTH = {
   saveUsers() {
     try {
       localStorage.setItem(this.USERS_KEY, JSON.stringify(this.users));
+      if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
     } catch(e) {}
   },
 
@@ -230,6 +232,7 @@ const AUTH = {
   saveAssignments() {
     try {
       localStorage.setItem(this.ASSIGNMENTS_KEY, JSON.stringify(this.assignments));
+      if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
     } catch(e) {}
   },
 
@@ -242,6 +245,7 @@ const AUTH = {
   saveCustomPassages() {
     try {
       localStorage.setItem(this.CUSTOM_PASSAGES_KEY, JSON.stringify(this.customPassages));
+      if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
     } catch(e) {}
   },
 
@@ -252,6 +256,7 @@ const AUTH = {
       throw new Error("Practice could not be saved in this browser. Check storage and try again.");
     }
     this.customPassages = next;
+    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
   },
 
   // Auth Operations
@@ -261,11 +266,14 @@ const AUTH = {
     if (!user) return { success: false, message: "Invalid email or password." };
     if (user.status === "suspended") return { success: false, message: "This account has been suspended by the administrator." };
 
+    GUEST_MODE = false;
     this.currentUser = user;
     this.saveSession();
 
-    // Sync student stats with S
-    if (user.role === "student") {
+    // Switch and load account-specific state
+    if (typeof switchAccountState === "function") {
+      switchAccountState(user);
+    } else if (user.role === "student") {
       if (user.lvl !== undefined && user.lvl !== null) S.lvl = user.lvl;
       if (user.wordsRead) S.w = Math.max(S.w, user.wordsRead);
       save();
@@ -327,13 +335,13 @@ const AUTH = {
       section: data.role === "teacher" ? section : linkedTeacher?.section || "",
       teacherCode: data.role === "student" ? teacherCode : "",
       shareCode,
-      lvl: data.role === "student" ? (GUEST_MODE && S.lvl !== null ? S.lvl : 1) : null,
-      wpm: data.role === "student" ? 110 : null,
-      comp: data.role === "student" ? 75 : null,
-      wordsRead: data.role === "student" ? (S.w || 0) : null,
+      lvl: data.role === "student" && GUEST_MODE && S.placementReport ? S.lvl : null,
+      wpm: null,
+      comp: null,
+      wordsRead: data.role === "student" ? (GUEST_MODE && S.placementReport ? (S.w || 0) : 0) : null,
       journey: data.role === "student"
         ? (GUEST_MODE && journeyValid(S.guestJourney)
-          ? { baseTier: S.guestJourney.baseTier,
+          ? { baseTier: S.placementReport ? S.guestJourney.baseTier : 0,
               results: Object.fromEntries(Object.entries(S.guestJourney.results)
                 .map(([id, result]) => [id, { ...result }])),
               skillEvidence: Object.fromEntries(Object.entries(S.guestJourney.skillEvidence || {})
@@ -357,10 +365,25 @@ const AUTH = {
       return { success: false, message: "Account created, but automatic sign-in failed. Please sign in from the login page." };
     }
     this.currentUser = newUser;
-    if (data.role === "student" && GUEST_MODE) {
+    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
+    if (typeof switchAccountState === "function") {
+      if (data.role === "student" && GUEST_MODE) {
+        const guestStateSnapshot = S.placementReport ? { ...S } : {
+          ...S, lvl: null, l0: null, placementCandidate: false, placementVerified: false
+        };
+        const userKey = getStateStorageKey(newUser.id);
+        try { localStorage.setItem(userKey, JSON.stringify(guestStateSnapshot)); } catch(e) {}
+        switchAccountState(newUser);
+        S.guestJourney = journeyEmpty();
+        try { localStorage.setItem("basa_wisyo_state_guest", JSON.stringify(createInitialState())); } catch(e) {}
+      } else {
+        switchAccountState(newUser);
+      }
+    } else if (data.role === "student" && GUEST_MODE) {
       S.guestJourney = journeyEmpty();
       save();
     }
+    GUEST_MODE = false;
 
     return { success: true, user: newUser };
   },
@@ -372,21 +395,79 @@ const AUTH = {
     } catch(e) {
       return false;
     }
+    GUEST_MODE = false;
     this.currentUser = null;
+    if (typeof switchAccountState === "function") {
+      switchAccountState(null);
+    }
     return true;
+  },
+
+  // Premium Entitlements
+  isPremium(user = this.currentUser) {
+    if (typeof localStorage !== "undefined" && localStorage.getItem("basawisyo_sandbox_premium") === "true") {
+      return true;
+    }
+    if (typeof S !== "undefined" && S?.simulatedPremium === true) return true;
+    if (!user) return false;
+    return user.isPremium === true || user.plan === "plus" || user.plan === "annual";
+  },
+
+  setPlan(plan = "plus", durationDays = 30) {
+    if (!this.currentUser) return { success: false, message: "No active user session." };
+    this.currentUser.plan = plan;
+    this.currentUser.isPremium = plan !== "free";
+    this.currentUser.premiumExpiresAt = plan !== "free" ? Date.now() + (durationDays * 86400000) : null;
+    const idx = this.users.findIndex(u => u.id === this.currentUser.id);
+    if (idx >= 0) this.users[idx] = { ...this.currentUser };
+    this.saveUsers();
+    this.saveSession();
+    return { success: true, plan: this.currentUser.plan, isPremium: this.currentUser.isPremium };
+  },
+
+  toggleSandboxPremium() {
+    let nextState = false;
+    try {
+      const curr = localStorage.getItem("basawisyo_sandbox_premium") === "true";
+      nextState = !curr;
+      localStorage.setItem("basawisyo_sandbox_premium", String(nextState));
+    } catch (_) {}
+    if (typeof S !== "undefined") S.simulatedPremium = nextState;
+    if (this.currentUser) {
+      this.currentUser.isPremium = nextState;
+      this.currentUser.plan = nextState ? "plus" : "free";
+    }
+    return nextState;
+  },
+
+  // Authoritative Classroom Enrollment Resolver
+  getActiveEnrollment(user = this.currentUser) {
+    if (!user || user.role !== "student" || !user.teacherCode) return null;
+    const teacher = this.users.find(u => u.role === "teacher" && u.status === "active" && u.shareCode === user.teacherCode);
+    if (!teacher) return null;
+    return {
+      classroomId: teacher.shareCode,
+      teacherId: teacher.id,
+      teacherName: teacher.name,
+      section: teacher.section || user.section || "Classroom",
+      school: teacher.school || user.school || "Rizal National High School",
+      status: "active"
+    };
   },
 
   // Student Actions
   connectTeacher(teacherCode) {
     if (!this.currentUser) return { success: false, message: "Must be logged in." };
     const code = (teacherCode || "").trim().toUpperCase();
-    const teacher = this.users.find(u => u.role === "teacher" && u.shareCode === code);
+    const teacher = this.users.find(u => u.role === "teacher" && u.status === "active" && u.shareCode === code);
     if (!teacher) {
       return { success: false, message: `No active classroom found for code "${code}". Please check with your teacher.` };
     }
 
     this.currentUser.teacherCode = code;
     this.currentUser.section = teacher.section;
+    const idx = this.users.findIndex(u => u.id === this.currentUser.id);
+    if (idx >= 0) this.users[idx] = { ...this.currentUser };
     this.saveUsers();
     this.saveSession();
 
@@ -564,7 +645,7 @@ const AUTH = {
       id: previous?.id ?? `cust_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
       status,
       ownerId: previous?.ownerId ?? actor.id,
-      author: previous?.author ?? actor.name,
+      author: String(input.author || "").trim() || previous?.author || actor.name,
       createdAt: previous?.createdAt ?? now,
       submittedAt: status === "pending" && actor.role === "teacher" ? now : previous?.submittedAt,
       reviewedById: status === "pending" && actor.role === "teacher" ? null : previous?.reviewedById,
@@ -664,4 +745,15 @@ const AUTH = {
     return this.deletePractice(id);
   }
 };
+
+function isUserPremium() {
+  if (typeof localStorage !== "undefined" && localStorage.getItem("basawisyo_sandbox_premium") === "true") {
+    return true;
+  }
+  if (typeof S !== "undefined" && S?.simulatedPremium === true) return true;
+  const user = typeof AUTH !== "undefined" ? AUTH.currentUser : null;
+  if (!user) return false;
+  return user.isPremium === true || user.plan === "plus" || user.plan === "annual";
+}
+
 

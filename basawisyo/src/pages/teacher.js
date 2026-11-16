@@ -39,8 +39,12 @@ function viewTeacherOverview() {
     <div class="teacher-overview-intro">
       <div><div class="lab">Teacher workspace · ${escapeHTML(teacher.section || "Classroom")}</div>
         <h2>Class Overview</h2>
-        <p class="sub">See your class at a glance, then open the Classroom Hub for detailed management.</p></div>
-      <button class="btn o" data-a="tab" data-v="teacher-preview">${uiIcon("home")} Preview learner experience</button>
+        <p class="sub">See your class at a glance, then open the Classroom Hub for detailed management.</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn o" data-a="tour-replay" title="Replay the teacher onboarding walkthrough">🎓 Replay Tour</button>
+        <button class="btn o" data-a="tab" data-v="teacher-preview">${uiIcon("home")} Preview learner experience</button>
+      </div>
     </div>
 
     <section class="card teacher-overview-code" aria-label="Classroom share code">
@@ -119,21 +123,24 @@ function viewTeacher() {
     return `<div class="card"><p>Access restricted to Teacher accounts. Please sign in as a Teacher.</p></div>`;
   }
 
-  const students = AUTH.getTeacherStudents(teacher.shareCode);
-  const totalStudents = students.length;
+  const dataset = getClassroomReportDataset(teacher);
+  const students = dataset ? dataset.students : [];
+  const totalStudents = dataset ? dataset.total : 0;
 
   // Breakdown by Phil-IRI Level
-  const frustCount = students.filter(s => s.lvl === 0).length;
-  const instCount = students.filter(s => s.lvl === 1).length;
-  const indepCount = students.filter(s => s.lvl === 2).length;
-  const mastCount = students.filter(s => s.lvl === 3).length;
+  const frustCount = dataset ? dataset.levelCounts[0] : 0;
+  const instCount = dataset ? dataset.levelCounts[1] : 0;
+  const indepCount = dataset ? dataset.levelCounts[2] : 0;
+  const mastCount = dataset ? dataset.levelCounts[3] : 0;
 
-  const avgWpm = totalStudents > 0 
-    ? Math.round(students.reduce((acc, s) => acc + (s.wpm || 100), 0) / totalStudents)
+  const assessedWithWpm = students.filter(s => s.isAssessed && typeof s.wpm === "number");
+  const avgWpm = assessedWithWpm.length > 0 
+    ? Math.round(assessedWithWpm.reduce((acc, s) => acc + s.wpm, 0) / assessedWithWpm.length)
     : 0;
 
-  const avgComp = totalStudents > 0 
-    ? Math.round(students.reduce((acc, s) => acc + (s.comp || 70), 0) / totalStudents)
+  const assessedWithComp = students.filter(s => s.isAssessed && typeof s.comp === "number");
+  const avgComp = assessedWithComp.length > 0 
+    ? Math.round(assessedWithComp.reduce((acc, s) => acc + s.comp, 0) / assessedWithComp.length)
     : 0;
 
   const assignments = AUTH.assignments.filter(a => a.teacherCode === teacher.shareCode);
@@ -163,8 +170,8 @@ function viewTeacher() {
         <button class="share-code-btn secondary" data-a="teacher-show-projector">
           ${uiIcon("projector")} Open Projector / Blackboard Mode
         </button>
-        <button class="share-code-btn secondary" data-a="open-report-sheet">
-          ${uiIcon("print")} View DepEd Form 14
+        <button class="share-code-btn secondary" data-a="open-report-sheet" data-v="live">
+          ${uiIcon("print")} Reading Progress Report
         </button>
       </div>
     </div>
@@ -199,7 +206,7 @@ function viewTeacher() {
           <h3>My reading practices</h3>
           <p class="sub">Create custom passages or draft questions with Wisyo AI. An admin reviews submissions before students can read or receive them.</p>
         </div>
-        <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add practice</button>
+        <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add passage</button>
       </div>
       ${myPractices.length ? `<div class="teacher-practice-list">
         ${myPractices.map(passage => `
@@ -301,8 +308,8 @@ function viewTeacher() {
           <p class="sub" style="margin:2px 0 0 0">Roster and journey access are stored in this browser. Use the selector to open a higher tier for a student.</p>
         </div>
         <div class="teacher-roster-actions">
-          <button class="btn o" data-a="open-report-sheet">${uiIcon("print")} DepEd Form 14</button>
-          <button class="btn o" data-a="download-csv">${uiIcon("download")} Export CSV</button>
+          <button class="btn o" data-a="open-report-sheet" data-v="live">${uiIcon("print")} Reading Progress Report</button>
+          <button class="btn o" data-a="download-csv" data-v="live">${uiIcon("download")} Export CSV</button>
         </div>
       </div>
 
@@ -329,17 +336,20 @@ function viewTeacher() {
                 </td>
               </tr>
             ` : students.map((s, idx) => {
-              const lvl = s.lvl !== null && s.lvl !== undefined ? s.lvl : 1;
-              const lvlClass = `level-${lvl}`;
-              const lvlText = PHIL_IRI_LEVELS[lvl];
-              const isRemedial = lvl === 0;
+              const isAssessed = s.isAssessed;
+              const lvlClass = isAssessed ? `level-${s.lvl}` : 'level-none';
+              const lvlText = s.profileLabel;
+              const wpmText = s.wpmText;
+              const compText = s.compText;
+              const isRemedial = isAssessed && (s.lvl === 0 || (typeof s.comp === 'number' && s.comp < 60));
+
               return `
                 <tr>
                   <td>${idx + 1}</td>
                   <td><b>${escapeHTML(s.name)}</b></td>
-                  <td><span class="level-badge ${lvlClass}">${lvlText}</span></td>
-                  <td>${s.wpm || 105} WPM</td>
-                  <td><b>${s.comp || 75}%</b></td>
+                  <td><span class="level-badge ${lvlClass}">${escapeHTML(lvlText)}</span></td>
+                  <td>${escapeHTML(wpmText)}</td>
+                  <td><b>${escapeHTML(compText)}</b></td>
                   <td>${(s.wordsRead || 0).toLocaleString()} words</td>
                   <td>
                     <label class="sub-sm" for="journey-override-${escapeHTML(s.id)}">Extra tier access</label>
@@ -349,9 +359,11 @@ function viewTeacher() {
                     </select>
                   </td>
                   <td>
-                    ${isRemedial 
-                      ? '<span style="color:var(--coral);font-weight:700">⚠️ Needs Intervention</span>'
-                      : '<span style="color:var(--teal)">✓ On Track</span>'}
+                    ${!isAssessed
+                      ? '<span class="pill" style="color:var(--sub)">Placement Required</span>'
+                      : isRemedial 
+                        ? '<span style="color:var(--coral);font-weight:700">⚠️ Needs Intervention</span>'
+                        : '<span style="color:var(--teal)">✓ On Track</span>'}
                   </td>
                 </tr>
               `;

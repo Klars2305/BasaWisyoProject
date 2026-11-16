@@ -9,7 +9,8 @@
 
 function initQuizHearts(questionCount = 4) {
   const max = Math.max(1, questionCount);
-  const accommodated = typeof S !== "undefined" && S.heartAccommodations === true;
+  const isPrem = typeof isUserPremium === "function" && isUserPremium();
+  const accommodated = (typeof S !== "undefined" && S.heartAccommodations === true) || isPrem;
   return {
     hearts: max,
     maxHearts: max,
@@ -24,8 +25,9 @@ function canStartPracticeQuiz() {
 
 function deductQuizHeart(quiz, answerId = null) {
   if (!quiz) return { success: false, hearts: 0, maxHearts: 0, deducted: false };
-  if (quiz.accommodated || (typeof S !== "undefined" && S.heartAccommodations === true)) {
-    return { success: true, hearts: quiz.hearts, maxHearts: quiz.maxHearts, deducted: false, accommodated: true };
+  const isPrem = typeof isUserPremium === "function" && isUserPremium();
+  if (quiz.accommodated || isPrem || (typeof S !== "undefined" && S.heartAccommodations === true)) {
+    return { success: true, hearts: quiz.hearts, maxHearts: quiz.maxHearts, deducted: false, accommodated: true, isPremium: isPrem };
   }
 
   // Guard against duplicate deduction on same question attempt
@@ -94,11 +96,21 @@ function restoreHearts(count = 1) {
 }
 
 function renderHeartPill() {
+  const isPrem = typeof isUserPremium === "function" && isUserPremium();
+  if (isPrem) {
+    return `
+      <div class="heart-pill heart-premium" data-a="heart-info" title="Wisyo Plus: Unlimited Practice Hearts! ❤️" role="status" aria-label="Unlimited hearts in practice">
+        <span class="heart-icon" aria-hidden="true">❤️</span>
+        <span class="heart-count">∞ Unlimited</span>
+        <span class="heart-crown" aria-hidden="true" style="font-size:0.75rem;margin-left:2px">👑</span>
+      </div>
+    `;
+  }
   if (typeof ACTIVE_QUIZ !== "undefined" && ACTIVE_QUIZ && typeof ACTIVE_QUIZ.hearts === "number") {
     const hearts = ACTIVE_QUIZ.hearts;
     const max = ACTIVE_QUIZ.maxHearts;
     return `
-      <div class="heart-pill ${hearts === 0 ? 'heart-empty' : ''}" data-a="heart-info" title="Quiz Hearts: ${hearts}/${max}" role="status" aria-label="${hearts} of ${max} hearts remaining in this quiz">
+      <div class="heart-pill ${hearts === 0 ? 'heart-empty' : ''}" data-a="heart-info" title="Quiz Hearts: ${hearts}/${max} (Tap for unlimited)" role="status" aria-label="${hearts} of ${max} hearts remaining in this quiz">
         <span class="heart-icon" aria-hidden="true">${hearts > 0 ? "❤️" : "💔"}</span>
         <span class="heart-count">${hearts}/${max}</span>
       </div>
@@ -133,6 +145,9 @@ function renderOutOfHeartsModalHTML(passage) {
         <div style="display:flex;flex-direction:column;gap:10px">
           <button class="btn blue" data-a="out-of-hearts-retry" data-v="${escapeHTML(passageId)}" style="width:100%">
             ${uiIcon("refresh")} Try Again with Fresh Hearts
+          </button>
+          <button class="btn gold-btn" data-a="upgrade-open" data-v="hearts" style="width:100%;font-weight:700">
+            👑 Get Unlimited Hearts with Wisyo Plus
           </button>
           <button class="btn o" data-a="quiz-review" style="width:100%">
             ${uiIcon("check")} Review Answers

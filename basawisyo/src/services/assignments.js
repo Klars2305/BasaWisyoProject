@@ -22,7 +22,17 @@ async function createClassAssignment({
     throw new Error("Only teachers and administrators can create class assignments.");
   }
 
-  const mat = await getMaterialById(materialId, actor);
+  const passage = typeof getPublishedPassageById === "function" ? getPublishedPassageById(materialId) : null;
+  const mat = passage ? {
+    id: passage.id,
+    title: passage.t,
+    author: passage.author || "BasaWisyo",
+    difficulty: passage.diff,
+    language: { "en-US": "en", "fil-PH": "fil", "ceb-PH": "ceb" }[passage.lang] || "en",
+    text: passage.x,
+    questions: passage.qs,
+    version: 1
+  } : await getMaterialById(materialId, actor);
   if (!mat) {
     throw new Error("Material was not found for assignment.");
   }
@@ -31,8 +41,22 @@ async function createClassAssignment({
     throw new Error("Please specify a target class section.");
   }
 
-  if (!dueDate) {
+  if (!dueDate || !String(dueDate).trim()) {
     throw new Error("Please set a valid due date for this assignment.");
+  }
+
+  // Prevent duplicate assignment submissions for the same passage, section, and mode
+  const currentAssignments = typeof listAssignments === "function" ? listAssignments({ role: actor.role, id: actor.id }) : [];
+  const cleanSec = sectionCode.trim().toLowerCase();
+  const cleanMode = (mode === "assessment" ? "assessment" : "practice").toLowerCase();
+  const isDuplicate = currentAssignments.some(a =>
+    a.status === "active" &&
+    (a.materialId === mat.id || a.passageId === mat.id) &&
+    (a.section || a.targetGroup || "").trim().toLowerCase() === cleanSec &&
+    (a.mode || "practice").toLowerCase() === cleanMode
+  );
+  if (isDuplicate) {
+    throw new Error(`An active assignment for "${mat.title}" in section "${sectionCode.trim()}" already exists.`);
   }
 
   const now = Date.now();

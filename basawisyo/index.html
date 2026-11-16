@@ -18,6 +18,9 @@
 <link rel="stylesheet" href="src/styles/practice-management.css">
 <link rel="stylesheet" href="src/styles/teacher-overview.css">
 <link rel="stylesheet" href="src/styles/welcome-redesign.css">
+<link rel="stylesheet" href="src/styles/onboarding.css">
+<link rel="stylesheet" href="src/styles/login-redesign.css">
+<link rel="stylesheet" href="src/styles/navigation.css">
 </head>
 <body class="auth-entry">
 
@@ -58,31 +61,63 @@
 <div id="app">
 <a class="skip-link" href="#v">Skip to main content</a>
 <header class="app-header">
-    <a href="#" class="brand" data-a="tab" data-v="home">
-      <div class="brand-avatar" id="brand-avatar">
-        <img src="assets/images/wisyo.png" alt="BasaWisyo Logo" class="mascot-img">
-      </div>
-      <div class="brand-text">
-        <h1>BasaWisyo</h1>
-        <span id="header-status">Grade 7–12 Phil-IRI Companion</span>
-      </div>
-    </a>
-    <div class="hdr-actions">
-      <button type="button" class="user-hdr-badge" id="hdr-auth-btn" data-a="auth-open" title="Sign in or view your account">
-        <span class="user-avatar-dot" id="hdr-user-avatar"><svg class="ui-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg></span>
-        <span class="header-user-copy">
-          <span class="header-user-line"><span id="hdr-user-name">Guest</span><span class="user-role-badge role-guest" id="hdr-user-role">Guest</span></span>
-          <span class="header-user-meta"><span class="header-status-dot" aria-hidden="true"></span><span class="pill" id="lv-pill">No level</span></span>
+    <div class="header-top-bar">
+      <a href="#" class="brand" data-a="tab" data-v="home">
+        <div class="brand-avatar" id="brand-avatar">
+          <img src="assets/images/wisyo.png" alt="BasaWisyo Logo" class="mascot-img">
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">BasaWisyo<span class="brand-sunburst" aria-hidden="true"><svg viewBox="0 0 24 20" fill="none"><line x1="3" y1="17" x2="1" y2="9" stroke="#f5ab1d" stroke-width="2.6" stroke-linecap="round"/><line x1="12" y1="15" x2="11" y2="2" stroke="#f5ab1d" stroke-width="2.8" stroke-linecap="round"/><line x1="20" y1="17" x2="23" y2="9" stroke="#f5ab1d" stroke-width="2.6" stroke-linecap="round"/></svg></span></h1>
+          <span id="header-status">Grade 7–12 Phil-IRI Companion</span>
+        </div>
+      </a>
+      <button type="button" class="icon-btn header-theme-btn" id="theme-btn" data-a="toggle-theme" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+        <span class="theme-icon-group" aria-hidden="true">
+          <svg class="ui-icon theme-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="theme-star" width="9" height="9" viewBox="0 0 12 12" fill="#f5ab1d"><path d="M6 0L7.5 4.5L12 6L7.5 7.5L6 12L4.5 7.5L0 6L4.5 4.5Z"/></svg>
         </span>
       </button>
-      <div id="hdr-hearts-container"></div>
-      <div id="hdr-streak-container"></div>
-      <button type="button" class="header-session-btn" id="hdr-session-btn" data-a="auth-open">
-        <svg class="ui-icon" aria-hidden="true" focusable="false" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/><path d="m15 7 5 5-5 5M20 12H9"/></svg>
-        <span id="hdr-session-label">Sign In</span>
-      </button>
     </div>
-    <button type="button" class="icon-btn header-theme-btn" id="theme-btn" data-a="toggle-theme" title="Toggle Dark/Light Mode" aria-label="Toggle theme"><svg class="ui-icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+
+    <div class="header-user-card" id="header-user-card">
+      <div class="header-card-corner-wave" aria-hidden="true">
+        <svg viewBox="0 0 100 80" preserveAspectRatio="none" fill="none">
+          <path d="M25 0 C45 28, 75 42, 100 48 L100 0 Z" fill="#F5AB1D"/>
+          <path d="M50 0 C68 22, 85 32, 100 35 L100 0 Z" fill="#1A73E8"/>
+        </svg>
+      </div>
+
+      <div class="header-card-body">
+        <button type="button" class="user-hdr-badge" id="hdr-auth-btn" data-a="auth-open" title="Sign in or view your account">
+          <span class="user-avatar-dot" id="hdr-user-avatar">
+            <img src="assets/images/wisyo.png" alt="User avatar" class="hdr-avatar-img">
+          </span>
+          <span class="header-user-copy">
+            <span class="header-user-name-line"><span id="hdr-user-name">Guest</span></span>
+            <span class="user-role-badge role-guest" id="hdr-user-role">Guest</span>
+            <span class="header-user-meta">
+              <span class="header-status-dot" aria-hidden="true"></span>
+              <span class="pill" id="lv-pill">No level</span>
+            </span>
+          </span>
+        </button>
+
+        <div class="header-card-top-right">
+          <div id="hdr-hearts-container" hidden></div>
+          <div id="hdr-upgrade-container"></div>
+        </div>
+      </div>
+
+      <div class="header-card-footer">
+        <div id="hdr-streak-container"></div>
+        <div class="header-card-divider" id="hdr-card-divider" aria-hidden="true"></div>
+        <button type="button" class="header-session-btn" id="hdr-session-btn" data-a="auth-open">
+          <svg class="ui-icon session-icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span id="hdr-session-label">Sign In</span>
+          <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
   </header>
 
   <!-- Sub Navigation Tabs -->
@@ -96,61 +131,145 @@
      ========================================================================== -->
 
 <!-- Account registration modal -->
-<div id="auth-modal" class="app-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" hidden>
-  <div class="app-modal-card">
-    <div class="modal-hdr">
-      <h2 id="auth-modal-title">Create an account</h2>
-      <button type="button" class="modal-close-btn" data-a="auth-close" aria-label="Close account form"><svg class="ui-icon" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+<div id="auth-modal" class="app-modal-overlay auth-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" hidden>
+  <div class="app-modal-card auth-modal-card">
+    <div class="auth-modal-header">
+      <div class="auth-header-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <line x1="19" y1="8" x2="19" y2="14"/>
+          <line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>
+      </div>
+      <div class="auth-header-text">
+        <h2 id="auth-modal-title">Create an Account</h2>
+        <p class="auth-header-sub">Join BasaWisyo and unlock your learning journey!</p>
+      </div>
+      <button type="button" class="modal-close-btn auth-close-btn" data-a="auth-close" aria-label="Close account form">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
     </div>
-    <p class="sub">Register as a student or teacher. Admin accounts are managed by the school admin.</p>
 
     <!-- Register Form -->
     <div id="auth-register-pane">
       <form id="form-register" onsubmit="return false;">
         <fieldset class="registration-role-fieldset">
-          <legend>Account type</legend>
+          <legend class="sr-only">Account type</legend>
           <div class="role-picker-grid">
-            <label class="role-choice-opt">
+            <label class="role-choice-opt role-choice-student">
               <input type="radio" name="reg-role" value="student" checked>
+              <span class="role-check-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span class="role-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                  <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+              </span>
               <span class="role-title">Student</span>
               <span class="role-desc">Read and join a classroom</span>
             </label>
-            <label class="role-choice-opt">
+            <label class="role-choice-opt role-choice-teacher">
               <input type="radio" name="reg-role" value="teacher">
+              <span class="role-check-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span class="role-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="13" rx="2"/>
+                  <path d="M8 20h8m-4-3v3M7 8h10M7 11h6"/>
+                </svg>
+              </span>
               <span class="role-title">Teacher</span>
               <span class="role-desc">Create and manage a classroom</span>
             </label>
           </div>
         </fieldset>
+
         <div class="auth-form-group">
-          <label for="reg-name">Full Name</label>
-          <input type="text" id="reg-name" class="auth-input" placeholder="e.g. Juan dela Cruz" required>
+          <label for="reg-name"><svg class="field-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Full Name</label>
+          <div class="auth-input-wrapper">
+            <span class="auth-input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <input type="text" id="reg-name" class="auth-input" placeholder="e.g. Juan dela Cruz" required>
+          </div>
         </div>
+
         <div class="auth-form-group">
-          <label for="reg-email">Email Address</label>
-          <input type="email" id="reg-email" class="auth-input" placeholder="e.g. juan@school.edu.ph" required>
+          <label for="reg-email"><svg class="field-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg> Email Address</label>
+          <div class="auth-input-wrapper">
+            <span class="auth-input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
+            </span>
+            <input type="email" id="reg-email" class="auth-input" placeholder="e.g. juan@school.edu.ph" required>
+          </div>
         </div>
+
         <div class="auth-form-group">
-          <label for="reg-password">Password</label>
-          <input type="password" id="reg-password" class="auth-input" placeholder="Min. 6 characters" required>
+          <label for="reg-password"><svg class="field-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Password</label>
+          <div class="auth-input-wrapper">
+            <span class="auth-input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <input type="password" id="reg-password" class="auth-input auth-password-input" placeholder="Min. 6 characters" required>
+            <button type="button" class="auth-password-toggle" data-a="toggle-reg-password" aria-label="Toggle password visibility">
+              <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
 
         <!-- Student-specific Teacher Share Code Field -->
         <div class="auth-form-group" id="reg-group-student">
-          <label for="reg-teacher-code">Teacher's Share Code (Optional)</label>
-          <input type="text" id="reg-teacher-code" class="auth-input" placeholder="e.g. BASA-TEACH-8492" style="text-transform:uppercase;font-family:monospace">
-          <div class="auth-help">Enter code provided by your teacher to automatically join their class section!</div>
+          <label for="reg-teacher-code"><svg class="field-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m9 12 2 2 4-4"/></svg> Teacher's Share Code (Optional)</label>
+          <div class="auth-input-wrapper">
+            <span class="auth-input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <input type="text" id="reg-teacher-code" class="auth-input" placeholder="e.g. BASA-TEACH-8492" style="text-transform:uppercase;font-family:monospace">
+          </div>
+          <div class="auth-info-callout">
+            <span class="auth-info-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span class="auth-info-text">Enter the code provided by your teacher to join their class section.</span>
+          </div>
         </div>
 
+        <!-- Teacher-specific Class Section Field -->
         <div class="auth-form-group" id="reg-group-teacher" hidden>
-          <label for="reg-section">Class Section</label>
-          <input type="text" id="reg-section" class="auth-input" placeholder="e.g. Grade 8 - Emerald" maxlength="100">
-          <div class="auth-help">Your classroom share code will be created automatically.</div>
+          <label for="reg-section"><svg class="field-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 7v14M21 7v14M6 21V11M10 21V11M14 21V11M18 21V11M12 3l9 4H3l9-4z"/></svg> Class Section</label>
+          <div class="auth-input-wrapper">
+            <span class="auth-input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 7v14M21 7v14M6 21V11M10 21V11M14 21V11M18 21V11M12 3l9 4H3l9-4z"/></svg>
+            </span>
+            <input type="text" id="reg-section" class="auth-input" placeholder="e.g. Grade 8 - Emerald" maxlength="100">
+          </div>
+          <div class="auth-info-callout">
+            <span class="auth-info-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span class="auth-info-text">Your classroom share code will be created automatically.</span>
+          </div>
         </div>
 
-        <button type="button" class="btn blue" id="reg-submit" style="width:100%;margin-top:10px" data-a="auth-register-submit">Create Student Account</button>
+        <button type="button" class="auth-submit-btn" id="reg-submit" data-a="auth-register-submit">Create Student Account</button>
       </form>
-      <p class="login-register">Already have an account? <a href="login.html">Sign in</a></p>
+      <p class="login-register auth-switch-row">Already have an account? <a href="login.html" class="auth-signin-link">Sign In</a></p>
+    </div>
+
+    <!-- Bottom Wave & Botanical Watermark -->
+    <div class="auth-card-bottom-wave" aria-hidden="true">
+      <svg viewBox="0 0 400 44" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 20C60 8 130 32 200 20C270 8 340 30 400 18V44H0V20Z" fill="#E8F2FF" fill-opacity="0.8"/>
+        <path d="M0 28C70 16 140 38 210 26C280 14 350 34 400 24V44H0V28Z" fill="#D3E6FE" fill-opacity="0.9"/>
+        <path d="M28 38C34 26 44 20 54 22C60 23 65 27 69 34" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+        <path d="M372 38C366 26 356 20 346 22C340 23 335 27 331 34" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="48" cy="22" r="3.5" fill="#FBBF24"/>
+        <circle cx="352" cy="22" r="3.5" fill="#3B82F6"/>
+      </svg>
     </div>
   </div>
 </div>
@@ -186,15 +305,24 @@
 <div id="admin-passage-modal" class="app-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="passage-modal-title" hidden>
   <div class="app-modal-card wide">
     <div class="modal-hdr">
-      <h2 id="passage-modal-title">Add reading practice</h2>
-      <button type="button" class="modal-close-btn" data-a="passage-modal-close" aria-label="Close reading practice editor"><svg class="ui-icon" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+      <h2 id="passage-modal-title">Add passage</h2>
+      <button type="button" class="modal-close-btn" data-a="passage-modal-close" aria-label="Close passage editor"><svg class="ui-icon" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
     </div>
     <p id="passage-modal-hint" class="sub">Add a passage and comprehension question.</p>
     <form id="form-passage" onsubmit="return false;">
+      <div class="auth-form-group passage-import-field">
+        <label for="pass-file">Import passage file (PDF, DOCX, or TXT)</label>
+        <input type="file" id="pass-file" class="auth-input" accept=".pdf,.docx,.txt">
+        <p id="pass-file-status" class="sub-sm" role="status" aria-live="polite">Imported text stays editable. Scanned PDFs may need to be pasted manually.</p>
+      </div>
       <div class="passage-meta-grid">
         <div class="auth-form-group">
           <label for="pass-title">Passage Title</label>
           <input type="text" id="pass-title" class="auth-input" placeholder="e.g. Ang Munting Bangka" required>
+        </div>
+        <div class="auth-form-group">
+          <label for="pass-author">Author / Curriculum Source (optional)</label>
+          <input type="text" id="pass-author" class="auth-input" placeholder="e.g. DepEd Region VII" maxlength="160">
         </div>
         <div class="auth-form-group">
           <label for="pass-diff">Difficulty Tier</label>
@@ -250,7 +378,7 @@
         <button type="button" class="btn o" data-a="passage-modal-close">Cancel</button>
         <button type="button" class="btn o" id="practice-save-draft" data-a="practice-save-draft" hidden>Save draft</button>
         <button type="button" class="btn blue" id="practice-submit" data-a="practice-submit" hidden>Submit for approval</button>
-        <button type="button" class="btn blue" id="practice-admin-save" data-a="practice-admin-save" hidden>Publish practice</button>
+        <button type="button" class="btn blue" id="practice-admin-save" data-a="practice-admin-save" hidden>Publish passage</button>
       </div>
     </form>
   </div>
@@ -274,6 +402,94 @@
 
 <!-- Reports & Form 14 Sheet Modal -->
 <div id="md" role="dialog" aria-modal="true" aria-labelledby="sample-report-title" hidden></div>
+
+<!-- Reading Journey Milestones & Practice Tiers Dialog (Wisyo Plus Paywall) -->
+<div id="upgrade-modal" class="app-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title" hidden>
+  <div class="app-modal-card upgrade-modal-card" style="max-width:760px">
+    <div class="upgrade-modal-header">
+      <div class="mascot-crown-wrap">
+        <img src="assets/images/wisyo.png" alt="Wisyo Mascot" class="upgrade-mascot-img">
+        <span class="golden-crown-badge" aria-hidden="true">👑</span>
+      </div>
+      <div style="flex:1">
+        <h2 id="upgrade-modal-title" class="upgrade-title">Unleash Your Reading Superpowers</h2>
+        <p class="sub upgrade-sub">Accelerate your literacy journey with unlimited practice hearts, smart dictionary, and high-thinking Wisyo AI tutoring.</p>
+      </div>
+      <button class="icon-btn upgrade-close-btn" data-a="upgrade-close" title="Close" aria-label="Close dialog">✕</button>
+    </div>
+
+    <div id="upgrade-notice-banner" class="upgrade-notice" hidden>
+      <span class="upgrade-notice-icon">ℹ️</span>
+      <span id="upgrade-notice-text">Continue your daily reading streak to unlock new story tiers!</span>
+    </div>
+
+    <!-- Responsive Dual Plan Cards -->
+    <div class="upgrade-grid">
+      <!-- Plan 1: Wisyo Plus (Monthly) -->
+      <div class="upgrade-card">
+        <h3 class="plan-name">Wisyo Plus</h3>
+        <p class="plan-desc">Flexible month-to-month reading acceleration for learners and families.</p>
+        <div class="plan-pricing">
+          <span class="plan-currency">₱</span>
+          <span class="plan-amount">149</span>
+          <span class="plan-period">/ month</span>
+          <div class="plan-usd">Approx. $2.99 USD / month</div>
+        </div>
+        <ul class="plan-features">
+          <li><span class="check-icon">✓</span> <span><b>Unlimited Practice Hearts (❤️ ∞):</b> Practice stories with zero mistake anxiety.</span></li>
+          <li><span class="check-icon">✓</span> <span><b>Smart Contextual Dictionary:</b> Parts of speech, trilingual meanings, and audio pronunciation.</span></li>
+          <li><span class="check-icon">✓</span> <span><b>Generous Wisyo AI Tutoring:</b> 100+ daily interactive reading questions.</span></li>
+          <li><span class="check-icon">✓</span> <span><b>Expanded Reading Studio:</b> Import up to 15 personal stories each month.</span></li>
+          <li><span class="check-icon">✓</span> <span><b>100 Saved Flashcards:</b> Expand your personal Leitner vocabulary deck.</span></li>
+        </ul>
+        <button class="btn blue upgrade-cta-btn" data-a="upgrade-select" data-v="monthly" style="width:100%;min-height:44px">
+          Get Wisyo Plus Monthly
+        </button>
+      </div>
+
+      <!-- Plan 2: Wisyo Plus Annual (Best Value / Featured) -->
+      <div class="upgrade-card featured">
+        <div class="upgrade-ribbon">★ MOST POPULAR · SAVE 35% ★</div>
+        <h3 class="plan-name" style="color:var(--gold-ink)">Wisyo Plus Annual</h3>
+        <p class="plan-desc">Full school year mastery with priority features and deepest savings.</p>
+        <div class="plan-pricing">
+          <span class="plan-currency">₱</span>
+          <span class="plan-amount">99</span>
+          <span class="plan-period">/ month</span>
+          <div class="plan-usd">Billed ₱1,188 / year · Save 35% compared to monthly</div>
+        </div>
+        <ul class="plan-features">
+          <li><span class="check-icon">✓</span> <span><b>Everything in Monthly Plus</b></span></li>
+          <li><span class="check-icon">✓</span> <span><b>High-Thinking Groq AI Mode:</b> Deeper Socratic reading clues and reasoning.</span></li>
+          <li><span class="check-icon">✓</span> <span><b>Unlimited Story Imports:</b> Import any PDF, DOCX, TXT, or pasted text.</span></li>
+          <li><span class="check-icon">✓</span> <span><b>Unlimited Flashcards Storage:</b> No deck caps for your growing vocabulary.</span></li>
+          <li><span class="check-icon">✓</span> <span><b>Golden Champion Profile Frame:</b> Exclusive celebratory avatar styling.</span></li>
+          <li><span class="check-icon">✓</span> <span><b>Priority AI Server Bandwidth:</b> Fastest responses during peak study hours.</span></li>
+        </ul>
+        <button class="btn gold-btn upgrade-cta-btn" data-a="upgrade-select" data-v="annual" style="width:100%;min-height:44px">
+          ★ Get Wisyo Plus Annual ★
+        </button>
+      </div>
+    </div>
+
+    <!-- Educational Fairness Notice -->
+    <div class="upgrade-fairness-note">
+      <span class="fairness-shield" style="font-size:1.1rem">🛡️</span>
+      <span><b>Equal Education Guarantee:</b> Phil-IRI diagnostic assessments, teacher-assigned homework, and classroom reading libraries remain <b>100% free</b> and equal for every learner.</span>
+    </div>
+
+    <!-- Evaluation Sandbox Simulation Switch -->
+    <div class="upgrade-sandbox-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg);border-radius:12px;border:1px dashed var(--border);margin-top:4px">
+      <div>
+        <b style="font-size:0.85rem;color:var(--text)">Evaluation Sandbox Simulation:</b>
+        <div class="sub-sm" style="color:var(--sub)">Toggle Wisyo Plus active status instantly for prototype testing without credit card checkout.</div>
+      </div>
+      <button class="btn sm o" data-a="upgrade-toggle-sandbox" style="white-space:nowrap;font-size:0.8rem">
+        ⚙️ Toggle Plus Sandbox
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- Interactive Wisyo AI Assistant Modal Drawer -->
 <div id="ai" role="dialog" aria-modal="true" aria-labelledby="ai-title" hidden>
@@ -313,51 +529,18 @@
   </div>
 </div>
 
-<script src="src/utils/core.js"></script>
-<script src="src/data/dictionary.js"></script>
-<script src="src/data/passages.js"></script>
-<script src="src/data/narrations.js"></script>
-<script src="src/data/passage-schema.js"></script>
-<script src="src/services/auth.js"></script>
-<script src="src/pages/teacher.js"></script>
-<script src="src/pages/admin.js"></script>
-<script src="src/services/state.js"></script>
-<script src="src/services/hearts.js"></script>
-<script src="src/services/rewards.js"></script>
-<script src="src/services/quests.js"></script>
-<script src="src/services/review.js"></script>
-<script src="src/services/flashcards.js"></script>
-<script src="src/services/journey.js"></script>
-<script src="src/services/board.js"></script>
-<script src="src/services/rankings.js"></script>
-<script src="src/services/mastery.js"></script>
-<script src="src/utils/reading.js"></script>
-<script src="src/components/navigation.js"></script>
-<script src="src/components/shell.js"></script>
-<script src="src/pages/home.js"></script>
-<script src="src/pages/assess.js"></script>
-<script src="src/pages/practice.js"></script>
-<script src="src/pages/flashcards.js"></script>
-<script src="src/pages/profile.js"></script>
-<script src="src/pages/quest.js"></script>
-<script src="src/pages/board.js"></script>
-<script src="src/pages/reports.js"></script>
-<script src="src/pages/parent.js"></script>
-<script src="src/pages/about.js"></script>
-<script src="src/pages/services.js"></script>
-<script src="src/services/quiz.js"></script>
-<script src="src/services/tutor.js"></script>
-<script src="src/services/practice-helper.js"></script>
-<script src="src/components/notifications.js"></script>
-<script src="src/services/exports.js"></script>
-<script src="src/services/backup.js"></script>
-<script src="src/services/import-reader.js"></script>
-<script src="src/services/material-storage.js"></script>
-<script src="src/services/ai-question-generator.js"></script>
-<script src="src/services/assignments.js"></script>
-<script src="src/pages/reading-studio.js"></script>
-<script src="src/pages/teacher-reading-studio.js"></script>
-<script src="src/app.js"></script>
+<!-- Production Streamlined Script Bundles (Core Data, Services, UI & Bootstrap) -->
+<script defer src="src/bundles/bundle-core-data.js"></script>
+<script defer src="src/bundles/bundle-services.js"></script>
+<script defer src="src/bundles/bundle-ui.js"></script>
+<script defer src="src/app.js"></script>
+<script>
+if ('serviceWorker' in navigator && typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
 </body>
 </html>
 

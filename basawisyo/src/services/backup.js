@@ -114,16 +114,55 @@ function validateBackup(raw) {
   backupUnique(raw.customPassages, "customPassages", passage => passage.id);
   const systemState = validateBackupState(raw.systemState);
 
+  if (raw.flashcardDecks !== undefined) {
+    backupRequire(backupIsObject(raw.flashcardDecks), "flashcardDecks must be an object.");
+  }
+  if (raw.materials !== undefined) {
+    backupRequire(Array.isArray(raw.materials), "materials must be an array.");
+  }
+  if (raw.userStates !== undefined) {
+    backupRequire(backupIsObject(raw.userStates), "userStates must be an object.");
+  }
+
   return {
     users: raw.users,
     assignments: raw.assignments,
     guestTokens: raw.guestTokens,
     customPassages: raw.customPassages,
-    systemState
+    systemState,
+    flashcardDecks: raw.flashcardDecks || {},
+    materials: raw.materials || [],
+    userStates: raw.userStates || {}
   };
 }
 
 function createBackupPayload() {
+  const flashcardDecks = {};
+  const userStates = {};
+  try {
+    if (typeof localStorage !== "undefined") {
+      for (const k of ["basawisyo_flashcards_v1_guest", "basa_wisyo_flashcards_guest", "basa_wisyo_state_guest"]) {
+        const val = localStorage.getItem(k);
+        if (val) {
+          if (k.includes("flashcards")) flashcardDecks[k] = JSON.parse(val);
+          if (k.includes("state")) userStates[k] = JSON.parse(val);
+        }
+      }
+      for (const u of AUTH.users) {
+        const fcKeys = [`basawisyo_flashcards_v1_${u.id}`, `basa_wisyo_flashcards_${u.id}`];
+        for (const fcKey of fcKeys) {
+          const fcVal = localStorage.getItem(fcKey);
+          if (fcVal) flashcardDecks[fcKey] = JSON.parse(fcVal);
+        }
+        const stKey = `basa_wisyo_state_${u.id}`;
+        const stVal = localStorage.getItem(stKey);
+        if (stVal) userStates[stKey] = JSON.parse(stVal);
+      }
+    }
+  } catch (e) {}
+
+  const materials = typeof readLocalMaterials === "function" ? readLocalMaterials() : [];
+
   return {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
@@ -133,7 +172,10 @@ function createBackupPayload() {
     assignments: AUTH.assignments,
     guestTokens: AUTH.guestTokens,
     customPassages: AUTH.customPassages,
-    systemState: S
+    systemState: S,
+    flashcardDecks,
+    materials,
+    userStates
   };
 }
 
@@ -163,7 +205,7 @@ function restoreBackupFromText(text) {
 
   const keys = [AUTH.USERS_KEY, AUTH.ASSIGNMENTS_KEY, AUTH.GUEST_TOKENS_KEY,
     AUTH.CUSTOM_PASSAGES_KEY, STATE_KEY, AUTH.SESSION_KEY];
-  const previous = new Map(keys.map(key => [key, localStorage.getItem(key)]));
+
   const replacements = new Map([
     [AUTH.USERS_KEY, JSON.stringify(data.users)],
     [AUTH.ASSIGNMENTS_KEY, JSON.stringify(data.assignments)],
@@ -171,6 +213,27 @@ function restoreBackupFromText(text) {
     [AUTH.CUSTOM_PASSAGES_KEY, JSON.stringify(data.customPassages)],
     [STATE_KEY, JSON.stringify(data.systemState)]
   ]);
+
+  if (data.flashcardDecks && typeof data.flashcardDecks === "object") {
+    for (const [k, deck] of Object.entries(data.flashcardDecks)) {
+      keys.push(k);
+      replacements.set(k, JSON.stringify(deck));
+    }
+  }
+
+  if (Array.isArray(data.materials) && data.materials.length > 0) {
+    keys.push("basa_wisyo_materials_v1");
+    replacements.set("basa_wisyo_materials_v1", JSON.stringify(data.materials));
+  }
+
+  if (data.userStates && typeof data.userStates === "object") {
+    for (const [k, st] of Object.entries(data.userStates)) {
+      keys.push(k);
+      replacements.set(k, JSON.stringify(st));
+    }
+  }
+
+  const previous = new Map(keys.map(key => [key, localStorage.getItem(key)]));
 
   try {
     for (const [key, value] of replacements) localStorage.setItem(key, value);

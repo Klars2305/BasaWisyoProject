@@ -19,6 +19,7 @@ const files = [
   'src/services/hearts.js',
   'src/services/rewards.js',
   'src/services/quests.js',
+  'src/services/bayanihan.js',
   'src/services/review.js',
   'src/services/flashcards.js',
   'src/services/journey.js',
@@ -37,6 +38,11 @@ const files = [
   'src/services/tutor.js',
   'src/services/practice-helper.js',
   'src/services/backup.js',
+  'src/pages/assess.js',
+  'src/pages/quest.js',
+  'src/services/material-storage.js',
+  'src/services/assignments.js',
+  'src/pages/teacher-reading-studio.js',
   'src/components/shell.js',
   'src/app.js',
   'src/services/exports.js',
@@ -103,6 +109,9 @@ function loadApp(storage = new Map()) {
     showToast() {},
     alert() {},
     confirm: () => true,
+    atob: typeof atob !== 'undefined' ? atob : (s => Buffer.from(s, 'base64').toString('binary')),
+    btoa: typeof btoa !== 'undefined' ? btoa : (s => Buffer.from(s, 'binary').toString('base64')),
+    Buffer,
     window: {
       location: { hash: '', pathname: '/index.html', search: '', assign() {}, replace() {} },
       history: { replaceState() {} },
@@ -646,8 +655,11 @@ test('Sprint 2: Daily Reading Quests, streak tracking, idempotent rewards, and h
   assert.equal(app.eval('journeyTotalXP()'), initialXP + 25, 'XP must remain strictly unchanged');
 
   // Day rollover / calendar day reset
-  const tomorrowQuest = app.eval('getDailyQuest("2026-11-16")');
-  assert.equal(tomorrowQuest.date, '2026-11-16');
+  const tm = new Date();
+  tm.setDate(tm.getDate() + 1);
+  const tomorrow = `${tm.getFullYear()}-${String(tm.getMonth() + 1).padStart(2, "0")}-${String(tm.getDate()).padStart(2, "0")}`;
+  const tomorrowQuest = app.eval(`getDailyQuest("${tomorrow}")`);
+  assert.equal(tomorrowQuest.date, tomorrow);
   assert.equal(tomorrowQuest.completed, false, 'New day starts with uncompleted quest');
   assert.equal(tomorrowQuest.claimedAt, null);
   assert.equal(tomorrowQuest.tasks.read.completed, false);
@@ -827,14 +839,13 @@ test('Sprint 3: Vocabulary Flashcards deck, Leitner ratings, 3D flip card UI, an
   const entry = app.eval('D["biodiversity"]');
   assert.ok(entry);
 
-  // 6. UI View Flashcards rendering
+  // 6. UI View Flashcards rendering: simplified one-card-at-a-time interface
   const fcHtml = app.eval('viewFlashcards()');
   assert.ok(fcHtml.includes('Vocabulary Flashcards'), 'Renders Flashcards title');
-  assert.ok(fcHtml.includes('Due Today'), 'Renders Due Today stat');
   assert.ok(fcHtml.includes('fc-card-viewport'), 'Renders 3D card viewport');
-  assert.ok(fcHtml.includes('Difficult (1d)'), 'Renders Leitner difficult rating button');
-  assert.ok(fcHtml.includes('Good (3d)'), 'Renders Leitner good rating button');
-  assert.ok(fcHtml.includes('Easy (7d)'), 'Renders Leitner easy rating button');
+  assert.ok(!fcHtml.includes('Due Today'), 'Technical statistics bar removed from student UI');
+  assert.ok(!fcHtml.includes('Easy (7d)'), 'Self-rating difficulty buttons removed from student UI');
+  assert.ok(fcHtml.includes('Card <b>1</b>'), 'Renders clear card progress');
 
   // 7. Navigation tab switching to flashcards
   app.eval('CURRENT_TAB = "flashcards"; renderApp()');
@@ -1186,6 +1197,122 @@ test('Sprint 6: Accessibility, reduced-motion skip, non-color feedback, and keyb
   assert.ok(masteryHtml.includes("Formative Skill Evidence Dashboard"), "Mastery clearly labeled as formative classroom evidence");
   assert.ok(masteryHtml.includes("Not an official Phil-IRI classification"), "Educational safety disclaimer present");
 });
+
+test('UX Plan Area 1: Teacher Assignments responsive cards, date validation, and duplicate prevention', async () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const pid = app.eval('getPublishedPassages()[0].id');
+
+  // 1. Validation requires section and due date
+  await assert.rejects(
+    () => app.eval(`createClassAssignment({ materialId: "${pid}", sectionCode: "", dueDate: "2026-11-30" })`),
+    /specify a target class section/
+  );
+  await assert.rejects(
+    () => app.eval(`createClassAssignment({ materialId: "${pid}", sectionCode: "Grade 8 - Rizal", dueDate: "" })`),
+    /valid due date/
+  );
+
+  // 2. Successful creation
+  const asg1 = await app.eval(`createClassAssignment({ materialId: "${pid}", sectionCode: "Grade 8 - Rizal", dueDate: "2026-11-30", mode: "practice" })`);
+  assert.ok(asg1.id);
+  assert.equal(asg1.section, "Grade 8 - Rizal");
+
+  // 3. Duplicate assignment for same passage, section, and mode is rejected
+  await assert.rejects(
+    () => app.eval(`createClassAssignment({ materialId: "${pid}", sectionCode: "Grade 8 - Rizal", dueDate: "2026-12-05", mode: "practice" })`),
+    /already exists/
+  );
+
+  // 4. Studio UI renders desktop table and mobile stacked cards
+  const studioHtml = app.eval('renderTeacherAssignmentsView()');
+  assert.ok(studioHtml.includes("desktop-assignments-table"), "Renders desktop table container");
+  assert.ok(studioHtml.includes("mobile-assignments-list"), "Renders mobile card list container");
+  assert.ok(studioHtml.includes("assignment-mobile-card"), "Renders stacked assignment card for phone screens");
+});
+
+test('UX Plan Area 2: Progressive 15-question placement assessment, provisional level without auto-mastery, and skills profile', () => {
+  const app = loadApp();
+  app.eval('GUEST_MODE = true');
+
+  // 1. PLACEMENT_TEST has 15 total questions across 3 passages
+  const testSteps = app.eval('PLACEMENT_TEST.reduce((sum, p) => sum + p.qs.length, 0)');
+  assert.equal(testSteps, 15, 'Placement test contains 15 comprehension questions');
+  assert.equal(app.eval('PLACEMENT_TEST.length'), 3, 'Placement test presents 3 progressive reading passages');
+
+  // 2. Start placement quiz
+  app.eval('startQuiz(PLACEMENT_TEST, "pl", "Phil-IRI Diagnostic Placement")');
+  assert.equal(app.eval('ACTIVE_QUIZ.steps.length'), 15);
+
+  // 3. Perfect score on initial 15-question placement does NOT grant automatic Mastery!
+  for (let i = 0; i < 15; i++) {
+    app.eval('ACTIVE_QUIZ.steps[ACTIVE_QUIZ.idx].userCorrect = true');
+    app.eval('ACTIVE_QUIZ.correctCount++');
+    app.eval('ACTIVE_QUIZ.idx++');
+  }
+  app.eval('finishQuiz()');
+
+  // Perfect score awards provisional Level 2 (Proficient) with candidate status for Level 3 verification
+  assert.equal(app.eval('S.lvl'), 2, 'Perfect initial score caps at Level 2 (Proficient / Candidate); does NOT auto-grant Mastery');
+  assert.equal(app.eval('S.placementCandidate'), true, 'Student flagged as Advanced Candidate');
+
+  // 4. Assess view renders Provisional Starting Level and Advanced Verification card
+  const assessHtml = app.eval('viewAssess()');
+  assert.ok(assessHtml.includes("Provisional Starting Level"), 'Renders provisional starting level');
+  assert.ok(assessHtml.includes("Advanced Placement Candidate"), 'Offers optional advanced verification');
+  assert.ok(assessHtml.includes("take the 5-question Advanced Verification") || assessHtml.includes("Take Advanced Verification Passage"), 'Verification button present');
+  assert.ok(assessHtml.includes("Assessment Evidence by Skill"), 'Renders skills breakdown card');
+
+  // 5. Taking and passing verification passage confirms Mastery (Level 3)
+  app.eval('startQuiz(PLACEMENT_VERIFICATION_PASSAGE, "pl", "Advanced Placement Verification")');
+  assert.equal(app.eval('ACTIVE_QUIZ.steps.length'), 5);
+  for (let i = 0; i < 5; i++) {
+    app.eval('ACTIVE_QUIZ.steps[ACTIVE_QUIZ.idx].userCorrect = true');
+    app.eval('ACTIVE_QUIZ.correctCount++');
+    app.eval('ACTIVE_QUIZ.idx++');
+  }
+  app.eval('finishQuiz()');
+  assert.equal(app.eval('S.lvl'), 3, 'Passing advanced verification confirms verified Mastery (Level 3)');
+});
+
+test('UX Plan Area 4: Data-driven Bayanihan quest, real student contribution, target configuration, and BasaMesh package preview', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+
+  // 1. Data-driven calculation without fake BASE_COMMUNITY
+  const questHtml = app.eval('viewQuest()');
+  assert.ok(!questHtml.includes("18450"), 'Fake BASE_COMMUNITY 18450 removed completely');
+  assert.ok(questHtml.includes("Bayanihan Reading Quest"), 'Renders Bayanihan title');
+  assert.ok(questHtml.includes("Your personal contribution"), 'Renders actual personal contribution');
+  assert.ok(questHtml.includes("Local-First Classroom Storage Notice"), 'Renders transparent local-first prototype notice');
+
+  // 2. Teacher can set weekly target
+  app.eval('setBayanihanTarget(15000)');
+  const updatedStats = app.eval('getBayanihanStats()');
+  assert.equal(updatedStats.targetWords, 15000, 'Teacher successfully updated weekly word target to 15,000');
+
+  // Target validation rejects invalid numbers
+  assert.throws(() => app.eval('setBayanihanTarget(-50)'), /between 500 and 500,000/);
+
+  // 3. BasaMesh Package validation
+  assert.throws(
+    () => app.eval('validateBasaMeshPackage("invalid-base64-random-text")'),
+    /Invalid BasaMesh format/
+  );
+
+  // Valid package encoding & decoding
+  const validPayload = JSON.stringify({
+    title: "Ang Munting Bangka",
+    text: "Bayani woke up early to help his uncle repair their small wooden banca. They replaced two broken bamboo outriggers and sealed the joints with tree resin.",
+    diff: "easy"
+  });
+  const validCode = Buffer.from(validPayload).toString('base64');
+  const parsed = app.eval(`validateBasaMeshPackage("${validCode}")`);
+  assert.equal(parsed.title, "Ang Munting Bangka");
+  assert.equal(parsed.diff, "easy");
+  assert.ok(parsed.qs.length >= 1, "Generated default comprehension question for imported passage");
+});
+
 
 
 

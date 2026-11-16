@@ -17,6 +17,7 @@ const files = [
   'src/pages/admin.js',
   'src/services/state.js',
   'src/services/journey.js',
+  'src/services/bayanihan.js',
   'src/services/board.js',
   'src/utils/reading.js',
   'src/components/navigation.js',
@@ -644,6 +645,28 @@ test('teacher registration needs a section and student share codes link to that 
   }).success`), false);
 });
 
+test('a new student must complete placement before starting leveled practice', () => {
+  const app = loadApp();
+  const result = app.eval('AUTH.register({name:"New Reader",email:"needsplacement@example.test",password:"secret7",role:"student"})');
+  assert.equal(result.success, true);
+  assert.equal(result.user.lvl, null);
+  app.click('tab', 'practice');
+  assert.equal(app.eval('CURRENT_TAB'), 'assess');
+  app.eval('startQuiz([getPublishedPassages()[0]], "pr", "Practice")');
+  assert.equal(app.eval('ACTIVE_QUIZ'), null);
+  assert.match(app.toasts.at(-1).message, /placement assessment/);
+});
+
+test('guest progress without placement cannot bypass a new account assessment', () => {
+  const app = loadApp();
+  app.click('entry-guest');
+  app.eval('S.lvl = 2; S.guestJourney.baseTier = 2');
+  const result = app.eval('AUTH.register({name:"Guest Reader",email:"guestneedsplacement@example.test",password:"secret7",role:"student"})');
+  assert.equal(result.success, true);
+  assert.equal(app.eval('S.lvl'), null);
+  assert.equal(app.eval('AUTH.currentUser.journey.baseTier'), 0);
+});
+
 test('registration form switches fields and creates the chosen teacher role', () => {
   const app = loadApp();
   const studentFields = { hidden: false };
@@ -1183,7 +1206,7 @@ test('guests and students cannot open or export reports through forged actions',
   }
 });
 
-test('teacher and admin can preview, export, and print only sample report data', () => {
+test('teacher and admin can preview, export, and print dynamic report data without learner leakage', () => {
   const app = loadApp();
   app.eval('S.lvl = 3; S.w = 99999; S.ss = 1');
   for (const [email, password] of [['teacher@basawisyo.ph', 'teacher123'], ['admin@basawisyo.ph', 'admin123']]) {
@@ -1192,16 +1215,14 @@ test('teacher and admin can preview, export, and print only sample report data',
     app.click('tab', 'reports');
     assert.equal(app.eval('CURRENT_TAB'), 'reports');
     const report = app.eval('viewReports()');
-    assert.match(report, /Sample Class 8-A Distribution/);
-    assert.match(report, /not validated Phil-IRI results/);
-    assert.doesNotMatch(report, /41 Learners|Current Learner/);
+    assert.match(report, /Reading Reports/);
+    assert.doesNotMatch(report, /41 Learners|Current Learner|Sample Class 8-A/);
     app.click('open-report-sheet');
     const modal = app.eval('$("#md").innerHTML');
-    assert.match(modal, /Sample Form 14 Layout/);
-    assert.match(modal, /Not for official submission/);
+    assert.match(modal, /Reading Progress Report/);
     assert.doesNotMatch(modal, /Current Learner|99,999/);
     app.click('download-csv');
-    assert.match(app.exportedJson(), /Sample Learner Name/);
+    assert.match(app.exportedJson(), /Student Name|Reading Profile/);
     assert.doesNotMatch(app.exportedJson(), /Current Learner|99999/);
     const beforePrints = app.prints();
     app.click('print-sheet');
@@ -1284,7 +1305,7 @@ test('report dialog takes keyboard focus and restores it when closed', () => {
   app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123"); openForm14Modal()');
   assert.equal(modal.hidden, false);
   assert.equal(closeFocused, true);
-  assert.match(modal.innerHTML, /id="sample-report-title"/);
+  assert.match(modal.innerHTML, /id="live-report-title"/);
   app.click('modal-close');
   assert.equal(modal.hidden, true);
   assert.equal(triggerFocused, true);

@@ -96,6 +96,16 @@ function viewPracticeManagement() {
       .toLowerCase().includes(SEARCH_QUERY.trim().toLowerCase())));
 
   return `<div class="practice-management-page">
+    ${actor.role === "teacher" ? `
+      <div class="subnav-segmented" role="tablist" aria-label="Materials section switcher">
+        <button class="subnav-tab" data-a="tab" data-v="teacher-studio">
+          ${uiIcon("studio")} <span>Teacher Reading Studio</span>
+        </button>
+        <button class="subnav-tab active" data-a="tab" data-v="practice">
+          ${uiIcon("practice")} <span>Passage Library</span>
+        </button>
+      </div>
+    ` : ""}
     <div class="row library-heading">
       <div><div class="lab">${isAdmin ? "Admin curriculum" : "Teacher classroom"}</div>
         <h2>Passage Library</h2></div>
@@ -105,7 +115,7 @@ function viewPracticeManagement() {
       ? "Manage custom practices and review teacher submissions."
       : "Manage your own practices and assignments without taking a learner quiz."}</p>
     <div class="practice-management-actions">
-      <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add practice</button>
+      <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add passage</button>
       <button class="btn o" data-a="tab" data-v="${isAdmin ? "admin" : "teacher"}">${uiIcon(isAdmin ? "admin" : "teacher")} ${isAdmin ? "Admin Console" : "Classroom Hub"}</button>
     </div>
     <div class="diff-selector" role="group" aria-label="Filter managed passages by difficulty">
@@ -174,6 +184,7 @@ function viewPractice() {
   if (["teacher", "admin"].includes(AUTH.currentUser?.role)) return viewPracticeManagement();
   let allPassages = getPublishedPassages();
   const journey = journeySummary();
+  const isUnassessedStudent = AUTH.currentUser?.role === "student" && (S.lvl === null || AUTH.currentUser.lvl === null);
 
   // Filter by difficulty
   if (S.activeDiff && S.activeDiff !== "all") {
@@ -192,11 +203,21 @@ function viewPractice() {
 
   const renderPassageCard = p => {
     const isDone = journey ? Boolean(journey.journey.results[p.id]) : S.done.includes(p.id);
-    const isLocked = journey && DIFF_KEYS.indexOf(p.diff) > journey.tier;
+    const isLocked = isUnassessedStudent || (journey && DIFF_KEYS.indexOf(p.diff) > journey.tier);
     const diffClass = "diff-" + (p.diff || "easy");
     const diffLabel = (p.diff || "custom").toUpperCase();
     const wc = wordCount(p.x);
     const estMin = Math.max(1, Math.round(wc / 130));
+
+    const buttonLabel = isUnassessedStudent
+      ? 'Take Placement First'
+      : isLocked
+        ? 'Complete earlier tiers'
+        : isDone
+          ? 'Read Again'
+          : 'Read & Answer';
+    const buttonAction = isUnassessedStudent ? 'data-a="tab" data-v="assess"' : `data-a="read-passage" data-v="${escapeHTML(p.id)}"`;
+    const buttonDisabled = isUnassessedStudent ? '' : (isLocked ? 'disabled aria-label="Complete earlier reading tiers to unlock this passage"' : '');
 
     return `
       <article class="card passage-card ${isLocked ? 'passage-card-locked' : ''}">
@@ -211,24 +232,47 @@ function viewPractice() {
         <p class="sub passage-card-excerpt">${escapeHTML(p.x.slice(0, 110))}…</p>
         <div class="passage-card-footer">
           <span class="sub-sm">${p.qs.length} comprehension questions</span>
-          <button class="btn sm ${isDone || isLocked ? 'o' : 'blue'}" data-a="read-passage" data-v="${escapeHTML(p.id)}" ${isLocked ? 'disabled aria-label="Complete earlier reading tiers to unlock this passage"' : ''}>
-            ${isLocked ? 'Complete earlier tiers' : isDone ? 'Read Again' : 'Read & Answer'}
+          <button class="btn sm ${isDone || isLocked ? 'o' : 'blue'}" ${buttonAction} ${buttonDisabled}>
+            ${buttonLabel}
           </button>
         </div>
       </article>`;
   };
-  const groupLocked = Boolean(journey && S.activeDiff === "all" && !SEARCH_QUERY.trim());
+  const groupLocked = Boolean(!isUnassessedStudent && journey && S.activeDiff === "all" && !SEARCH_QUERY.trim());
   const availablePassages = groupLocked
     ? allPassages.filter(p => DIFF_KEYS.indexOf(p.diff) <= journey.tier) : allPassages;
   const lockedPassages = groupLocked
     ? allPassages.filter(p => DIFF_KEYS.indexOf(p.diff) > journey.tier) : [];
 
   return `
+    <div class="subnav-segmented" role="tablist" aria-label="Reading section switcher">
+      <button class="subnav-tab active" data-a="tab" data-v="practice">
+        ${uiIcon("practice")} <span>Leveled Passages</span>
+      </button>
+      ${AUTH.currentUser?.role === "student" ? `
+        <button class="subnav-tab" data-a="tab" data-v="studio">
+          ${uiIcon("studio")} <span>My Reading Studio</span>
+        </button>
+      ` : ""}
+    </div>
     <div class="row library-heading">
       <h2>Reading Library</h2>
       <span class="pill">${allPassages.length} Passages</span>
     </div>
     <p class="sub library-intro">Tap underlined words for trilingual translations. Test your comprehension with instant feedback.</p>
+
+    ${isUnassessedStudent ? `
+      <div class="card placement-required-banner" style="background:linear-gradient(135deg, rgba(37,137,230,0.08), rgba(46,196,182,0.1));border:1.5px solid var(--sky);padding:18px 20px;border-radius:var(--radius-md);margin-bottom:18px">
+        <div class="lab" style="color:var(--sky-ink)">${uiIcon("assess")} Diagnostic Placement Required</div>
+        <h3 style="margin:4px 0 6px 0">Find Your Comfortable Reading Level First</h3>
+        <p class="sub" style="margin-bottom:14px">
+          Welcome to BasaWisyo! Before starting story practice, complete your 15-question diagnostic placement assessment. This identifies your reading level and unlocks calibrated Philippine stories tailored to you.
+        </p>
+        <button class="btn blue sm" data-a="tab" data-v="assess">
+          ${uiIcon("assess")} Start Placement Assessment
+        </button>
+      </div>
+    ` : ""}
 
     <!-- Difficulty Filter Bar -->
     <div class="diff-selector" role="group" aria-label="Filter passages by difficulty">

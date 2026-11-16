@@ -116,6 +116,20 @@ async function saveMaterial(material, actor = getStorageActor()) {
   }
 
   const existing = await getMaterialById(id, actor);
+
+  if (isStudentOrGuest && !existing) {
+    const isPrem = typeof isUserPremium === "function" && isUserPremium();
+    if (!isPrem) {
+      const existingPersonal = (await listMaterials(actor)).filter(m => m.ownerId === actor.id && m.status === "personal");
+      if (existingPersonal.length >= 2) {
+        if (typeof openUpgradeModal === "function") {
+          openUpgradeModal("imports", `You have reached the free personal import limit (2 stories). Upgrade to Wisyo Plus for expanded reading material imports!`);
+        }
+        throw new Error("Free personal story import limit (2) reached. Upgrade to Wisyo Plus for expanded imports!");
+      }
+    }
+  }
+
   let version = existing ? (existing.version || 1) : 1;
   if (existing && (existing.status === "approved" || existing.status === "published") && actor.role === "teacher") {
     // Editing an approved or published material increments version and resets to draft

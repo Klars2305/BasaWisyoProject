@@ -12,73 +12,108 @@ function viewReports() {
   if (!canViewReports()) {
     return `<section class="card"><h2>Reports unavailable</h2><p class="sub">Class reports are available to teacher and admin accounts.</p></section>`;
   }
-  const counts = [0, 0, 0, 0];
-  CLASS_ROSTER.forEach(st => counts[st.l]++);
-  const total = CLASS_ROSTER.length;
+  const dataset = getClassroomReportDataset();
 
   return `
-    <h2>Reading Reports Preview</h2>
-    <p class="sub">Sample Class 8-A data for layout review only. These counts and skill gaps are demo values, not validated Phil-IRI results or an official DepEd report.</p>
+    <h2>Reading Reports Preview & Analytics</h2>
+    <p class="sub">Comprehensive reading performance reports, diagnostic placement tracking, and formative assessment metrics.</p>
 
-    <!-- Distribution Summary Card -->
-    <div class="card">
-      <div class="lab">Sample Class 8-A Distribution (${total} Learners)</div>
-      
-      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-        <div>
-          <div class="row report-distribution-row">
-            <span><span class="badge-diff diff-hard" style="margin-right:6px">LEVEL 0</span> Frustration (Needs Intensive Remediation)</span>
-            <b>${counts[0]} students</b>
-          </div>
-          <div class="bar"><i style="width:${(counts[0]/total)*100}%;background:var(--coral)"></i></div>
+    <!-- Operational Classroom Analytics -->
+    ${(!dataset || dataset.total === 0) ? `
+      <div class="card" style="margin-bottom:18px">
+        <div class="lab">Live Classroom Analytics (${escapeHTML(dataset ? dataset.section : "Classroom")})</div>
+        <div style="padding:16px 0">
+          <h3 style="margin-bottom:6px">No student results available yet</h3>
+          <p class="sub">
+            No student accounts are currently enrolled in this classroom (${escapeHTML(dataset ? dataset.classroomCode : "UNASSIGNED")}). Once students connect with your share code and complete their diagnostic placement, verified analytics, reading profiles, and intervention indicators will appear here.
+          </p>
         </div>
-
-        <div>
-          <div class="row report-distribution-row">
-            <span><span class="badge-diff diff-medium" style="margin-right:6px">LEVEL 1</span> Instructional (Guided Reading)</span>
-            <b>${counts[1]} students</b>
-          </div>
-          <div class="bar"><i style="width:${(counts[1]/total)*100}%;background:var(--gold-hover)"></i></div>
-        </div>
-
-        <div>
-          <div class="row report-distribution-row">
-            <span><span class="badge-diff diff-easy" style="margin-right:6px;background:var(--sky-soft);color:var(--sky-ink);border-color:rgba(37,137,230,0.3)">LEVEL 2</span> Independent (At Grade Level)</span>
-            <b>${counts[2]} students</b>
-          </div>
-          <div class="bar"><i style="width:${(counts[2]/total)*100}%;background:var(--sky)"></i></div>
-        </div>
-
-        <div>
-          <div class="row report-distribution-row">
-            <span><span class="badge-diff diff-easy" style="margin-right:6px">LEVEL 3</span> Mastery (Advanced / Honor)</span>
-            <b>${counts[3]} students</b>
-          </div>
-          <div class="bar"><i style="width:${(counts[3]/total)*100}%;background:var(--teal)"></i></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn o" data-a="open-report-sheet" data-v="live">
+            ${uiIcon("print")} Preview Classroom Report
+          </button>
+          <button class="btn o" data-a="download-csv" data-v="live">
+            ${uiIcon("download")} Export Empty CSV
+          </button>
         </div>
       </div>
-    </div>
+    ` : `
+      <div class="card" style="margin-bottom:18px">
+        <div class="lab">Live Classroom Analytics (${escapeHTML(dataset.section)} · ${escapeHTML(dataset.school)})</div>
+        <div class="metric-grid" style="margin-top:10px;margin-bottom:14px">
+          <div class="metric-box">
+            <div class="metric-value">${dataset.total}</div>
+            <div class="metric-title">Enrolled Students</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-value" style="color:var(--teal)">${dataset.coveragePct}%</div>
+            <div class="metric-title">Placement Coverage (${dataset.assessed}/${dataset.total})</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-value">${dataset.totalWords.toLocaleString()}</div>
+            <div class="metric-title">Total Words Read</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-value" style="color:var(--coral)">${dataset.students.filter(s => s.status === 'Needs Intervention').length}</div>
+            <div class="metric-title">Needs Intervention</div>
+          </div>
+        </div>
 
-    <!-- Identified Skill Gaps -->
-    <div class="card">
-      <div class="lab">Sample Skill Gaps</div>
-      <p class="sub">Illustrative values for this report layout:</p>
-      <div>
-        <span class="tag w2">Critical Analysis (42%)</span>
-        <span class="tag w2">Inference Clues (38%)</span>
-        <span class="tag">Vocabulary in Context (24%)</span>
-        <span class="tag">Literal Identification (12%)</span>
+        <div class="lab" style="margin-bottom:6px">Verified Reading Profile Distribution</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div>
+            <div class="row report-distribution-row">
+              <span><span class="badge-diff diff-hard" style="margin-right:6px">LEVEL 0</span> Frustration (Needs Intensive Remediation)</span>
+              <b>${dataset.levelCounts[0]} students</b>
+            </div>
+            <div class="bar"><i style="width:${(dataset.levelCounts[0]/dataset.total)*100}%;background:var(--coral)"></i></div>
+          </div>
+
+          <div>
+            <div class="row report-distribution-row">
+              <span><span class="badge-diff diff-medium" style="margin-right:6px">LEVEL 1</span> Instructional (Guided Reading)</span>
+              <b>${dataset.levelCounts[1]} students</b>
+            </div>
+            <div class="bar"><i style="width:${(dataset.levelCounts[1]/dataset.total)*100}%;background:var(--gold-hover)"></i></div>
+          </div>
+
+          <div>
+            <div class="row report-distribution-row">
+              <span><span class="badge-diff diff-easy" style="margin-right:6px;background:var(--sky-soft);color:var(--sky-ink);border-color:rgba(37,137,230,0.3)">LEVEL 2</span> Independent (At Grade Level)</span>
+              <b>${dataset.levelCounts[2]} students</b>
+            </div>
+            <div class="bar"><i style="width:${(dataset.levelCounts[2]/dataset.total)*100}%;background:var(--sky)"></i></div>
+          </div>
+
+          <div>
+            <div class="row report-distribution-row">
+              <span><span class="badge-diff diff-easy" style="margin-right:6px">LEVEL 3</span> Mastery (Advanced / Honor)</span>
+              <b>${dataset.levelCounts[3]} students</b>
+            </div>
+            <div class="bar"><i style="width:${(dataset.levelCounts[3]/dataset.total)*100}%;background:var(--teal)"></i></div>
+          </div>
+
+          ${dataset.unassessed > 0 ? `
+          <div>
+            <div class="row report-distribution-row">
+              <span><span class="pill" style="margin-right:6px;background:var(--bg-card);border:1px solid var(--border)">UNASSESSED</span> Placement Required</span>
+              <b>${dataset.unassessed} students</b>
+            </div>
+            <div class="bar"><i style="width:${(dataset.unassessed/dataset.total)*100}%;background:var(--sub)"></i></div>
+          </div>
+          ` : ''}
+        </div>
+
+        <div class="btn-row" style="margin-top:14px">
+          <button class="btn blue" data-a="open-report-sheet" data-v="live">
+            ${uiIcon("print")} Preview Classroom Report
+          </button>
+          <button class="btn o" data-a="download-csv" data-v="live">
+            ${uiIcon("download")} Download Verified CSV
+          </button>
+        </div>
       </div>
-    </div>
-
-    <div class="btn-row" style="margin-top:12px">
-      <button class="btn blue" data-a="open-report-sheet" data-v="DepEd Phil-IRI Form 14">
-        ${uiIcon("print")} Preview Sample Form 14
-      </button>
-      <button class="btn o" data-a="download-csv">
-        ${uiIcon("download")} Export Sample CSV
-      </button>
-    </div>
+    `}
   `;
 }
 

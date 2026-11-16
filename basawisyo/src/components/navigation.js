@@ -1,9 +1,16 @@
+/* ==========================================================================
+   BasaWisyo - Unified Role-Based Responsive Navigation (navigation.js)
+   Single authoritative navigation configuration, independent route access,
+   and shared rendering interface.
+   ========================================================================== */
+
 const ICONS = {
   admin: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   teacher: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><circle cx="12" cy="8" r="3"/><path d="M6 14c0-2 2.5-3 6-3s6 1 6 3"/></svg>',
   home: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
   assess: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>',
   practice: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+  explore: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
   quest: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
   reports: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>',
   profile: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>',
@@ -12,6 +19,8 @@ const ICONS = {
   about: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
   services: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.3 6.7L21 11l-6.7 2.3L12 20l-2.3-6.7L3 11l6.7-2.3L12 2zM20 18v4M18 20h4"/></svg>',
   users: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2 20v-2a7 7 0 0 1 14 0v2H2zM17 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 4 5v1h-3"/></svg>',
+  students: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2 20v-2a7 7 0 0 1 14 0v2H2zM17 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 4 5v1h-3"/></svg>',
+  classes: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
   settings: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',
   backup: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
   add: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/></svg>',
@@ -44,30 +53,171 @@ const ICONS = {
 };
 
 function uiIcon(name) {
-  const icon = ICONS[name] || (name === "teacher-studio" ? ICONS.studio : "");
-  return icon.replace('<svg ', '<svg class="ui-icon" aria-hidden="true" focusable="false" ');
+  const icon = ICONS[name] ||
+    (name === "students" ? ICONS.users :
+     name === "classes" ? ICONS.classroom :
+     name === "teacher-studio" ? ICONS.studio :
+     name === "explore" ? ICONS.practice :
+     "");
+  return icon ? icon.replace('<svg ', '<svg class="ui-icon" aria-hidden="true" focusable="false" ') : "";
 }
 
+/**
+ * Authoritative Navigation Matrix
+ * Student: Home · Read · Practice · Class · Profile
+ * Teacher: Overview · Students · Materials · Class · Reports
+ * Admin: Overview · Users · Classes · Content · Settings
+ * Guest: Home · Explore · About · Sign In (Exactly 4 destinations)
+ */
+const NAV_CONFIG = {
+  student: [
+    { id: "home", label: "Home", icon: "home" },
+    { id: "practice", label: "Read", icon: "practice" },
+    { id: "flashcards", label: "Practice", icon: "flashcards" },
+    { id: "board", label: "Class", icon: "classroom" },
+    { id: "profile", label: "Profile", icon: "profile" }
+  ],
+  teacher: [
+    { id: "home", label: "Overview", icon: "home" },
+    { id: "teacher", label: "Students", icon: "users" },
+    { id: "teacher-studio", label: "Materials", icon: "studio" },
+    { id: "board", label: "Class", icon: "classroom" },
+    { id: "reports", label: "Reports", icon: "reports" }
+  ],
+  admin: [
+    { id: "admin", label: "Overview", icon: "admin" },
+    { id: "users", label: "Users", icon: "users" },
+    { id: "classes", label: "Classes", icon: "classroom" },
+    { id: "practice", label: "Content", icon: "practice" },
+    { id: "reports", label: "Settings", icon: "settings" }
+  ],
+  guest: [
+    { id: "home", label: "Home", icon: "home" },
+    { id: "practice", label: "Explore", icon: "practice" },
+    { id: "about", label: "About", icon: "about" },
+    { id: "profile", label: "Sign In", icon: "user" }
+  ]
+};
+
 const TAB_TITLES = {
-  admin: "Admin Panel",
-  teacher: "My Classroom",
+  admin: "Overview",
+  users: "Users",
+  classes: "Classes",
+  teacher: "Overview",
+  students: "Students",
   home: "Home",
   assess: "Assess",
-  practice: "Practice",
+  practice: "Read",
+  explore: "Explore",
   studio: "Reading Studio",
-  "teacher-studio": "Reading Studio",
+  "teacher-studio": "Materials",
   quest: "Bayanihan Quest",
-  flashcards: "Flashcards",
-  reports: "Reports (Demo)",
+  flashcards: "Practice",
+  board: "Class",
+  reports: "Reports",
   profile: "Profile",
+  settings: "Settings",
   parent: "Parent Hub",
   about: "About Us",
   services: "Services"
 };
 
-function bottomTabsForRole(role) {
-  if (role === "teacher") return ["teacher", "home", "teacher-studio", "practice", "reports"];
-  if (role === "admin") return ["admin", "practice", "assess", "reports", "home"];
-  return ["home", "assess", "practice", "quest", "profile", "parent"];
+function getNavItemsForRole(role) {
+  const norm = (role === "teacher" || role === "admin" || role === "student") ? role : "guest";
+  return NAV_CONFIG[norm] || NAV_CONFIG.guest;
 }
 
+function bottomTabsForRole(role) {
+  const items = getNavItemsForRole(role);
+  return items.map(item => item.id);
+}
+
+function isRouteActive(navId, currentTab, role = "guest") {
+  if (navId === currentTab) return true;
+  if (role === "student" || role === "guest") {
+    if (navId === "practice" && (currentTab === "studio" || currentTab === "practice")) return true;
+    if (navId === "flashcards" && (currentTab === "assess" || currentTab === "flashcards")) return true;
+    if (navId === "board" && (currentTab === "quest" || currentTab === "board")) return true;
+  }
+  if (role === "teacher") {
+    if (navId === "home" && (currentTab === "home" || currentTab === "teacher-preview")) return true;
+    if (navId === "teacher" && (currentTab === "teacher" || currentTab === "students")) return true;
+    if (navId === "teacher-studio" && (currentTab === "practice" || currentTab === "teacher-studio")) return true;
+    if (navId === "board" && (currentTab === "board" || currentTab === "quest")) return true;
+    if (navId === "reports" && currentTab === "reports") return true;
+  }
+  if (role === "admin") {
+    if (navId === "admin" && (currentTab === "home" || currentTab === "admin")) return true;
+    if (navId === "users" && currentTab === "users") return true;
+    if (navId === "classes" && currentTab === "classes") return true;
+    if (navId === "practice" && currentTab === "practice") return true;
+    if (navId === "reports" && (currentTab === "settings" || currentTab === "reports")) return true;
+  }
+  return false;
+}
+
+/**
+ * Independent Route Authorization
+ * Validates permission to open any route independent of button presence.
+ */
+function canAccessRoute(route, user, state = {}) {
+  const role = user ? user.role : "guest";
+
+  // Admin-only routes
+  if (["admin", "users", "classes"].includes(route)) {
+    return role === "admin";
+  }
+
+  // Teacher-only routes
+  if (["teacher", "students", "teacher-studio", "teacher-preview"].includes(route)) {
+    return role === "teacher";
+  }
+
+  // Reports requires teacher or admin
+  if (route === "reports") {
+    return role === "teacher" || role === "admin";
+  }
+
+  // Mandatory placement check for new/unplaced students
+  if (role === "student" && (state.lvl === null || user.lvl === null)) {
+    if (!["assess", "home", "profile", "about", "services"].includes(route)) {
+      return false;
+    }
+  }
+
+  // Guest cannot open private personal studio
+  if (role === "guest" && ["studio"].includes(route)) {
+    return false;
+  }
+
+  return true;
+}
+
+function renderNavButtons(role, currentTab, isTopNav = false) {
+  const items = getNavItemsForRole(role);
+  return items.map(item => {
+    const active = isRouteActive(item.id, currentTab, role);
+    return `
+      <button type="button" data-a="tab" data-v="${item.id}" data-nav-route="${item.id}"
+        class="${active ? 'on active' : ''}" ${active ? 'aria-current="page"' : ''}
+        aria-label="${item.label}">
+        ${uiIcon(item.icon || item.id)}
+        <span>${item.label}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    ICONS,
+    uiIcon,
+    NAV_CONFIG,
+    TAB_TITLES,
+    getNavItemsForRole,
+    bottomTabsForRole,
+    isRouteActive,
+    canAccessRoute,
+    renderNavButtons
+  };
+}

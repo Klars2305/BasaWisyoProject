@@ -441,3 +441,50 @@ test('Navigation: Teacher Studio icon renders in subnav and bottom tabs', async 
     assert.ok(tabIcon.includes('<svg class="ui-icon"'), `Tab "${tab}" must have a valid SVG icon`);
   }
 });
+
+test('Teacher Studio moves valid older materials into passages and keeps incomplete drafts available', () => {
+  const storage = new Map();
+  const app = loadApp(storage);
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const teacherId = app.eval('AUTH.currentUser.id');
+  const base = {
+    ownerId: teacherId, ownerRole: 'teacher', sourceType: 'teacher_studio',
+    text: 'A teacher prepared a classroom reading about birds and the forest.',
+    language: 'en', difficulty: 'easy', status: 'draft'
+  };
+  storage.set('basa_wisyo_materials_v1', JSON.stringify([
+    { ...base, id: 'mat_valid', title: 'Forest Birds', questions: [
+      { q: 'What did the teacher prepare?', o: ['A reading', 'A song'], a: 0, k: 'Literal' }
+    ] },
+    { ...base, id: 'mat_approved', title: 'Approved Older Material', status: 'approved', questions: [
+      { q: 'Where did the story happen?', o: ['Forest', 'Sea'], a: 0, k: 'Literal' }
+    ] },
+    { ...base, id: 'mat_incomplete', title: 'Forest Draft', questions: [] },
+    { ...base, id: 'mat_other_teacher', ownerId: 'another-teacher', title: 'Private Draft', questions: [] }
+  ]));
+
+  assert.equal(app.eval('migrateLegacyTeacherMaterials()'), 2);
+  assert.equal(app.eval('migrateLegacyTeacherMaterials()'), 0);
+  assert.equal(app.eval('AUTH.customPassages.length'), 2);
+  assert.equal(app.eval('AUTH.customPassages[0].id'), 'mat_valid');
+  assert.equal(app.eval('AUTH.customPassages[1].status'), 'pending');
+  assert.equal(JSON.parse(storage.get('basa_wisyo_materials_v1')).length, 4);
+  const studio = app.eval('viewTeacherReadingStudio()');
+  assert.match(studio, /Add passage/);
+  assert.match(studio, /Forest Birds/);
+  assert.match(studio, /Forest Draft/);
+  assert.doesNotMatch(studio, /Material &amp; Questions|Private Draft/);
+});
+
+test('Class assignment accepts a published passage from the unified library', async () => {
+  const app = loadApp();
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  const passageId = app.eval('getPublishedPassages()[0].id');
+  const assignment = await app.eval(`createClassAssignment({
+    materialId: ${JSON.stringify(passageId)}, sectionCode: 'Grade 8 - Section 1',
+    dueDate: '2026-12-01'
+  })`);
+  assert.equal(assignment.passageId, passageId);
+  assert.ok(assignment.material.qs.length > 0);
+  assert.equal(JSON.parse(app.eval(`exportAssignmentPackage(${JSON.stringify(assignment.id)})`)).assignment.material.id, passageId);
+});

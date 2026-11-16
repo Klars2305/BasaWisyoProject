@@ -163,8 +163,11 @@ function journeySummary() {
 function journeyCanRead(passage) {
   if (!passage || !DIFF_KEYS.includes(passage.diff)) return false;
   if (AUTH.currentUser && AUTH.currentUser.role !== "student") return true;
+  if (AUTH.currentUser?.role === "student" && (S.lvl === null || AUTH.currentUser.lvl === null)) {
+    return false;
+  }
   const summary = journeySummary();
-  return DIFF_KEYS.indexOf(passage.diff) <= summary.tier;
+  return summary ? DIFF_KEYS.indexOf(passage.diff) <= summary.tier : false;
 }
 
 function saveCurrentJourney(journey) {

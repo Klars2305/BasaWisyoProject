@@ -33,6 +33,76 @@ function createInitialState() {
   };
 }
 
+let ACTIVE_STATE_ACCOUNT_ID = null;
+
+function getStateStorageKey(accountId = undefined) {
+  if (accountId !== undefined) {
+    return accountId ? `basa_wisyo_state_${accountId}` : "basa_wisyo_state_guest";
+  }
+  return ACTIVE_STATE_ACCOUNT_ID ? `basa_wisyo_state_${ACTIVE_STATE_ACCOUNT_ID}` : "basa_wisyo_state_guest";
+}
+
+function loadStateForAccount(accountId = null, seedUser = null) {
+  let state = createInitialState();
+  const key = getStateStorageKey(accountId);
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...state, ...parsed, schemaVersion: 2 };
+    }
+    if (!accountId) {
+      // Guest state: return clean initial state without pulling from prior student state
+      return state;
+    } else if (seedUser) {
+      if (seedUser.lvl !== undefined && seedUser.lvl !== null) state.lvl = seedUser.lvl;
+      if (seedUser.wordsRead) state.w = seedUser.wordsRead;
+      state.done = [];
+      state.ss = 0;
+      state.attempts = [];
+      state.sk = {};
+    }
+  } catch (e) {}
+  return state;
+}
+
+function switchAccountState(targetUser = null) {
+  // 1. Save current state under the outgoing account's key
+  if (ACTIVE_STATE_ACCOUNT_ID) {
+    try {
+      localStorage.setItem(`basa_wisyo_state_${ACTIVE_STATE_ACCOUNT_ID}`, JSON.stringify(S));
+    } catch (e) {}
+  } else {
+    try {
+      localStorage.setItem("basa_wisyo_state_guest", JSON.stringify(S));
+    } catch (e) {}
+  }
+
+  // 2. Set new active account ID
+  const nextId = (targetUser && targetUser.role === "student") ? targetUser.id : null;
+  ACTIVE_STATE_ACCOUNT_ID = nextId;
+
+  // 3. Load target account state if student or guest
+  if (nextId) {
+    S = loadStateForAccount(nextId, targetUser);
+    if (targetUser.lvl !== undefined && targetUser.lvl !== null && S.lvl === null) {
+      S.lvl = targetUser.lvl;
+    }
+    if (targetUser.wordsRead && S.w === 0) {
+      S.w = targetUser.wordsRead;
+    }
+  } else if (!targetUser) {
+    S = loadStateForAccount(null);
+  }
+
+  // 4. Mirror active state to v2
+  try {
+    localStorage.setItem("basa_wisyo_state_v2", JSON.stringify(S));
+  } catch (e) {}
+
+  return S;
+}
+
 function migrateAndLoadState() {
   let state = createInitialState();
   try {
@@ -68,7 +138,11 @@ let S = migrateAndLoadState();
 
 const save = () => {
   try {
-    localStorage.setItem("basa_wisyo_state_v2", JSON.stringify(S));
+    const raw = JSON.stringify(S);
+    localStorage.setItem("basa_wisyo_state_v2", raw);
+    const userKey = getStateStorageKey();
+    localStorage.setItem(userKey, raw);
+    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
   } catch(e) {}
 };
 
@@ -78,4 +152,5 @@ let GUEST_MODE = false;
 let ACTIVE_QUIZ = null;
 let SEARCH_QUERY = "";
 let BOARD_TIER = null;
+
 

@@ -15,6 +15,15 @@ OpenAI responses are requested with `store: false`. The browser automatically
 tries GroqCloud when configured and switches to offline help on connection,
 key, or free-tier errors; there is no mode dropdown.
 
-This server binds to loopback and is for local testing. Accounts, practice,
-progress, and reports remain in the browser prototype and are not suitable
-for real student records or cross-device use.
+Use Node.js 24 or newer. The local server also creates `backend/database/basawisyo.sqlite` on first
+start. It is ignored by Git. While the app is open at `127.0.0.1`, the browser
+sends its existing accounts (without passwords), per-student state, placement
+results, quiz attempts, classroom links, materials, and assignments to this
+relational copy. Repeated payloads and attempts are deduplicated. The browser
+keeps its offline copy; reopening the page sends pending changes when the
+local server is available. Back up both the browser data and SQLite file.
+
+This is a localhost pilot data layer. The browser still handles sign-in and
+some scoring and reporting. The SQLite copy does not yet provide secure
+server-authenticated student isolation or cross-device accounts. Use the
+current demo/sample reports only for layout review, not official submission.

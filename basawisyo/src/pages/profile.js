@@ -25,6 +25,9 @@ function viewProfile() {
         <h2>${escapeHTML(name)}</h2>
         <p class="sub-sm">${user ? "Your reading practice and rewards in this browser." : "Your guest progress is saved in this browser."}</p>
       </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <button class="btn sm o" data-a="tour-replay" title="Replay the interactive onboarding walkthrough">🎓 Replay Tutorial</button>
+      </div>
     </div>
     ${!user ? `<section class="card profile-guest-note">
       <p class="sub">Create a student account to keep this guest reading journey with your profile. Class Board participation stays off until you choose to join.</p>
@@ -36,6 +39,39 @@ function viewProfile() {
       <p><b>Teacher:</b> ${escapeHTML(teacher?.name || "Not linked to a teacher")}</p>
       <p><b>Placement label:</b> ${escapeHTML(placement)} <span class="sub-sm">(prototype placement, not an official Phil-IRI result)</span></p>
     </section>`}
+    ${(() => {
+      const isPrem = typeof isUserPremium === "function" ? isUserPremium() : false;
+      const planName = user?.plan === "plus_annual" ? "Annual Member (₱99/mo)" : (user?.plan === "plus_monthly" ? "Monthly Member (₱149/mo)" : (isPrem ? "Wisyo Plus Active" : "Free Practice Tier"));
+      return `<section class="card profile-membership-card ${isPrem ? "is-premium" : ""}" aria-label="Wisyo Plus Membership">
+      <div class="membership-header">
+        <div>
+          <div class="lab">${uiIcon("sparkles")} Membership &amp; Features</div>
+          <h3 style="margin:2px 0 0;font-size:1.15rem;display:flex;align-items:center;gap:8px">
+            <span class="membership-badge ${isPrem ? "gold" : ""}">${isPrem ? "👑 Wisyo Plus" : "🌱 Free Plan"}</span>
+            <span>${escapeHTML(planName)}</span>
+          </h3>
+        </div>
+        <button class="btn sm ${isPrem ? "o" : "blue"}" data-a="upgrade-open">
+          ${isPrem ? "Manage Plan" : "⭐ Upgrade to Wisyo Plus"}
+        </button>
+      </div>
+      <p class="sub-sm" style="margin:4px 0 10px">
+        ${isPrem 
+          ? "You have full access to Wisyo Plus learning enhancements including unlimited practice hearts, speech audio, and advanced AI tutor." 
+          : "Enjoy core curriculum reading and diagnostics for free, or upgrade for unlimited hearts, audio pronunciation, and smart AI tutoring."}
+      </p>
+      <ul class="membership-features">
+        <li><span class="check">✓</span> ${isPrem ? "<strong>Unlimited Practice Hearts</strong> (❤️ ∞)" : "Standard Hearts per Quiz (Instant Retries)"}</li>
+        <li><span class="check">✓</span> ${isPrem ? "<strong>Smart Contextual Audio</strong> (Web Speech 🔊)" : "Trilingual Dictionary & POS Badges"}</li>
+        <li><span class="check">✓</span> ${isPrem ? "<strong>Unlimited Flashcards</strong>" : "Up to 30 Saved Flashcards"}</li>
+        <li><span class="check">✓</span> ${isPrem ? "<strong>High-Thinking Wisyo AI</strong> (1,000 tokens)" : "10 Daily Wisyo AI Messages"}</li>
+        <li><span class="check">✓</span> ${isPrem ? "<strong>Unlimited Story Imports</strong>" : "2 Personal Story Imports / Mo"}</li>
+      </ul>
+      <p class="membership-guarantee">
+        <span>🛡️</span> <b>Equal Education Guarantee:</b> Reading curriculum, diagnostic placement, and teacher assignments are 100% free for all students.
+      </p>
+    </section>`;
+    })()}
     <section class="profile-summary" aria-label="Your reading summary">
       <div class="card profile-stat"><span class="lab">Reading Path</span><b>${escapeHTML(DIFF_NAMES[DIFF_KEYS[summary.tier]])}</b></div>
       <div class="card profile-stat"><span class="lab">Stories Finished</span><b>${rank.stories}</b></div>

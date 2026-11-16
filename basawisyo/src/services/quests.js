@@ -148,10 +148,14 @@ function renderStreakPill() {
   const streak = getDailyStreak();
   const title = streak > 0 ? `${streak} day reading streak` : "Start your reading streak today!";
   return `
-    <span class="streak-pill ${streak === 0 ? 'streak-zero' : ''}" title="${escapeHTML(title)}" aria-label="${escapeHTML(title)}">
-      <span class="streak-flame" aria-hidden="true">🔥</span>
-      <span class="streak-count">${streak}</span>
-    </span>
+    <div class="streak-pill streak-pill-content ${streak === 0 ? 'streak-zero' : ''}" title="${escapeHTML(title)}" aria-label="${escapeHTML(title)}">
+      <div class="streak-flame-badge" aria-hidden="true">🔥</div>
+      <div class="streak-info-text">
+        <span class="streak-count">${streak}</span>
+        <span class="streak-label">Day Streak</span>
+      </div>
+      <svg class="streak-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
   `;
 }
 

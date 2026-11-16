@@ -30,10 +30,11 @@ function readingRank(journey) {
 function classBoardContext() {
   const user = AUTH.currentUser;
   if (user?.role === "teacher" && user.shareCode) return { code: user.shareCode, role: "teacher" };
-  if (user?.role !== "student" || !user.teacherCode) return null;
-  const teacher = AUTH.users.find(item => item.role === "teacher" && item.status === "active"
-    && item.shareCode === user.teacherCode);
-  return teacher ? { code: user.teacherCode, role: "student" } : null;
+  if (user?.role !== "student") return null;
+  const enrollment = typeof AUTH.getActiveEnrollment === "function"
+    ? AUTH.getActiveEnrollment(user)
+    : null;
+  return enrollment ? { code: enrollment.classroomId, role: "student", ...enrollment } : null;
 }
 
 function boardAliasFor(user) {

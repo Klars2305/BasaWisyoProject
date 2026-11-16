@@ -33,14 +33,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 .user-role-badge {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 999px;
   letter-spacing: 0.5px;
 }
@@ -78,6 +78,14 @@
 .app-modal-card.wide {
   max-width: 760px;
 }
+.passage-import-field {
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+.passage-import-field input[type="file"] { max-width: 100%; overflow: hidden; }
+.passage-import-field .sub-sm { margin: 8px 0 0; }
 .practice-question-builder {
   border-top: 1px solid var(--border);
   padding-top: 18px;
@@ -257,14 +265,14 @@
 .role-choice-card:has(input:checked), .role-choice-opt:has(input:checked) {
   border-color: var(--sky);
   background: var(--sky-soft);
-  box-shadow: 0 0 0 1px var(--sky);
+  outline: 1px solid var(--sky);
 }
 .role-choice-card:focus-within, .role-choice-opt:focus-within { outline: 2px solid var(--sky); outline-offset: 2px; }
 .role-choice-card input, .role-choice-opt input { accent-color: var(--sky); margin-bottom: 5px; }
 .role-choice-card.selected, .role-choice-opt.selected {
   border-color: var(--sky);
   background: var(--sky-soft);
-  box-shadow: 0 0 0 1px var(--sky);
+  outline: 1px solid var(--sky);
 }
 .role-choice-card .role-icon, .role-choice-opt .role-icon {
   font-size: 24px;
@@ -438,7 +446,7 @@
   color: var(--text);
 }
 .metric-title {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--sub);
   font-weight: 600;
   margin-top: 4px;
@@ -487,11 +495,12 @@
 /* Phil-IRI Level Pills */
 .level-badge {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-align: center;
+  min-height: 24px;
 }
 .level-0 { background: var(--coral-soft); color: var(--coral-ink); } /* Frustration */
 .level-1 { background: var(--gold-soft); color: var(--gold-ink); } /* Instructional */
@@ -514,7 +523,6 @@
   letter-spacing: 8px;
   color: var(--gold);
   margin: 16px 0;
-  text-shadow: 0 0 20px rgba(245, 171, 29, 0.4);
 }
 .projector-steps {
   font-size: 16px;
@@ -561,12 +569,21 @@
   background: var(--purple-soft);
   color: var(--purple);
   border: 1px solid var(--purple);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Touch target floor for interactive table controls */
+.data-table td .btn {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 

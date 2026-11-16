@@ -25,6 +25,15 @@ function viewReadingStudio() {
 
   return `
     <div class="reading-studio-page">
+      <div class="subnav-segmented" role="tablist" aria-label="Reading section switcher">
+        <button class="subnav-tab" data-a="tab" data-v="practice">
+          ${uiIcon("practice")} <span>Leveled Passages</span>
+        </button>
+        <button class="subnav-tab active" data-a="tab" data-v="studio">
+          ${uiIcon("studio")} <span>My Reading Studio</span>
+        </button>
+      </div>
+
       <!-- Studio Header -->
       <div class="dashboard-intro">
         <div>

@@ -35,12 +35,35 @@ function openRegistration() {
   showInlineDialog($("#auth-modal"), $("#reg-name"));
 }
 
+function openUpgradeModal(reason = "", notice = "") {
+  const modal = $("#upgrade-modal");
+  if (!modal) return;
+  const banner = $("#upgrade-notice-banner");
+  const bannerText = $("#upgrade-notice-text");
+  if (banner && bannerText) {
+    if (notice) {
+      bannerText.textContent = notice;
+      banner.hidden = false;
+    } else {
+      banner.hidden = true;
+    }
+  }
+  showInlineDialog(modal, modal.querySelector(".upgrade-close-btn"));
+}
+
+function closeUpgradeModal() {
+  const modal = $("#upgrade-modal");
+  if (modal) closeInlineDialog(modal);
+}
+
 function logoutToIndex() {
   if (!AUTH.logout()) {
     showToast("Could not sign out in this browser. Please try again.", "warn");
     return;
   }
   GUEST_MODE = false;
+  if (typeof initWisyoChatForCurrentAccount === "function") initWisyoChatForCurrentAccount();
+  if (typeof closeTourOverlay === "function") closeTourOverlay();
   stopSpeech();
   ACTIVE_QUIZ = null;
   CURRENT_TAB = "home";
@@ -49,6 +72,7 @@ function logoutToIndex() {
 }
 
 let EDITING_PRACTICE_ID = null;
+let IMPORTING_LEGACY_MATERIAL_ID = null;
 let PRACTICE_EDITOR_GENERATION = 0;
 let PRACTICE_ACTIVE_QUESTION_INDEX = 0;
 
@@ -60,6 +84,7 @@ function practiceQuestionMarkup(question = {}, index = 0) {
         value="${escapeHTML(question.o?.[optionIndex] ?? "")}" placeholder="Answer choice ${optionIndex + 1}">
     </label>`).join("");
   const skills = ["Literal", "Inference", "Critical reading", "Main idea"];
+  if (question.k && !skills.includes(question.k)) skills.push(question.k);
   return `<fieldset class="practice-question-card">
     <legend>Question ${index + 1}</legend>
     <label>Question prompt
@@ -75,7 +100,7 @@ function practiceQuestionMarkup(question = {}, index = 0) {
       </label>
       <label>Question skill type
         <select class="auth-input" data-field="skill">
-          ${skills.map(skill => `<option value="${skill}" ${question.k === skill ? "selected" : ""}>${skill}</option>`).join("")}
+          ${skills.map(skill => `<option value="${escapeHTML(skill)}" ${question.k === skill ? "selected" : ""}>${escapeHTML(skill)}</option>`).join("")}
         </select>
       </label>
     </div>
@@ -152,7 +177,7 @@ function validatedPracticeQuestions() {
   });
 }
 
-function openPracticeEditor(id = null) {
+function openPracticeEditor(id = null, legacyMaterial = null) {
   const actor = AUTH.practiceActor();
   const raw = id ? AUTH.customPassages.find(passage => passage?.id === id) : null;
   if (id && !raw) throw new Error("Practice was not found.");
@@ -162,38 +187,53 @@ function openPracticeEditor(id = null) {
     throw new Error("You can edit only your own draft or rejected practice.");
   }
   EDITING_PRACTICE_ID = passage?.id ?? null;
+  IMPORTING_LEGACY_MATERIAL_ID = legacyMaterial?.id ?? null;
   const values = {
-    "#pass-title": passage?.t ?? "", "#pass-diff": passage?.diff ?? "easy",
-    "#pass-lang": passage?.lang ?? "en-US", "#pass-text": passage?.x ?? ""
+    "#pass-title": passage?.t ?? legacyMaterial?.title ?? "",
+    "#pass-author": passage?.author ?? legacyMaterial?.author ?? "",
+    "#pass-diff": passage?.diff ?? legacyMaterial?.difficulty ?? "easy",
+    "#pass-lang": passage?.lang ?? ({ en: "en-US", fil: "fil-PH", ceb: "ceb-PH" }[legacyMaterial?.language] ?? "en-US"),
+    "#pass-text": passage?.x ?? legacyMaterial?.text ?? ""
   };
   for (const [selector, value] of Object.entries(values)) {
     const field = $(selector);
     if (field) field.value = value;
   }
   PRACTICE_EDITOR_GENERATION++;
-  $("#practice-question-count").value = String(passage?.qs.length ?? 1);
-  renderPracticeQuestionCards(passage?.qs ?? [{}], 0);
+  const legacyQuestions = Array.isArray(legacyMaterial?.questions)
+    ? legacyMaterial.questions.slice(0, 20).map(question => ({
+      q: question.q ?? "", o: question.o ?? [], a: question.a ?? 0,
+      k: question.k ?? "Literal", exp: question.exp ?? ""
+    })) : [];
+  const questions = passage?.qs ?? (legacyQuestions.length ? legacyQuestions : [{}]);
+  $("#practice-question-count").value = String(questions.length);
+  renderPracticeQuestionCards(questions, 0);
+  if ($("#pass-file")) $("#pass-file").value = "";
+  if ($("#pass-file-status")) $("#pass-file-status").textContent = "Imported text stays editable. Scanned PDFs may need to be pasted manually.";
   $("#practice-wisyo-status").textContent = "Wisyo suggestions need your review before submission.";
-  $("#passage-modal-title").textContent = passage ? "Edit reading practice" : "Add reading practice";
+  $("#passage-modal-title").textContent = passage ? "Edit passage" : "Add passage";
   $("#passage-modal-hint").textContent = actor.role === "teacher"
     ? "Save a draft or submit it for admin approval. Only approved work is visible to students."
     : "Admin changes to published practices appear in the reading library immediately.";
   $("#practice-save-draft").hidden = actor.role !== "teacher";
   $("#practice-submit").hidden = actor.role !== "teacher";
   $("#practice-admin-save").hidden = actor.role !== "admin";
-  $("#practice-admin-save").textContent = passage ? "Save changes" : "Publish practice";
+  $("#practice-admin-save").textContent = passage ? "Save changes" : "Publish passage";
   showInlineDialog($("#admin-passage-modal"), $("#pass-title"));
 }
 
 function savePracticeFromEditor(submit) {
   const passage = AUTH.savePractice({
     t: $("#pass-title")?.value,
+    author: $("#pass-author")?.value,
     diff: $("#pass-diff")?.value,
     lang: $("#pass-lang")?.value || "en-US",
     x: $("#pass-text")?.value,
     qs: validatedPracticeQuestions()
   }, { id: EDITING_PRACTICE_ID, submit });
+  if (IMPORTING_LEGACY_MATERIAL_ID) linkLegacyMaterialToPassage(IMPORTING_LEGACY_MATERIAL_ID, passage.id);
   EDITING_PRACTICE_ID = null;
+  IMPORTING_LEGACY_MATERIAL_ID = null;
   $("#admin-passage-modal").hidden = true;
   if (AUTH.currentUser.role === "admin") CURRENT_ADMIN_TAB = "curriculum";
   renderApp();
@@ -227,7 +267,27 @@ document.addEventListener("click", async e => {
   // Tabs
   if (a === "tab") {
     stopSpeech();
-    CURRENT_TAB = v;
+    if (typeof canAccessRoute === "function" && !canAccessRoute(v, AUTH.currentUser, S)) {
+      if (AUTH.currentUser?.role === "student" && S.lvl === null) {
+        showToast("Please complete your placement assessment first! 📝", "info");
+        CURRENT_TAB = "assess";
+      } else if (v === "admin" || v === "users" || v === "classes") {
+        showToast("Admin account required for this action.", "warn");
+        return;
+      } else if (v === "teacher" || v === "students" || v === "teacher-studio") {
+        showToast("Teacher account required for this action.", "warn");
+        return;
+      } else if (v === "reports") {
+        showToast("Teacher or admin account required for reports.", "warn");
+        return;
+      } else {
+        showToast("Access restricted.", "warn");
+        return;
+      }
+    } else {
+      CURRENT_TAB = AUTH.currentUser?.role === "student" && S.lvl === null
+        && !["home", "assess", "about", "services", "profile"].includes(v) ? "assess" : v;
+    }
     ACTIVE_QUIZ = null;
     QUIZ_RESULT = null;
     renderApp();
@@ -290,12 +350,32 @@ document.addEventListener("click", async e => {
     startQuiz(PLACEMENT_TEST, "pl", "Phil-IRI Diagnostic Placement");
   }
 
+  // Start advanced verification passage
+  else if (a === "start-placement-verify") {
+    if (["teacher", "admin"].includes(AUTH.currentUser?.role)) {
+      CURRENT_TAB = "practice";
+      renderApp();
+      return;
+    }
+    if (!AUTH.currentUser) GUEST_MODE = true;
+    $("#auth-modal").hidden = true;
+    QUIZ_RESULT = null;
+    const verifyPassages = typeof PLACEMENT_VERIFICATION_PASSAGE !== "undefined" ? PLACEMENT_VERIFICATION_PASSAGE : PLACEMENT_TEST;
+    startQuiz(verifyPassages, "pl", "Advanced Placement Verification");
+  }
+
   // Read specific passage in practice
   else if (a === "read-passage") {
     if (["teacher", "admin"].includes(AUTH.currentUser?.role)) {
       CURRENT_TAB = "practice";
       renderApp();
       showToast("Use View passage & results to review reading content without taking a quiz.");
+      return;
+    }
+    if (AUTH.currentUser?.role === "student" && (S.lvl === null || AUTH.currentUser.lvl === null)) {
+      showToast("Please complete your 15-question placement assessment before starting story practice.", "warn");
+      CURRENT_TAB = "assess";
+      renderApp();
       return;
     }
     const found = getPublishedPassageById(v);
@@ -388,9 +468,55 @@ document.addEventListener("click", async e => {
   else if (a === "heart-info") {
     if (typeof syncHearts === "function") {
       const st = syncHearts();
-      const timeStr = st.hearts < st.maxHearts ? ` · Next heart in ${formatHeartCountdown(st.remainingMs)}` : " · Full hearts!";
-      showToast(`Hearts: ${st.hearts}/${st.maxHearts}${timeStr}`);
+      const isPrem = typeof isUserPremium === "function" && isUserPremium();
+      if (isPrem) {
+        showToast("Wisyo Plus Active: You have Unlimited Practice Hearts! ❤️ ∞", "ok");
+      } else {
+        openUpgradeModal("hearts", "You are using standard practice hearts. Upgrade to Wisyo Plus for Unlimited Practice Hearts!");
+      }
     }
+  }
+
+  // Wisyo Plus Upgrade Modal Actions
+  else if (a === "upgrade-open") {
+    openUpgradeModal(v || "general");
+  }
+  else if (a === "upgrade-close") {
+    closeUpgradeModal();
+  }
+  else if (a === "upgrade-select") {
+    const plan = v === "annual" ? "annual" : "monthly";
+    if (typeof AUTH !== "undefined" && typeof AUTH.setPlan === "function") {
+      AUTH.setPlan(plan);
+    }
+    closeUpgradeModal();
+    renderApp();
+    showToast(`Welcome to Wisyo Plus (${plan.toUpperCase()})! 👑 Unlimited Hearts & High-Thinking AI activated.`, "ok");
+  }
+  else if (a === "upgrade-toggle-sandbox") {
+    if (typeof AUTH !== "undefined" && typeof AUTH.toggleSandboxPremium === "function") {
+      const newPrem = AUTH.toggleSandboxPremium();
+      closeUpgradeModal();
+      renderApp();
+      showToast(`Sandbox Wisyo Plus ${newPrem ? "ACTIVATED 👑" : "DEACTIVATED"} for testing!`, "ok");
+    }
+  }
+
+  // Onboarding Interactive Tour Actions
+  else if (a === "tour-next") {
+    if (typeof nextTourStep === "function") nextTourStep();
+  }
+  else if (a === "tour-prev") {
+    if (typeof prevTourStep === "function") prevTourStep();
+  }
+  else if (a === "tour-skip") {
+    if (typeof skipOnboardingTour === "function") skipOnboardingTour();
+  }
+  else if (a === "tour-finish") {
+    if (typeof finishOnboardingTour === "function") finishOnboardingTour();
+  }
+  else if (a === "tour-replay") {
+    if (typeof replayCurrentRoleTour === "function") replayCurrentRoleTour();
   }
 
   // Quit quiz early
@@ -496,23 +622,36 @@ document.addEventListener("click", async e => {
     if (entry) {
       const tip = $("#tip");
       tip.hidden = false;
+      const pos = (entry[3] || (typeof getWordPOS === "function" ? getWordPOS(wordKey) : "noun")).toUpperCase();
       tip.innerHTML = `
         <div class="tip-header">
           <div style="display:flex;align-items:center;gap:6px">
-            <b style="font-size:1.1rem;color:var(--navy);text-transform:capitalize">${wordKey}</b>
-            <button class="icon-btn" data-a="speech-speak-word" data-v="${wordKey}" style="width:26px;height:26px;font-size:12px" title="Pronounce word">🔊</button>
+            <b style="font-size:1.1rem;color:var(--navy);text-transform:capitalize">${escapeHTML(wordKey)}</b>
+            <span class="pos-badge" style="background:var(--sky-light);color:var(--sky-ink);font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:4px">[${escapeHTML(pos)}]</span>
+            <button class="icon-btn" data-a="speech-speak-word" data-v="${escapeHTML(wordKey)}" style="width:26px;height:26px;font-size:12px" title="Pronounce word">🔊</button>
           </div>
           <button class="icon-btn" data-a="tip-close" style="width:24px;height:24px;font-size:11px">✕</button>
         </div>
         <div style="font-size:0.875rem;line-height:1.5">
-          <div>🇵🇭 <b>Filipino:</b> ${entry[0]}</div>
-          <div>🏝️ <b>Bisaya:</b> ${entry[1]}</div>
-          <div style="margin-top:4px">📖 <b>English:</b> ${entry[2]}</div>
-          <button class="btn sm blue" data-a="save-word-flashcard" data-v="${wordKey}" style="margin-top:8px;width:100%;font-size:0.8rem;padding:5px 8px">
-            ${uiIcon("flashcards")} Save to Flashcards
-          </button>
+          <div>🇵🇭 <b>Filipino:</b> ${escapeHTML(entry[0])}</div>
+          <div>🏝️ <b>Bisaya:</b> ${escapeHTML(entry[1])}</div>
+          <div style="margin-top:4px">📖 <b>English:</b> ${escapeHTML(entry[2])}</div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="btn sm blue" data-a="save-word-flashcard" data-v="${escapeHTML(wordKey)}" style="flex:1;font-size:0.8rem;padding:5px 8px">
+              ${uiIcon("flashcards")} Save Card
+            </button>
+            <button class="btn sm secondary" data-a="tip-ask-wisyo" data-v="${escapeHTML(wordKey)}" style="font-size:0.8rem;padding:5px 8px" title="Ask Wisyo AI about this word">
+              🤖 Ask Wisyo
+            </button>
+          </div>
         </div>
       `;
+    }
+  }
+  else if (a === "tip-ask-wisyo") {
+    $("#tip").hidden = true;
+    if (typeof aiOpen === "function") {
+      aiOpen(`What does "${v}" mean in this passage and how is it used?`);
     }
   }
   else if (a === "tip-close") {
@@ -583,28 +722,45 @@ document.addEventListener("click", async e => {
     aiOpen();
   }
   else if (a === "ai-close") {
-    closeInlineDialog($("#ai"));
+    if (typeof aiClose === "function") aiClose();
+    else closeInlineDialog($("#ai"));
   }
   else if (a === "ai-clear") {
-    WISYO_REQUEST_ID++;
-    WISYO_BUSY = false;
-    CHAT_HISTORY = [];
-    aiOpen();
+    if (typeof clearWisyoChat === "function") clearWisyoChat();
+    else {
+      WISYO_REQUEST_ID++;
+      WISYO_BUSY = false;
+      CHAT_HISTORY = [];
+      aiOpen();
+    }
   }
   else if (a === "ai-chip") {
     aiSend(v);
   }
+  else if (a === "ai-retry") {
+    aiSend(v);
+  }
   else if (a === "ai-send") {
     const inp = $("#aii");
-    const val = inp.value;
-    inp.value = "";
+    const val = inp?.value;
+    if (inp) inp.value = "";
     aiSend(val);
   }
   else if (a === "ai-explain-why") {
     aiOpen("Explain my last mistake and help me fix it.");
   }
 
-  // BasaMesh Share Actions
+  // BasaMesh Share Actions & Bayanihan Target Setting
+  else if (a === "set-bayanihan-target") {
+    try {
+      const targetVal = $("#bayanihan-target-input")?.value;
+      setBayanihanTarget(targetVal);
+      showToast(`Class weekly reading target updated to ${parseInt(targetVal, 10).toLocaleString()} words! 🎯`);
+      renderApp();
+    } catch (err) {
+      showToast(err.message, "warn");
+    }
+  }
   else if (a === "mesh-create") {
     const title = $("#mesh-title").value.trim();
     const text = $("#mesh-text").value.trim();
@@ -612,55 +768,102 @@ document.addEventListener("click", async e => {
       showToast("Please enter both a title and passage text.");
       return;
     }
-    const payload = JSON.stringify({ t: title, x: text });
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length < 10) {
+      showToast("Passage must have at least 10 words to share.", "warn");
+      return;
+    }
+    const payload = JSON.stringify({
+      schema: "basa_mesh_v1",
+      t: title,
+      x: text,
+      diff: "medium",
+      author: AUTH.currentUser?.name || "Classmate"
+    });
     const code = btoa(unescape(encodeURIComponent(payload)));
-    $("#mesh-code").value = code;
+    const outBox = $("#mesh-generated-box");
+    const outInp = $("#mesh-code-output");
+    if (outBox && outInp) {
+      outBox.style.display = "block";
+      outInp.value = code;
+    }
     try {
       navigator.clipboard.writeText(code);
-      showToast("Share code generated and copied to clipboard!");
+      showToast("Share code generated and copied to clipboard! 📋");
     } catch(e) {
-      showToast("Share code generated in the box below!");
+      showToast("Share code generated in the box below! 📋");
     }
   }
-  else if (a === "mesh-import") {
+  else if (a === "mesh-preview") {
     try {
       const raw = $("#mesh-code").value.trim();
-      const decoded = decodeURIComponent(escape(atob(raw)));
-      const obj = JSON.parse(decoded);
-      if (!obj.t || !obj.x) throw new Error();
+      const pkg = validateBasaMeshPackage(raw);
+      PENDING_MESH_PACKAGE = pkg;
 
-      S.sh.push({
-        id: "mesh_" + Date.now(),
-        t: obj.t,
-        x: obj.x,
-        diff: "medium",
-        qs: [
-          {
-            q: `What is the main topic of "${obj.t}"?`,
-            o: ["Personal experience", "Scientific discovery", "Community reflection", "General knowledge"],
-            a: 0,
-            k: "Main idea"
-          }
-        ]
-      });
-      save();
-      showToast(`Imported "${obj.t}"! Available under Practice.`);
-      CURRENT_TAB = "practice";
-      renderApp();
-    } catch(e) {
-      showToast("Invalid share code. Please paste the complete string.");
+      const previewDiv = $("#mesh-preview-container");
+      if (previewDiv) {
+        previewDiv.style.display = "block";
+        const isDup = isDuplicatePassage(pkg.title);
+        previewDiv.innerHTML = `
+          <div class="card" style="border:2px solid var(--sky);background:var(--card-bg);padding:16px">
+            <div class="lab" style="color:var(--sky-ink)">Passage Preview</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0">
+              <h3 style="margin:0">${escapeHTML(pkg.title)}</h3>
+              <span class="badge-diff diff-${pkg.diff}">${pkg.diff.toUpperCase()}</span>
+            </div>
+            <p class="sub-sm" style="margin-bottom:8px">
+              <b>${wordCount(pkg.text)} words</b> · <b>${pkg.qs.length} question(s)</b> · Author: <i>${escapeHTML(pkg.author)}</i>
+            </p>
+            <p class="sub-sm" style="font-style:italic;background:var(--bg);padding:8px 12px;border-radius:var(--radius-sm);margin:8px 0">
+              "${escapeHTML(pkg.text.slice(0, 200))}${pkg.text.length > 200 ? '...' : ''}"
+            </p>
+            ${isDup ? `
+              <div style="background:#FFF1F2;border-left:4px solid var(--coral);padding:8px 12px;margin:10px 0;font-size:0.85rem">
+                <b>Notice:</b> A passage titled "${escapeHTML(pkg.title)}" already exists in your library.
+              </div>
+            ` : ''}
+            <div style="display:flex;gap:10px;margin-top:14px">
+              <button class="btn sm blue" data-a="mesh-confirm-import">
+                ${uiIcon("check")} Confirm &amp; Add to Reading Library
+              </button>
+              <button class="btn sm o" data-a="mesh-cancel-import">
+                Cancel
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    } catch(err) {
+      showToast(err.message, "warn");
     }
+  }
+  else if (a === "mesh-confirm-import") {
+    if (!PENDING_MESH_PACKAGE) return;
+    const pkg = PENDING_MESH_PACKAGE;
+    if (!Array.isArray(S.sh)) S.sh = [];
+    S.sh.push(pkg);
+    save();
+    PENDING_MESH_PACKAGE = null;
+    showToast(`Successfully imported "${pkg.title}"! Available under Practice. 🎉`);
+    CURRENT_TAB = "practice";
+    renderApp();
+  }
+  else if (a === "mesh-cancel-import") {
+    PENDING_MESH_PACKAGE = null;
+    const previewDiv = $("#mesh-preview-container");
+    if (previewDiv) previewDiv.style.display = "none";
+    showToast("Import cancelled.");
   }
 
   // Modals & Reports
   else if (a === "open-report-sheet") {
-    openForm14Modal();
+    openForm14Modal(v || "live");
   }
   else if (a === "modal-close") {
     closeReportModal();
   }
   else if (a === "download-csv") {
-    downloadCSV();
+    downloadCSV(v || CURRENT_REPORT_MODAL_SOURCE || "live");
   }
   else if (a === "print-sheet") {
     try { printReportSheet(); }
@@ -713,6 +916,21 @@ document.addEventListener("click", async e => {
   else if (a === "auth-close") {
     closeInlineDialog($("#auth-modal"));
   }
+  else if (a === "toggle-reg-password") {
+    const input = $("#reg-password");
+    const toggleBtn = e.target.closest('[data-a="toggle-reg-password"]');
+    if (input) {
+      const isPassword = input.type === "password";
+      input.type = isPassword ? "text" : "password";
+      if (toggleBtn) {
+        toggleBtn.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+        toggleBtn.classList.toggle("is-revealed", isPassword);
+        toggleBtn.innerHTML = isPassword
+          ? `<svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+          : `<svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+      }
+    }
+  }
   else if (a === "auth-register-submit") {
     const name = $("#reg-name")?.value;
     const email = $("#reg-email")?.value;
@@ -730,8 +948,10 @@ document.addEventListener("click", async e => {
     if (res.success) {
       $("#auth-modal").hidden = true;
       GUEST_MODE = false;
+      if (typeof initWisyoChatForCurrentAccount === "function") initWisyoChatForCurrentAccount();
       showToast(`Account created! Welcome, ${res.user.name} 🎉`);
-      CURRENT_TAB = dashboardTabForRole(res.user.role);
+      CURRENT_TAB = res.user.role === "student" && S.lvl === null
+        ? "assess" : dashboardTabForRole(res.user.role);
       renderApp();
     } else {
       showToast(res.message, "warn");
@@ -816,7 +1036,7 @@ document.addEventListener("click", async e => {
 
   // Student & Guest Connecting
   else if (a === "student-connect-teacher") {
-    const input = $("#home-teacher-code");
+    const input = $("#classroom-join-code") || $("#classroom-join-code-board") || $("#home-teacher-code");
     const code = input ? input.value : prompt("Enter Teacher Share Code (e.g. BASA-TEACH-8492):");
     if (!code) return;
     const res = AUTH.connectTeacher(code);
@@ -910,6 +1130,7 @@ document.addEventListener("click", async e => {
   else if (a === "passage-modal-close") {
     PRACTICE_EDITOR_GENERATION++;
     EDITING_PRACTICE_ID = null;
+    IMPORTING_LEGACY_MATERIAL_ID = null;
     closeInlineDialog($("#admin-passage-modal"));
   }
   else if (a === "practice-question-prev" || a === "practice-question-next") {
@@ -1069,142 +1290,17 @@ document.addEventListener("click", async e => {
 
   // Teacher Reading Studio Actions
   else if (a === "tstudio-subtab") {
-    TEACHER_STUDIO_SUBTAB = v || "editor";
+    TEACHER_STUDIO_SUBTAB = v === "assignments" ? "assignments" : "queue";
     renderApp();
   }
-  else if (a === "tstudio-file-trigger") {
-    const input = $("#tstudio-file-input");
-    if (input) input.click();
-  }
-  else if (a === "tstudio-qcount") {
-    TEACHER_STUDIO_Q_COUNT = Number(v) || 5;
-    renderApp();
-  }
-  else if (a === "tstudio-draft-ai") {
-    const textInput = $("#tstudio-text-input");
-    const langSelect = $("#tstudio-lang-select");
-    const diffSelect = $("#tstudio-diff-select");
-    const text = (textInput?.value || TEACHER_STUDIO_TEXT || "").trim();
-    if (!text || text.length < 25) {
-      showToast("Please provide passage text before generating questions.", "warn");
+  else if (a === "tstudio-convert-legacy") {
+    const material = legacyTeacherMaterials(AUTH.currentUser?.id).find(item => item.id === v);
+    if (!material) {
+      showToast("Older material was not found for this teacher.", "warn");
       return;
     }
-    TEACHER_STUDIO_IS_LOADING = true;
-    showToast("Wisyo AI is generating draft questions...", "info");
-    renderApp();
-
-    generateWisyoPractice(text, {
-      count: TEACHER_STUDIO_Q_COUNT,
-      difficulty: diffSelect?.value || TEACHER_STUDIO_DIFF,
-      language: langSelect?.value || TEACHER_STUDIO_LANG
-    }).then(res => {
-      TEACHER_STUDIO_QUESTIONS = res.questions || [];
-      TEACHER_STUDIO_VOCAB = res.vocabulary || [];
-      TEACHER_STUDIO_IS_LOADING = false;
-      showToast(`Drafted ${TEACHER_STUDIO_QUESTIONS.length} questions successfully! ✨`);
-      renderApp();
-    }).catch(err => {
-      TEACHER_STUDIO_IS_LOADING = false;
-      showToast(`Drafting failed: ${err.message}`, "warn");
-      renderApp();
-    });
-  }
-  else if (a === "tstudio-add-question") {
-    TEACHER_STUDIO_QUESTIONS.push({
-      id: `custom_q_${Date.now()}_${TEACHER_STUDIO_QUESTIONS.length}`,
-      q: "New question prompt...",
-      o: ["Option A", "Option B", "Option C", "Option D"],
-      a: 0,
-      k: "Literal",
-      exp: "Explanation or evidence from the reading passage."
-    });
-    renderApp();
-  }
-  else if (a === "tstudio-delete-q") {
-    const idx = Number(v);
-    if (idx >= 0 && idx < TEACHER_STUDIO_QUESTIONS.length) {
-      TEACHER_STUDIO_QUESTIONS.splice(idx, 1);
-      renderApp();
-    }
-  }
-  else if (a === "tstudio-set-key") {
-    const qidx = Number(btn.dataset.qidx);
-    const optidx = Number(btn.dataset.optidx);
-    if (TEACHER_STUDIO_QUESTIONS[qidx]) {
-      TEACHER_STUDIO_QUESTIONS[qidx].a = optidx;
-    }
-  }
-  else if (a === "tstudio-save-draft" || a === "tstudio-submit-approval") {
-    const isSubmit = a === "tstudio-submit-approval";
-    const title = $("#tstudio-title-input")?.value?.trim() || TEACHER_STUDIO_TITLE || "Untitled Material";
-    const author = $("#tstudio-author-input")?.value?.trim() || TEACHER_STUDIO_AUTHOR || "DepEd Curriculum";
-    const text = $("#tstudio-text-input")?.value?.trim() || TEACHER_STUDIO_TEXT || "";
-    const lang = $("#tstudio-lang-select")?.value || TEACHER_STUDIO_LANG;
-    const diff = $("#tstudio-diff-select")?.value || TEACHER_STUDIO_DIFF;
-
-    if (!text || text.length < 25) {
-      showToast("Please provide passage text before saving.", "warn");
-      return;
-    }
-
-    // Sync input values from DOM to questions array
-    $$(".tstudio-q-prompt").forEach(inp => {
-      const idx = Number(inp.dataset.idx);
-      if (TEACHER_STUDIO_QUESTIONS[idx]) TEACHER_STUDIO_QUESTIONS[idx].q = inp.value;
-    });
-    $$(".tstudio-opt-input").forEach(inp => {
-      const qidx = Number(inp.dataset.qidx);
-      const optidx = Number(inp.dataset.optidx);
-      if (TEACHER_STUDIO_QUESTIONS[qidx]?.o?.[optidx] !== undefined) {
-        TEACHER_STUDIO_QUESTIONS[qidx].o[optidx] = inp.value;
-      }
-    });
-    $$(".tstudio-exp-input").forEach(inp => {
-      const idx = Number(inp.dataset.idx);
-      if (TEACHER_STUDIO_QUESTIONS[idx]) TEACHER_STUDIO_QUESTIONS[idx].exp = inp.value;
-    });
-
-    saveMaterial({
-      id: TEACHER_STUDIO_EDITING_ID,
-      title,
-      author,
-      text,
-      language: lang,
-      difficulty: diff,
-      sourceType: "teacher_studio",
-      status: isSubmit ? "pending" : "draft",
-      visibility: "private",
-      questions: TEACHER_STUDIO_QUESTIONS,
-      vocabulary: TEACHER_STUDIO_VOCAB
-    }).then(saved => {
-      TEACHER_STUDIO_EDITING_ID = saved.id;
-      showToast(isSubmit ? "Submitted for Admin Approval! 📋" : "Saved as Teacher Draft! 💾");
-      if (isSubmit) TEACHER_STUDIO_SUBTAB = "queue";
-      renderApp();
-    }).catch(err => showToast(err.message, "warn"));
-  }
-  else if (a === "tstudio-load-edit") {
-    const all = typeof readLocalMaterials === "function" ? readLocalMaterials() : [];
-    const mat = all.find(m => m.id === v);
-    if (mat) {
-      TEACHER_STUDIO_EDITING_ID = mat.id;
-      TEACHER_STUDIO_TITLE = mat.title;
-      TEACHER_STUDIO_AUTHOR = mat.author;
-      TEACHER_STUDIO_TEXT = mat.text;
-      TEACHER_STUDIO_LANG = mat.language;
-      TEACHER_STUDIO_DIFF = mat.difficulty;
-      TEACHER_STUDIO_QUESTIONS = mat.questions || [];
-      TEACHER_STUDIO_VOCAB = mat.vocabulary || [];
-      TEACHER_STUDIO_SUBTAB = "editor";
-      renderApp();
-      showToast(`Loaded "${mat.title}" into editor.`);
-    }
-  }
-  else if (a === "tstudio-submit-approval-id") {
-    updateMaterialStatus(v, "pending", "").then(() => {
-      showToast("Material submitted for Admin Review! 📋");
-      renderApp();
-    }).catch(err => showToast(err.message, "warn"));
+    try { openPracticeEditor(null, material); }
+    catch (error) { showToast(error.message, "warn"); }
   }
   else if (a === "tstudio-assign-material") {
     TEACHER_STUDIO_SUBTAB = "assignments";
@@ -1293,9 +1389,6 @@ document.addEventListener("input", e => {
     if (statsEl) {
       statsEl.innerHTML = `<b>${stats.wordCount}</b> words · <b>${stats.charCount}</b> characters · ~${stats.estMinutes} min read`;
     }
-  }
-  if (e.target.id === "tstudio-text-input") {
-    TEACHER_STUDIO_TEXT = e.target.value;
   }
 });
 
@@ -1443,35 +1536,46 @@ document.addEventListener("change", e => {
     reader.readAsText(file);
     return;
   }
-  if (e.target.id === "studio-file-input") {
-    handleStudioFileSelected(e.target);
+  if (e.target.id === "pass-file") {
+    const input = e.target;
+    const file = input.files?.[0];
+    if (!file) return;
+    const passageText = $("#pass-text");
+    const status = $("#pass-file-status");
+    if (passageText.value.trim() && !confirm("Replace the current passage text with the imported file? Your questions will stay for review.")) {
+      input.value = "";
+      return;
+    }
+    PRACTICE_EDITOR_GENERATION++;
+    const generation = PRACTICE_EDITOR_GENERATION;
+    status.textContent = `Reading ${file.name}…`;
+    extractTextFromFile(file).then(result => {
+      if (generation !== PRACTICE_EDITOR_GENERATION || $("#admin-passage-modal").hidden) return;
+      if (!result.success) {
+        status.textContent = result.error || "Could not read this file.";
+        return;
+      }
+      if (!result.text.trim()) {
+        status.textContent = result.error || "No readable text found. Paste the passage manually.";
+        return;
+      }
+      passageText.value = result.text;
+      if (!$("#pass-title").value.trim()) {
+        $("#pass-title").value = result.stats?.cleanTitle || file.name.replace(/\.[^/.]+$/, "");
+      }
+      status.textContent = result.error || `${file.name} imported. Review the passage and questions before saving.`;
+      if (result.text.length > 30000) status.textContent += " Shorten the passage to 30,000 characters before saving.";
+      passageText.focus();
+    }).catch(error => {
+      if (generation === PRACTICE_EDITOR_GENERATION && !$("#admin-passage-modal").hidden) {
+        status.textContent = error.message || "Could not read this file.";
+      }
+    })
+      .finally(() => { input.value = ""; });
     return;
   }
-  if (e.target.id === "tstudio-file-input") {
-    const file = e.target.files?.[0];
-    if (file) {
-      TEACHER_STUDIO_WARNING = "";
-      TEACHER_STUDIO_IS_LOADING = true;
-      renderApp();
-      extractTextFromFile(file).then(res => {
-        if (!res.success) {
-          TEACHER_STUDIO_WARNING = res.error || "Could not extract text.";
-        } else {
-          TEACHER_STUDIO_TEXT = res.text;
-          TEACHER_STUDIO_TITLE = res.stats.cleanTitle || file.name.replace(/\.[^/.]+$/, "");
-          TEACHER_STUDIO_DIFF = res.stats.suggestedTier || "medium";
-          if (res.isScannedOrEmpty && res.error) {
-            TEACHER_STUDIO_WARNING = res.error;
-          }
-        }
-        TEACHER_STUDIO_IS_LOADING = false;
-        renderApp();
-      }).catch(err => {
-        TEACHER_STUDIO_WARNING = err.message;
-        TEACHER_STUDIO_IS_LOADING = false;
-        renderApp();
-      });
-    }
+  if (e.target.id === "studio-file-input") {
+    handleStudioFileSelected(e.target);
     return;
   }
   if (e.target.id === "tstudio-import-pkg-input") {
@@ -1493,8 +1597,65 @@ document.addEventListener("change", e => {
   }
 });
 
+// Mobile touch long-press for words in reading passage
+let wordLongPressTimer = null;
+let wordTouchStartPos = null;
+
+document.addEventListener("touchstart", e => {
+  const wordEl = e.target.closest("#active-ps .speech-word, #active-ps .w");
+  if (!wordEl) return;
+  const word = wordEl.dataset.v || wordEl.textContent.trim().toLowerCase().replace(/[^a-z]/g, "");
+  if (!word) return;
+  const touch = e.touches?.[0];
+  if (!touch) return;
+  wordTouchStartPos = { x: touch.clientX, y: touch.clientY };
+  if (wordLongPressTimer) clearTimeout(wordLongPressTimer);
+  wordLongPressTimer = setTimeout(() => {
+    wordLongPressTimer = null;
+    const cleanWord = word.toLowerCase().replace(/[^a-z]/g, "");
+    if (typeof D !== "undefined" && D[cleanWord]) {
+      const tipActionEl = document.createElement("button");
+      tipActionEl.setAttribute("data-a", "tip");
+      tipActionEl.setAttribute("data-v", cleanWord);
+      tipActionEl.style.display = "none";
+      document.body.appendChild(tipActionEl);
+      tipActionEl.click();
+      tipActionEl.remove();
+    }
+  }, 400);
+}, { passive: true });
+
+document.addEventListener("touchmove", e => {
+  if (!wordLongPressTimer || !wordTouchStartPos) return;
+  const touch = e.touches?.[0];
+  if (!touch) return;
+  const dx = Math.abs(touch.clientX - wordTouchStartPos.x);
+  const dy = Math.abs(touch.clientY - wordTouchStartPos.y);
+  if (dx > 10 || dy > 10) {
+    clearTimeout(wordLongPressTimer);
+    wordLongPressTimer = null;
+  }
+}, { passive: true });
+
+document.addEventListener("touchend", () => {
+  if (wordLongPressTimer) {
+    clearTimeout(wordLongPressTimer);
+    wordLongPressTimer = null;
+  }
+}, { passive: true });
+
+document.addEventListener("touchcancel", () => {
+  if (wordLongPressTimer) {
+    clearTimeout(wordLongPressTimer);
+    wordLongPressTimer = null;
+  }
+}, { passive: true });
+
 // Initial boot
 AUTH.init();
+if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.start();
+if (typeof migrateLegacyTeacherMaterials === "function") migrateLegacyTeacherMaterials();
+if (typeof initWisyoChatForCurrentAccount === "function") initWisyoChatForCurrentAccount();
 const openingRegistration = window.location?.hash === "#register";
 if (openingRegistration) {
   try {
@@ -1504,7 +1665,8 @@ if (openingRegistration) {
   }
 }
 if (AUTH.currentUser) {
-  CURRENT_TAB = dashboardTabForRole(AUTH.currentUser.role);
+  CURRENT_TAB = AUTH.currentUser.role === "student" && S.lvl === null
+    ? "assess" : dashboardTabForRole(AUTH.currentUser.role);
 }
 renderApp();
 if (openingRegistration && !AUTH.currentUser) openRegistration();

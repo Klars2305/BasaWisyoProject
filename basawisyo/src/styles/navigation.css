@@ -1,0 +1,232 @@
+/* ==========================================================================
+   BasaWisyo - Unified Role-Based Responsive Navigation (navigation.css)
+   Mobile (<768px): fixed/sticky bottom navigation (4-5 role destinations),
+                    top duplicated subnav hidden.
+   Desktop/Tablet (>=768px): clean top navigation bar,
+                             mobile bottom bar hidden.
+   ========================================================================== */
+
+/* Mobile Navigation (< 768px) */
+@media (max-width: 767px) {
+  #sn {
+    display: none !important;
+  }
+  nav {
+    display: flex !important;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--card, #ffffff);
+    border-top: 1px solid var(--border, #e2e8f0);
+    justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 40;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  }
+  nav .nav-inner {
+    display: flex;
+    width: 100%;
+    max-width: 540px;
+  }
+  nav button {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: none;
+    font-family: var(--font-body, system-ui, sans-serif);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--sub, #64748b);
+    padding: 8px 2px 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    gap: 3px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+  nav button.on,
+  nav button.active {
+    color: #1a73e8;
+    font-weight: 700;
+  }
+  nav button.on svg,
+  nav button.active svg {
+    stroke: #1a73e8;
+    transform: scale(1.1);
+  }
+  :root[data-theme="dark"] nav button.on,
+  :root[data-theme="dark"] nav button.active {
+    color: var(--gold, #f5ab1d);
+  }
+  :root[data-theme="dark"] nav button.on svg,
+  :root[data-theme="dark"] nav button.active svg {
+    stroke: var(--gold, #f5ab1d);
+  }
+  nav button.on::before,
+  nav button.active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: #1a73e8;
+  }
+  :root[data-theme="dark"] nav button.on::before,
+  :root[data-theme="dark"] nav button.active::before {
+    background: var(--gold, #f5ab1d);
+  }
+
+  /* Reserve bottom content padding so fixed bottom nav does not obscure buttons */
+  #v {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  #aib {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Tablet & Desktop Navigation (>= 768px) */
+@media (min-width: 768px) {
+  nav {
+    display: none !important;
+  }
+  #sn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 auto 24px;
+    max-width: 840px;
+    padding: 6px 4px;
+  }
+  #sn button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 9999px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: var(--font-body, system-ui, sans-serif);
+    background: var(--card, #ffffff);
+    color: var(--sub, #64748b);
+    border: 1.5px solid var(--border, #e2e8f0);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+  #sn button:hover {
+    background: var(--card-bg, #f8fafc);
+    color: var(--text, #0f172a);
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+  }
+  #sn button.on,
+  #sn button.active {
+    background: #0d1b3e;
+    color: #ffffff;
+    border-color: #0d1b3e;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  }
+  #sn button.on svg,
+  #sn button.active svg {
+    stroke: #ffffff;
+  }
+  :root[data-theme="dark"] #sn button.on,
+  :root[data-theme="dark"] #sn button.active {
+    background: var(--sky, #1a73e8);
+    color: #ffffff;
+    border-color: var(--sky, #1a73e8);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  }
+
+  #v {
+    padding-bottom: 32px !important;
+  }
+  #aib {
+    bottom: 24px !important;
+    right: 24px !important;
+  }
+}
+
+/* Secondary Section Subnav Switcher */
+.section-subnav-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.section-subnav-row::-webkit-scrollbar {
+  display: none;
+}
+.section-subnav-row .btn {
+  white-space: nowrap;
+}
+
+/* Crisp Segmented Subnav Bar */
+.subnav-segmented {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-alt, #f1f5f9);
+  padding: 4px;
+  border-radius: var(--radius-md, 12px);
+  gap: 4px;
+  margin-bottom: 20px;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border, #e2e8f0);
+  scrollbar-width: none;
+}
+.subnav-segmented::-webkit-scrollbar {
+  display: none;
+}
+:root[data-theme="dark"] .subnav-segmented {
+  background: #1e293b;
+  border-color: #334155;
+}
+.subnav-segmented .subnav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 0;
+  background: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: var(--font-body, system-ui, sans-serif);
+  color: var(--sub, #64748b);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  min-height: 38px;
+}
+.subnav-segmented .subnav-tab:hover {
+  color: var(--text, #0f172a);
+}
+.subnav-segmented .subnav-tab.active {
+  background: var(--card, #ffffff);
+  color: #0d1b3e;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+:root[data-theme="dark"] .subnav-segmented .subnav-tab.active {
+  background: #0f172a;
+  color: var(--gold, #f5ab1d);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.subnav-segmented .subnav-tab svg {
+  width: 16px;
+  height: 16px;
+}
