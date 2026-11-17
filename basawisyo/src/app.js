@@ -490,9 +490,16 @@ document.addEventListener("click", async e => {
     if (banner && bannerText) {
       banner.hidden = false;
       bannerText.textContent = "Online payment is still in development phase.";
-      banner.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    }
+    const popup = $("#upgrade-select-popup");
+    if (popup) {
+      popup.style.display = "flex";
+      popup.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
     }
     showToast("Online payment is still in development phase.");
+    if (typeof alert === "function") {
+      alert("Online payment is still in development phase.");
+    }
   }
   else if (a === "upgrade-toggle-sandbox") {
     if (typeof AUTH !== "undefined" && typeof AUTH.toggleSandboxPremium === "function") {

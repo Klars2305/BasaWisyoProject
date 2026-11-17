@@ -45,4 +45,10 @@ test('Phase 4: Wisyo Plus modal has sandbox simulation removed and informs onlin
   // 3. upgrade-select action displays development message
   assert.match(appJs, /bannerText\.textContent = "Online payment is still in development phase\.";/);
   assert.match(appJs, /showToast\("Online payment is still in development phase\."\);/);
+  assert.match(appJs, /alert\("Online payment is still in development phase\."\);/);
+
+  // 4. In-modal alert popup and high z-index toast exist
+  assert.match(indexHtml, /id="upgrade-select-popup"/);
+  const baseCss = fs.readFileSync(path.join(baseDir, 'src/styles/base.css'), 'utf8');
+  assert.match(baseCss, /\.toast\{[^}]*z-index:\s*99999/);
 });
