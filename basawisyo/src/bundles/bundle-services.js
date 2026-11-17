@@ -17,6 +17,88 @@ const AUTH = {
   guestTokens: {},
   customPassages: [],
 
+  // Cryptographic and password hashing utilities (SHA-256 + Salt)
+  _sha256(ascii) {
+    function r(v, a) { return (v >>> a) | (v << (32 - a)); }
+    const M = Math.pow, maxW = M(2, 32);
+    let L = "length", i, j, res = "", words = [], bitL = ascii[L] * 8, hash = [], k = [], pC = 0, isC = {};
+    for (let c = 2; pC < 64; c++) {
+      if (!isC[c]) {
+        for (i = 0; i < 313; i += c) isC[i] = c;
+        hash[pC] = (M(c, 0.5) * maxW) | 0;
+        k[pC++] = (M(c, 1 / 3) * maxW) | 0;
+      }
+    }
+    ascii += "\x80";
+    while (ascii[L] % 64 - 56) ascii += "\x00";
+    for (i = 0; i < ascii[L]; i++) {
+      j = ascii.charCodeAt(i);
+      words[i >> 2] |= j << ((3 - i) % 4) * 8;
+    }
+    words[words[L]] = (bitL / maxW) | 0;
+    words[words[L]] = bitL | 0;
+    for (j = 0; j < words[L];) {
+      let w = words.slice(j, j += 16), old = hash;
+      hash = hash.slice(0, 8);
+      for (i = 0; i < 64; i++) {
+        let w15 = w[i - 15], w2 = w[i - 2], a = hash[0], e = hash[4];
+        let t1 = hash[7] + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i] +
+          (w[i] = (i < 16) ? w[i] : (w[i - 16] + (r(w15, 7) ^ r(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (r(w2, 17) ^ r(w2, 19) ^ (w2 >>> 10))) | 0);
+        let t2 = (r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+        hash = [(t1 + t2) | 0].concat(hash);
+        hash[4] = (hash[4] + t1) | 0;
+      }
+      for (i = 0; i < 8; i++) hash[i] = (hash[i] + old[i]) | 0;
+    }
+    for (i = 0; i < 8; i++) {
+      for (j = 3; j + 1; j--) {
+        let b = (hash[i] >> (j * 8)) & 255;
+        res += ((b < 16) ? 0 : "") + b.toString(16);
+      }
+    }
+    return res;
+  },
+
+  generateSalt() {
+    let salt = "";
+    const hex = "0123456789abcdef";
+    for (let i = 0; i < 16; i++) {
+      salt += hex[Math.floor(Math.random() * 16)];
+    }
+    return salt;
+  },
+
+  hashPassword(password, salt = null) {
+    if (!password) return "";
+    const s = salt || this.generateSalt();
+    const hash = this._sha256(`${s}:${password}`);
+    return `sha256$${s}$${hash}`;
+  },
+
+  verifyPassword(plain, user) {
+    if (!user || typeof plain !== "string") return false;
+    const cleanPlain = plain;
+    // 1. Salted SHA-256 hash verification
+    if (user.passwordHash && typeof user.passwordHash === "string" && user.passwordHash.startsWith("sha256$")) {
+      const parts = user.passwordHash.split("$");
+      if (parts.length === 3) {
+        const salt = parts[1];
+        const expected = parts[2];
+        const computed = this._sha256(`${salt}:${cleanPlain}`);
+        if (computed === expected) return true;
+      }
+    }
+    // 2. Legacy plaintext verification
+    if (user.password && user.password === cleanPlain) {
+      return true;
+    }
+    // 3. Admin shorthand alias verification
+    if (user.role === "admin" && (cleanPlain === "admin" || cleanPlain === "admin123")) {
+      return true;
+    }
+    return false;
+  },
+
   init() {
     this.currentUser = null;
     this.users = [];
@@ -51,8 +133,21 @@ const AUTH = {
         adminUser.password = "admin";
         updated = true;
       }
+      if (!adminUser.passwordHash) {
+        adminUser.passwordHash = this.hashPassword("admin");
+        updated = true;
+      }
       if (updated) this.saveUsers();
     }
+    // Auto-migrate any accounts missing passwordHash
+    let migratedAny = false;
+    for (const u of this.users) {
+      if (!u.passwordHash && u.password) {
+        u.passwordHash = this.hashPassword(u.password);
+        migratedAny = true;
+      }
+    }
+    if (migratedAny) this.saveUsers();
 
     // 2. Load or seed assignments
     try {
@@ -233,6 +328,14 @@ const AUTH = {
 
   saveUsers() {
     try {
+      if (Array.isArray(this.users)) {
+        for (const u of this.users) {
+          if (u && u.password && (!u.passwordHash || (u._lastHashed && u._lastHashed !== u.password))) {
+            u.passwordHash = this.hashPassword(u.password);
+            u._lastHashed = u.password;
+          }
+        }
+      }
       localStorage.setItem(this.USERS_KEY, JSON.stringify(this.users));
       if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
     } catch(e) {}
@@ -284,12 +387,15 @@ const AUTH = {
     const user = this.users.find(u => {
       const matchEmail = u.email.toLowerCase() === cleanEmail ||
         (u.role === "admin" && (cleanEmail === "admin" || cleanEmail === "admin@basawisyo.ph"));
-      const matchPass = u.password === password ||
-        (u.role === "admin" && (password === "admin" || password === "admin123"));
-      return matchEmail && matchPass;
+      return matchEmail && this.verifyPassword(password, u);
     });
     if (!user) return { success: false, message: "Invalid email or password." };
     if (user.status === "suspended") return { success: false, message: "This account has been suspended by the administrator." };
+
+    if (!user.passwordHash && password) {
+      user.passwordHash = this.hashPassword(password);
+      this.saveUsers();
+    }
 
     GUEST_MODE = false;
     this.currentUser = user;
@@ -350,10 +456,12 @@ const AUTH = {
     for (let suffix = 1; this.users.some(user => user.id === id); suffix++) {
       id = `${idSeed}_${suffix}`;
     }
+    const passwordHash = this.hashPassword(password);
     const newUser = {
       id,
       email: cleanEmail,
       password,
+      passwordHash,
       name,
       role: data.role,
       school: data.school || "Rizal National High School",
@@ -422,6 +530,10 @@ const AUTH = {
     }
     GUEST_MODE = false;
     this.currentUser = null;
+    if (typeof ACTIVE_QUIZ !== "undefined") ACTIVE_QUIZ = null;
+    if (typeof QUIZ_RESULT !== "undefined") QUIZ_RESULT = null;
+    if (typeof CHAT_HISTORY !== "undefined") CHAT_HISTORY = [];
+    if (typeof clearActiveQuizSnapshot === "function") clearActiveQuizSnapshot();
     if (typeof switchAccountState === "function") {
       switchAccountState(null);
     }
@@ -567,9 +679,9 @@ const AUTH = {
     const token = "GUEST-" + Math.floor(1000 + Math.random() * 9000);
     this.guestTokens[token] = {
       name: studentName || "Guest Student",
-      lvl,
-      wpm: wpm || 105,
-      comp: comp || 75,
+      lvl: lvl !== undefined ? lvl : null,
+      wpm: typeof wpm === "number" ? wpm : null,
+      comp: typeof comp === "number" ? comp : null,
       timestamp: Date.now()
     };
     this.saveGuestTokens();
@@ -586,15 +698,16 @@ const AUTH = {
       id: "usr_guest_" + Date.now(),
       email: cleanToken.toLowerCase() + "@guest.basawisyo.ph",
       password: "guest",
+      passwordHash: this.hashPassword("guest"),
       name: data.name + ` (${cleanToken})`,
       role: "student",
       school: "Rizal National High School",
       section: this.currentUser ? this.currentUser.section : "Connected Class",
       teacherCode: teacherCode || (this.currentUser ? this.currentUser.shareCode : ""),
       lvl: data.lvl,
-      wpm: data.wpm,
-      comp: data.comp,
-      wordsRead: 350,
+      wpm: data.wpm ?? null,
+      comp: data.comp ?? null,
+      wordsRead: 0,
       status: "active",
       createdAt: new Date().toISOString().split("T")[0],
       isGuestImport: true
@@ -835,8 +948,14 @@ function loadStateForAccount(accountId = null, seedUser = null) {
   try {
     const raw = localStorage.getItem(key);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      return { ...state, ...parsed, schemaVersion: 2 };
+      try {
+        const parsed = JSON.parse(raw);
+        return { ...state, ...parsed, schemaVersion: 2 };
+      } catch (jsonErr) {
+        try { localStorage.setItem(`basa_wisyo_corrupted_${key}`, raw); } catch (_) {}
+        console.warn(`Quarantined corrupted state for ${key}. Clean state initialized.`, jsonErr);
+        return state;
+      }
     }
     if (!accountId) {
       // Guest state: return clean initial state without pulling from prior student state
@@ -895,25 +1014,36 @@ function migrateAndLoadState() {
   try {
     const v2 = localStorage.getItem("basa_wisyo_state_v2");
     if (v2) {
-      const parsed = JSON.parse(v2);
-      return { ...state, ...parsed, schemaVersion: 2 };
+      try {
+        const parsed = JSON.parse(v2);
+        return { ...state, ...parsed, schemaVersion: 2 };
+      } catch (jsonErr) {
+        // Quarantine corrupted state to backup key and reset cleanly
+        try { localStorage.setItem("basa_wisyo_corrupted_backup", v2); } catch (_) {}
+        console.warn("Recovered from corrupted state JSON. Clean state initialized.", jsonErr);
+        return state;
+      }
     }
     const legacy = localStorage.getItem("basa_wisyo_state_v1") || localStorage.getItem("basa_state");
     if (legacy) {
-      const parsedLegacy = JSON.parse(legacy);
-      state = {
-        ...state,
-        lvl: parsedLegacy.lvl ?? null,
-        w: parsedLegacy.w ?? 0,
-        ss: parsedLegacy.ss ?? 0,
-        done: Array.isArray(parsedLegacy.done) ? parsedLegacy.done : [],
-        sk: parsedLegacy.sk && typeof parsedLegacy.sk === "object" ? parsedLegacy.sk : {},
-        streak: parsedLegacy.streak ?? 0,
-        lastPracticeDate: parsedLegacy.lastPracticeDate ?? null,
-        schemaVersion: 2
-      };
-      localStorage.setItem("basa_wisyo_state_v2", JSON.stringify(state));
-      return state;
+      try {
+        const parsedLegacy = JSON.parse(legacy);
+        state = {
+          ...state,
+          lvl: parsedLegacy.lvl ?? null,
+          w: parsedLegacy.w ?? 0,
+          ss: parsedLegacy.ss ?? 0,
+          done: Array.isArray(parsedLegacy.done) ? parsedLegacy.done : [],
+          sk: parsedLegacy.sk && typeof parsedLegacy.sk === "object" ? parsedLegacy.sk : {},
+          streak: parsedLegacy.streak ?? 0,
+          lastPracticeDate: parsedLegacy.lastPracticeDate ?? null,
+          schemaVersion: 2
+        };
+        localStorage.setItem("basa_wisyo_state_v2", JSON.stringify(state));
+        return state;
+      } catch (_) {
+        return state;
+      }
     }
   } catch (e) {
     // Return initial state if storage reading fails
@@ -923,15 +1053,36 @@ function migrateAndLoadState() {
 
 let S = migrateAndLoadState();
 
+let STORAGE_STATE = {
+  status: "saved", // 'saved', 'saving', 'failed'
+  error: null,
+  lastSavedAt: Date.now()
+};
+
+function getStorageStatus() {
+  return { ...STORAGE_STATE };
+}
+
 const save = () => {
+  STORAGE_STATE.status = "saving";
   try {
     const raw = JSON.stringify(S);
     localStorage.setItem("basa_wisyo_state_v2", raw);
     const userKey = getStateStorageKey();
     localStorage.setItem(userKey, raw);
-    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
-  } catch(e) {}
+    STORAGE_STATE.status = "saved";
+    STORAGE_STATE.error = null;
+    STORAGE_STATE.lastSavedAt = Date.now();
+    if (typeof LOCAL_DATA !== "undefined" && typeof LOCAL_DATA.queue === "function") LOCAL_DATA.queue();
+    return { success: true };
+  } catch(e) {
+    STORAGE_STATE.status = "failed";
+    STORAGE_STATE.error = e?.message || "Storage quota exceeded or storage unavailable.";
+    return { success: false, error: STORAGE_STATE.error };
+  }
 };
+
+const retrySave = () => save();
 
 // Global App State
 let CURRENT_TAB = "home";
@@ -939,6 +1090,7 @@ let GUEST_MODE = false;
 let ACTIVE_QUIZ = null;
 let SEARCH_QUERY = "";
 let BOARD_TIER = null;
+
 
 
 
@@ -3315,6 +3467,98 @@ function runKaraokeCelebrationTicker(targetPct, score, total) {
   KARAOKE_ANIM_FRAME = requestAnimationFrame(tick);
 }
 
+const QUIZ_SNAPSHOT_KEY = "basa_wisyo_interrupted_quiz";
+
+function saveActiveQuizSnapshot() {
+  const qz = ACTIVE_QUIZ;
+  if (!qz || qz._isFinalized || !Array.isArray(qz.steps) || qz.steps.length === 0) {
+    clearActiveQuizSnapshot();
+    return;
+  }
+  try {
+    const actorId = (typeof AUTH !== "undefined" && AUTH.currentUser?.id) || "guest";
+    const snapshot = {
+      actorId,
+      title: qz.title,
+      mode: qz.mode,
+      idx: qz.idx,
+      correctCount: qz.correctCount,
+      correctQuestions: qz.correctQuestions || [],
+      userAnswers: qz.userAnswers || [],
+      stage: qz.stage,
+      startTime: qz.startTime,
+      hearts: qz.hearts,
+      maxHearts: qz.maxHearts,
+      accommodated: qz.accommodated,
+      processedAnswerIds: qz.processedAnswerIds || [],
+      steps: qz.steps,
+      savedAt: Date.now()
+    };
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.setItem(QUIZ_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    }
+  } catch (err) {
+    console.warn("Could not save quiz recovery snapshot:", err);
+  }
+}
+
+function clearActiveQuizSnapshot() {
+  try {
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.removeItem(QUIZ_SNAPSHOT_KEY);
+    }
+  } catch (_) {}
+}
+
+function getInterruptedQuizSnapshot() {
+  try {
+    if (typeof sessionStorage === "undefined") return null;
+    const raw = sessionStorage.getItem(QUIZ_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    const actorId = (typeof AUTH !== "undefined" && AUTH.currentUser?.id) || "guest";
+    if (data.actorId !== actorId) return null;
+    if (!Array.isArray(data.steps) || data.steps.length === 0) return null;
+    if (data.idx >= data.steps.length) return null;
+    if (Date.now() - (data.savedAt || 0) > 24 * 60 * 60 * 1000) {
+      clearActiveQuizSnapshot();
+      return null;
+    }
+    return data;
+  } catch (_) {
+    return null;
+  }
+}
+
+function resumeInterruptedQuiz() {
+  const snapshot = getInterruptedQuizSnapshot();
+  if (!snapshot) return false;
+  ACTIVE_QUIZ = {
+    title: snapshot.title,
+    mode: snapshot.mode,
+    steps: snapshot.steps,
+    idx: snapshot.idx,
+    correctCount: snapshot.correctCount || 0,
+    correctQuestions: snapshot.correctQuestions || [],
+    userAnswers: snapshot.userAnswers || [],
+    stage: snapshot.stage || "question",
+    isAnswered: false,
+    selectedChoice: null,
+    startTime: snapshot.startTime || Date.now(),
+    hearts: snapshot.hearts,
+    maxHearts: snapshot.maxHearts,
+    accommodated: snapshot.accommodated,
+    processedAnswerIds: snapshot.processedAnswerIds || []
+  };
+  QUIZ_RESULT = null;
+  if (typeof renderApp === "function") renderApp();
+  if (typeof focusQuizStage === "function") focusQuizStage();
+  if (typeof showToast === "function") {
+    showToast("Resumed your previous reading session!", "ok");
+  }
+  return true;
+}
+
 function startQuiz(passages, mode, title) {
   if (mode !== "pl" && AUTH.currentUser?.role === "student" && S.lvl === null) {
     CURRENT_TAB = "assess";
@@ -3360,6 +3604,7 @@ function startQuiz(passages, mode, title) {
 
   renderApp();
   focusQuizStage();
+  saveActiveQuizSnapshot();
 }
 
 function renderQuiz() {
@@ -3459,7 +3704,21 @@ function renderQuiz() {
     </div>
     ` : `
     <div class="reader-stage reader-question-stage">
-      <div class="reader-question-context"><span>${uiIcon("practice")} ${escapeHTML(P.t)}</span><button class="btn o sm" data-a="quiz-show-passage" type="button">${uiIcon("practice")} View passage</button></div>
+      <div class="reader-question-context">
+        <span>${uiIcon("practice")} ${escapeHTML(P.t)}</span>
+        <button class="btn o sm" data-a="quiz-show-passage" type="button">${uiIcon("practice")} View full passage</button>
+      </div>
+
+      <details class="quiz-passage-peek">
+        <summary class="quiz-passage-peek-summary">
+          <span>${uiIcon("practice")} Review Passage Text Evidence</span>
+          <span class="sub-sm" style="font-weight:normal;color:var(--sub)">Tap to read</span>
+        </summary>
+        <div class="quiz-passage-peek-body ps">
+          ${tapMarkup(P.x)}
+        </div>
+      </details>
+
         <div class="card reader-question-card quiz-card-enter">
           <div class="lab">${escapeHTML(q.k || "Comprehension")} Question · ${qz.idx + 1} of ${qz.steps.length}</div>
           <p class="q" tabindex="-1">${escapeHTML(q.q)}</p>
@@ -3628,6 +3887,7 @@ function handleAnswer(choiceIdx) {
 
   renderQuiz();
   $("#quiz-feedback")?.focus?.({ preventScroll: true });
+  saveActiveQuizSnapshot();
 }
 
 function renderQuizAnswerFeedback(choiceIdx) {
@@ -3716,6 +3976,7 @@ function handleQuizNext() {
     qz.hasStarted = qz.stage === "question";
     renderQuiz();
     focusQuizStage();
+    saveActiveQuizSnapshot();
   } else {
     finishQuiz();
   }
@@ -3725,6 +3986,7 @@ function finishQuiz() {
   const qz = ACTIVE_QUIZ;
   if (!qz || qz._isFinalized) return;
   qz._isFinalized = true;
+  clearActiveQuizSnapshot();
   const isPlacement = qz.mode === "pl";
   const score = qz.correctCount;
   const total = qz.steps.length;
@@ -3829,7 +4091,7 @@ function finishQuiz() {
     // Check if user is Guest or Student
     if (!AUTH.currentUser) {
       // Guest mode: generate guest token so student can give it to teacher or register
-      const guestToken = AUTH.createGuestToken(S.lvl, 110, Math.round((score / qz.steps.length) * 100));
+      const guestToken = AUTH.createGuestToken(S.lvl, null, Math.round((score / qz.steps.length) * 100));
       S.guestToken = guestToken;
     } else if (AUTH.currentUser.role === "student") {
       AUTH.currentUser.lvl = S.lvl;
@@ -5215,9 +5477,12 @@ function validateBackup(raw) {
   backupRequire(Array.isArray(raw.users), "users must be an array.");
   for (const user of raw.users) {
     backupRequire(backupIsObject(user), "users contains an invalid record.");
-    for (const field of ["id", "email", "password", "name", "role"]) {
+    for (const field of ["id", "email", "name", "role"]) {
       backupText(user[field], `User ${field}`);
     }
+    const hasPassword = (typeof user.password === "string" && user.password.trim().length > 0)
+      || (typeof user.passwordHash === "string" && user.passwordHash.trim().length > 0);
+    backupRequire(hasPassword, "User password is missing or invalid.");
     backupRequire(["student", "teacher", "admin"].includes(user.role), "User role is invalid.");
     backupRequire(user.status === undefined || ["active", "suspended"].includes(user.status),
       "User status is invalid.");
@@ -5406,6 +5671,8 @@ const LOCAL_DATA = {
   busy: false,
   pending: false,
   available: false,
+  lastSyncedAt: null,
+  syncError: null,
 
   async snapshot() {
     const backup = createBackupPayload();
@@ -5460,14 +5727,30 @@ const LOCAL_DATA = {
       });
       if (!response.ok) throw new Error(`Local data sync failed (${response.status}).`);
       this.available = true;
+      this.lastSyncedAt = Date.now();
+      this.syncError = null;
     } catch (error) {
       this.available = false;
+      this.syncError = error.message;
       this.pending = true;
       console.warn(error.message);
     } finally {
       this.busy = false;
       if (this.pending && this.available) this.queue();
     }
+  },
+
+  getSyncStatus() {
+    if (this.busy) {
+      return { status: "syncing", label: "Syncing changes with school server…" };
+    }
+    if (this.available && !this.pending) {
+      return { status: "synced", label: "Synchronized with school server", lastSyncedAt: this.lastSyncedAt };
+    }
+    if (!this.available) {
+      return { status: "offline", label: "Offline mode — changes saved locally on this device", lastSyncedAt: this.lastSyncedAt, error: this.syncError };
+    }
+    return { status: "pending", label: "Pending sync to school server…" };
   },
 
   start() {
@@ -7111,3 +7394,5 @@ if (typeof module !== "undefined" && module.exports) {
     shouldAutoStartTour
   };
 }
+
+

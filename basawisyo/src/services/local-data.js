@@ -4,6 +4,8 @@ const LOCAL_DATA = {
   busy: false,
   pending: false,
   available: false,
+  lastSyncedAt: null,
+  syncError: null,
 
   async snapshot() {
     const backup = createBackupPayload();
@@ -58,14 +60,30 @@ const LOCAL_DATA = {
       });
       if (!response.ok) throw new Error(`Local data sync failed (${response.status}).`);
       this.available = true;
+      this.lastSyncedAt = Date.now();
+      this.syncError = null;
     } catch (error) {
       this.available = false;
+      this.syncError = error.message;
       this.pending = true;
       console.warn(error.message);
     } finally {
       this.busy = false;
       if (this.pending && this.available) this.queue();
     }
+  },
+
+  getSyncStatus() {
+    if (this.busy) {
+      return { status: "syncing", label: "Syncing changes with school server…" };
+    }
+    if (this.available && !this.pending) {
+      return { status: "synced", label: "Synchronized with school server", lastSyncedAt: this.lastSyncedAt };
+    }
+    if (!this.available) {
+      return { status: "offline", label: "Offline mode — changes saved locally on this device", lastSyncedAt: this.lastSyncedAt, error: this.syncError };
+    }
+    return { status: "pending", label: "Pending sync to school server…" };
   },
 
   start() {

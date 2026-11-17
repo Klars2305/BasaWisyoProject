@@ -261,6 +261,28 @@ function viewPractice() {
     </div>
     <p class="sub library-intro">Tap underlined words for trilingual translations. Test your comprehension with instant feedback.</p>
 
+    ${(() => {
+      const interruptedQuiz = typeof getInterruptedQuizSnapshot === "function" ? getInterruptedQuizSnapshot() : null;
+      if (!interruptedQuiz) return "";
+      return `
+        <div class="card interrupted-quiz-card" style="background:#eff6ff;border:1.5px solid #3b82f6;border-radius:var(--radius-md, 12px);padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <div class="lab" style="color:#1d4ed8">${uiIcon("practice")} Unfinished Reading Session</div>
+            <h3 style="margin:4px 0 4px 0">Resume "${escapeHTML(interruptedQuiz.title || "Reading Story")}"</h3>
+            <p class="sub" style="margin:0">You were on Question ${interruptedQuiz.idx + 1} of ${interruptedQuiz.steps.length}. Pick up right where you left off!</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn blue sm" data-a="resume-interrupted-quiz">
+              Resume Reading →
+            </button>
+            <button class="btn o sm" data-a="discard-interrupted-quiz">
+              Start Over
+            </button>
+          </div>
+        </div>
+      `;
+    })()}
+
     ${isUnassessedStudent ? `
       <div class="card placement-required-banner" style="background:linear-gradient(135deg, rgba(37,137,230,0.08), rgba(46,196,182,0.1));border:1.5px solid var(--sky);padding:18px 20px;border-radius:var(--radius-md);margin-bottom:18px">
         <div class="lab" style="color:var(--sky-ink)">${uiIcon("assess")} Diagnostic Placement Required</div>

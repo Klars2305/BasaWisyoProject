@@ -16,6 +16,88 @@ const AUTH = {
   guestTokens: {},
   customPassages: [],
 
+  // Cryptographic and password hashing utilities (SHA-256 + Salt)
+  _sha256(ascii) {
+    function r(v, a) { return (v >>> a) | (v << (32 - a)); }
+    const M = Math.pow, maxW = M(2, 32);
+    let L = "length", i, j, res = "", words = [], bitL = ascii[L] * 8, hash = [], k = [], pC = 0, isC = {};
+    for (let c = 2; pC < 64; c++) {
+      if (!isC[c]) {
+        for (i = 0; i < 313; i += c) isC[i] = c;
+        hash[pC] = (M(c, 0.5) * maxW) | 0;
+        k[pC++] = (M(c, 1 / 3) * maxW) | 0;
+      }
+    }
+    ascii += "\x80";
+    while (ascii[L] % 64 - 56) ascii += "\x00";
+    for (i = 0; i < ascii[L]; i++) {
+      j = ascii.charCodeAt(i);
+      words[i >> 2] |= j << ((3 - i) % 4) * 8;
+    }
+    words[words[L]] = (bitL / maxW) | 0;
+    words[words[L]] = bitL | 0;
+    for (j = 0; j < words[L];) {
+      let w = words.slice(j, j += 16), old = hash;
+      hash = hash.slice(0, 8);
+      for (i = 0; i < 64; i++) {
+        let w15 = w[i - 15], w2 = w[i - 2], a = hash[0], e = hash[4];
+        let t1 = hash[7] + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i] +
+          (w[i] = (i < 16) ? w[i] : (w[i - 16] + (r(w15, 7) ^ r(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (r(w2, 17) ^ r(w2, 19) ^ (w2 >>> 10))) | 0);
+        let t2 = (r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+        hash = [(t1 + t2) | 0].concat(hash);
+        hash[4] = (hash[4] + t1) | 0;
+      }
+      for (i = 0; i < 8; i++) hash[i] = (hash[i] + old[i]) | 0;
+    }
+    for (i = 0; i < 8; i++) {
+      for (j = 3; j + 1; j--) {
+        let b = (hash[i] >> (j * 8)) & 255;
+        res += ((b < 16) ? 0 : "") + b.toString(16);
+      }
+    }
+    return res;
+  },
+
+  generateSalt() {
+    let salt = "";
+    const hex = "0123456789abcdef";
+    for (let i = 0; i < 16; i++) {
+      salt += hex[Math.floor(Math.random() * 16)];
+    }
+    return salt;
+  },
+
+  hashPassword(password, salt = null) {
+    if (!password) return "";
+    const s = salt || this.generateSalt();
+    const hash = this._sha256(`${s}:${password}`);
+    return `sha256$${s}$${hash}`;
+  },
+
+  verifyPassword(plain, user) {
+    if (!user || typeof plain !== "string") return false;
+    const cleanPlain = plain;
+    // 1. Salted SHA-256 hash verification
+    if (user.passwordHash && typeof user.passwordHash === "string" && user.passwordHash.startsWith("sha256$")) {
+      const parts = user.passwordHash.split("$");
+      if (parts.length === 3) {
+        const salt = parts[1];
+        const expected = parts[2];
+        const computed = this._sha256(`${salt}:${cleanPlain}`);
+        if (computed === expected) return true;
+      }
+    }
+    // 2. Legacy plaintext verification
+    if (user.password && user.password === cleanPlain) {
+      return true;
+    }
+    // 3. Admin shorthand alias verification
+    if (user.role === "admin" && (cleanPlain === "admin" || cleanPlain === "admin123")) {
+      return true;
+    }
+    return false;
+  },
+
   init() {
     this.currentUser = null;
     this.users = [];
@@ -50,8 +132,21 @@ const AUTH = {
         adminUser.password = "admin";
         updated = true;
       }
+      if (!adminUser.passwordHash) {
+        adminUser.passwordHash = this.hashPassword("admin");
+        updated = true;
+      }
       if (updated) this.saveUsers();
     }
+    // Auto-migrate any accounts missing passwordHash
+    let migratedAny = false;
+    for (const u of this.users) {
+      if (!u.passwordHash && u.password) {
+        u.passwordHash = this.hashPassword(u.password);
+        migratedAny = true;
+      }
+    }
+    if (migratedAny) this.saveUsers();
 
     // 2. Load or seed assignments
     try {
@@ -232,6 +327,14 @@ const AUTH = {
 
   saveUsers() {
     try {
+      if (Array.isArray(this.users)) {
+        for (const u of this.users) {
+          if (u && u.password && (!u.passwordHash || (u._lastHashed && u._lastHashed !== u.password))) {
+            u.passwordHash = this.hashPassword(u.password);
+            u._lastHashed = u.password;
+          }
+        }
+      }
       localStorage.setItem(this.USERS_KEY, JSON.stringify(this.users));
       if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
     } catch(e) {}
@@ -283,12 +386,15 @@ const AUTH = {
     const user = this.users.find(u => {
       const matchEmail = u.email.toLowerCase() === cleanEmail ||
         (u.role === "admin" && (cleanEmail === "admin" || cleanEmail === "admin@basawisyo.ph"));
-      const matchPass = u.password === password ||
-        (u.role === "admin" && (password === "admin" || password === "admin123"));
-      return matchEmail && matchPass;
+      return matchEmail && this.verifyPassword(password, u);
     });
     if (!user) return { success: false, message: "Invalid email or password." };
     if (user.status === "suspended") return { success: false, message: "This account has been suspended by the administrator." };
+
+    if (!user.passwordHash && password) {
+      user.passwordHash = this.hashPassword(password);
+      this.saveUsers();
+    }
 
     GUEST_MODE = false;
     this.currentUser = user;
@@ -349,10 +455,12 @@ const AUTH = {
     for (let suffix = 1; this.users.some(user => user.id === id); suffix++) {
       id = `${idSeed}_${suffix}`;
     }
+    const passwordHash = this.hashPassword(password);
     const newUser = {
       id,
       email: cleanEmail,
       password,
+      passwordHash,
       name,
       role: data.role,
       school: data.school || "Rizal National High School",
@@ -421,6 +529,10 @@ const AUTH = {
     }
     GUEST_MODE = false;
     this.currentUser = null;
+    if (typeof ACTIVE_QUIZ !== "undefined") ACTIVE_QUIZ = null;
+    if (typeof QUIZ_RESULT !== "undefined") QUIZ_RESULT = null;
+    if (typeof CHAT_HISTORY !== "undefined") CHAT_HISTORY = [];
+    if (typeof clearActiveQuizSnapshot === "function") clearActiveQuizSnapshot();
     if (typeof switchAccountState === "function") {
       switchAccountState(null);
     }
@@ -566,9 +678,9 @@ const AUTH = {
     const token = "GUEST-" + Math.floor(1000 + Math.random() * 9000);
     this.guestTokens[token] = {
       name: studentName || "Guest Student",
-      lvl,
-      wpm: wpm || 105,
-      comp: comp || 75,
+      lvl: lvl !== undefined ? lvl : null,
+      wpm: typeof wpm === "number" ? wpm : null,
+      comp: typeof comp === "number" ? comp : null,
       timestamp: Date.now()
     };
     this.saveGuestTokens();
@@ -585,15 +697,16 @@ const AUTH = {
       id: "usr_guest_" + Date.now(),
       email: cleanToken.toLowerCase() + "@guest.basawisyo.ph",
       password: "guest",
+      passwordHash: this.hashPassword("guest"),
       name: data.name + ` (${cleanToken})`,
       role: "student",
       school: "Rizal National High School",
       section: this.currentUser ? this.currentUser.section : "Connected Class",
       teacherCode: teacherCode || (this.currentUser ? this.currentUser.shareCode : ""),
       lvl: data.lvl,
-      wpm: data.wpm,
-      comp: data.comp,
-      wordsRead: 350,
+      wpm: data.wpm ?? null,
+      comp: data.comp ?? null,
+      wordsRead: 0,
       status: "active",
       createdAt: new Date().toISOString().split("T")[0],
       isGuestImport: true

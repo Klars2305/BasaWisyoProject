@@ -338,6 +338,9 @@ function speak(text, { followPassage = false, passage = null, language = null, f
   }
   if (!window.speechSynthesis || typeof SpeechSynthesisUtterance !== "function") {
     stopSpeech();
+    if (typeof showToast === "function") {
+      showToast("Narration is not supported in this browser. You can read along at your own pace!");
+    }
     return false;
   }
   const parts = followPassage ? speechSentences(source) : [{ text: source, start: 0 }];

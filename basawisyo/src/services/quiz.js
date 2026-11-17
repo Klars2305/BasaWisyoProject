@@ -138,6 +138,98 @@ function runKaraokeCelebrationTicker(targetPct, score, total) {
   KARAOKE_ANIM_FRAME = requestAnimationFrame(tick);
 }
 
+const QUIZ_SNAPSHOT_KEY = "basa_wisyo_interrupted_quiz";
+
+function saveActiveQuizSnapshot() {
+  const qz = ACTIVE_QUIZ;
+  if (!qz || qz._isFinalized || !Array.isArray(qz.steps) || qz.steps.length === 0) {
+    clearActiveQuizSnapshot();
+    return;
+  }
+  try {
+    const actorId = (typeof AUTH !== "undefined" && AUTH.currentUser?.id) || "guest";
+    const snapshot = {
+      actorId,
+      title: qz.title,
+      mode: qz.mode,
+      idx: qz.idx,
+      correctCount: qz.correctCount,
+      correctQuestions: qz.correctQuestions || [],
+      userAnswers: qz.userAnswers || [],
+      stage: qz.stage,
+      startTime: qz.startTime,
+      hearts: qz.hearts,
+      maxHearts: qz.maxHearts,
+      accommodated: qz.accommodated,
+      processedAnswerIds: qz.processedAnswerIds || [],
+      steps: qz.steps,
+      savedAt: Date.now()
+    };
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.setItem(QUIZ_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    }
+  } catch (err) {
+    console.warn("Could not save quiz recovery snapshot:", err);
+  }
+}
+
+function clearActiveQuizSnapshot() {
+  try {
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.removeItem(QUIZ_SNAPSHOT_KEY);
+    }
+  } catch (_) {}
+}
+
+function getInterruptedQuizSnapshot() {
+  try {
+    if (typeof sessionStorage === "undefined") return null;
+    const raw = sessionStorage.getItem(QUIZ_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    const actorId = (typeof AUTH !== "undefined" && AUTH.currentUser?.id) || "guest";
+    if (data.actorId !== actorId) return null;
+    if (!Array.isArray(data.steps) || data.steps.length === 0) return null;
+    if (data.idx >= data.steps.length) return null;
+    if (Date.now() - (data.savedAt || 0) > 24 * 60 * 60 * 1000) {
+      clearActiveQuizSnapshot();
+      return null;
+    }
+    return data;
+  } catch (_) {
+    return null;
+  }
+}
+
+function resumeInterruptedQuiz() {
+  const snapshot = getInterruptedQuizSnapshot();
+  if (!snapshot) return false;
+  ACTIVE_QUIZ = {
+    title: snapshot.title,
+    mode: snapshot.mode,
+    steps: snapshot.steps,
+    idx: snapshot.idx,
+    correctCount: snapshot.correctCount || 0,
+    correctQuestions: snapshot.correctQuestions || [],
+    userAnswers: snapshot.userAnswers || [],
+    stage: snapshot.stage || "question",
+    isAnswered: false,
+    selectedChoice: null,
+    startTime: snapshot.startTime || Date.now(),
+    hearts: snapshot.hearts,
+    maxHearts: snapshot.maxHearts,
+    accommodated: snapshot.accommodated,
+    processedAnswerIds: snapshot.processedAnswerIds || []
+  };
+  QUIZ_RESULT = null;
+  if (typeof renderApp === "function") renderApp();
+  if (typeof focusQuizStage === "function") focusQuizStage();
+  if (typeof showToast === "function") {
+    showToast("Resumed your previous reading session!", "ok");
+  }
+  return true;
+}
+
 function startQuiz(passages, mode, title) {
   if (mode !== "pl" && AUTH.currentUser?.role === "student" && S.lvl === null) {
     CURRENT_TAB = "assess";
@@ -183,6 +275,7 @@ function startQuiz(passages, mode, title) {
 
   renderApp();
   focusQuizStage();
+  saveActiveQuizSnapshot();
 }
 
 function renderQuiz() {
@@ -282,7 +375,21 @@ function renderQuiz() {
     </div>
     ` : `
     <div class="reader-stage reader-question-stage">
-      <div class="reader-question-context"><span>${uiIcon("practice")} ${escapeHTML(P.t)}</span><button class="btn o sm" data-a="quiz-show-passage" type="button">${uiIcon("practice")} View passage</button></div>
+      <div class="reader-question-context">
+        <span>${uiIcon("practice")} ${escapeHTML(P.t)}</span>
+        <button class="btn o sm" data-a="quiz-show-passage" type="button">${uiIcon("practice")} View full passage</button>
+      </div>
+
+      <details class="quiz-passage-peek">
+        <summary class="quiz-passage-peek-summary">
+          <span>${uiIcon("practice")} Review Passage Text Evidence</span>
+          <span class="sub-sm" style="font-weight:normal;color:var(--sub)">Tap to read</span>
+        </summary>
+        <div class="quiz-passage-peek-body ps">
+          ${tapMarkup(P.x)}
+        </div>
+      </details>
+
         <div class="card reader-question-card quiz-card-enter">
           <div class="lab">${escapeHTML(q.k || "Comprehension")} Question · ${qz.idx + 1} of ${qz.steps.length}</div>
           <p class="q" tabindex="-1">${escapeHTML(q.q)}</p>
@@ -451,6 +558,7 @@ function handleAnswer(choiceIdx) {
 
   renderQuiz();
   $("#quiz-feedback")?.focus?.({ preventScroll: true });
+  saveActiveQuizSnapshot();
 }
 
 function renderQuizAnswerFeedback(choiceIdx) {
@@ -539,6 +647,7 @@ function handleQuizNext() {
     qz.hasStarted = qz.stage === "question";
     renderQuiz();
     focusQuizStage();
+    saveActiveQuizSnapshot();
   } else {
     finishQuiz();
   }
@@ -548,6 +657,7 @@ function finishQuiz() {
   const qz = ACTIVE_QUIZ;
   if (!qz || qz._isFinalized) return;
   qz._isFinalized = true;
+  clearActiveQuizSnapshot();
   const isPlacement = qz.mode === "pl";
   const score = qz.correctCount;
   const total = qz.steps.length;
@@ -652,7 +762,7 @@ function finishQuiz() {
     // Check if user is Guest or Student
     if (!AUTH.currentUser) {
       // Guest mode: generate guest token so student can give it to teacher or register
-      const guestToken = AUTH.createGuestToken(S.lvl, 110, Math.round((score / qz.steps.length) * 100));
+      const guestToken = AUTH.createGuestToken(S.lvl, null, Math.round((score / qz.steps.length) * 100));
       S.guestToken = guestToken;
     } else if (AUTH.currentUser.role === "student") {
       AUTH.currentUser.lvl = S.lvl;

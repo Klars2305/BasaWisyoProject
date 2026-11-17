@@ -796,6 +796,43 @@ input, textarea { caret-color: var(--sky-ink); }
 }
 .reader-question-context > span { display: inline-flex; align-items: center; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
 .reader-question-context .btn { flex: none; }
+
+/* Inline Passage Text Evidence Review Accordion */
+.quiz-passage-peek {
+  margin: 0 0 16px;
+  background: var(--card, #ffffff);
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  overflow: hidden;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.quiz-passage-peek[open] {
+  border-color: var(--sky, #2589e6);
+  box-shadow: 0 4px 14px rgba(37, 137, 230, 0.08);
+}
+.quiz-passage-peek-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sky-ink, #1e40af);
+  background: rgba(37, 137, 230, 0.06);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.quiz-passage-peek-summary::-webkit-details-marker { display: none; }
+.quiz-passage-peek-body {
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  max-height: 240px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+
 .reader-stage-footer { display: flex; justify-content: flex-end; margin: 14px 0 0; }
 .reader-stage-next { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 180px; }
 .speech-follow-control {
@@ -851,6 +888,16 @@ input, textarea { caret-color: var(--sky-ink); }
 }
 @media (prefers-reduced-motion: reduce) {
   .reader-speech-btn { transition: none; }
+  .answer-correct-pop,
+  .answer-wrong-shake,
+  .answer-fb-pop,
+  .quiz-card-enter,
+  .karaoke-stage,
+  .karaoke-spotlight {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 /* ==========================================================================

@@ -48,8 +48,14 @@ function loadStateForAccount(accountId = null, seedUser = null) {
   try {
     const raw = localStorage.getItem(key);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      return { ...state, ...parsed, schemaVersion: 2 };
+      try {
+        const parsed = JSON.parse(raw);
+        return { ...state, ...parsed, schemaVersion: 2 };
+      } catch (jsonErr) {
+        try { localStorage.setItem(`basa_wisyo_corrupted_${key}`, raw); } catch (_) {}
+        console.warn(`Quarantined corrupted state for ${key}. Clean state initialized.`, jsonErr);
+        return state;
+      }
     }
     if (!accountId) {
       // Guest state: return clean initial state without pulling from prior student state
@@ -108,25 +114,36 @@ function migrateAndLoadState() {
   try {
     const v2 = localStorage.getItem("basa_wisyo_state_v2");
     if (v2) {
-      const parsed = JSON.parse(v2);
-      return { ...state, ...parsed, schemaVersion: 2 };
+      try {
+        const parsed = JSON.parse(v2);
+        return { ...state, ...parsed, schemaVersion: 2 };
+      } catch (jsonErr) {
+        // Quarantine corrupted state to backup key and reset cleanly
+        try { localStorage.setItem("basa_wisyo_corrupted_backup", v2); } catch (_) {}
+        console.warn("Recovered from corrupted state JSON. Clean state initialized.", jsonErr);
+        return state;
+      }
     }
     const legacy = localStorage.getItem("basa_wisyo_state_v1") || localStorage.getItem("basa_state");
     if (legacy) {
-      const parsedLegacy = JSON.parse(legacy);
-      state = {
-        ...state,
-        lvl: parsedLegacy.lvl ?? null,
-        w: parsedLegacy.w ?? 0,
-        ss: parsedLegacy.ss ?? 0,
-        done: Array.isArray(parsedLegacy.done) ? parsedLegacy.done : [],
-        sk: parsedLegacy.sk && typeof parsedLegacy.sk === "object" ? parsedLegacy.sk : {},
-        streak: parsedLegacy.streak ?? 0,
-        lastPracticeDate: parsedLegacy.lastPracticeDate ?? null,
-        schemaVersion: 2
-      };
-      localStorage.setItem("basa_wisyo_state_v2", JSON.stringify(state));
-      return state;
+      try {
+        const parsedLegacy = JSON.parse(legacy);
+        state = {
+          ...state,
+          lvl: parsedLegacy.lvl ?? null,
+          w: parsedLegacy.w ?? 0,
+          ss: parsedLegacy.ss ?? 0,
+          done: Array.isArray(parsedLegacy.done) ? parsedLegacy.done : [],
+          sk: parsedLegacy.sk && typeof parsedLegacy.sk === "object" ? parsedLegacy.sk : {},
+          streak: parsedLegacy.streak ?? 0,
+          lastPracticeDate: parsedLegacy.lastPracticeDate ?? null,
+          schemaVersion: 2
+        };
+        localStorage.setItem("basa_wisyo_state_v2", JSON.stringify(state));
+        return state;
+      } catch (_) {
+        return state;
+      }
     }
   } catch (e) {
     // Return initial state if storage reading fails
@@ -136,15 +153,36 @@ function migrateAndLoadState() {
 
 let S = migrateAndLoadState();
 
+let STORAGE_STATE = {
+  status: "saved", // 'saved', 'saving', 'failed'
+  error: null,
+  lastSavedAt: Date.now()
+};
+
+function getStorageStatus() {
+  return { ...STORAGE_STATE };
+}
+
 const save = () => {
+  STORAGE_STATE.status = "saving";
   try {
     const raw = JSON.stringify(S);
     localStorage.setItem("basa_wisyo_state_v2", raw);
     const userKey = getStateStorageKey();
     localStorage.setItem(userKey, raw);
-    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
-  } catch(e) {}
+    STORAGE_STATE.status = "saved";
+    STORAGE_STATE.error = null;
+    STORAGE_STATE.lastSavedAt = Date.now();
+    if (typeof LOCAL_DATA !== "undefined" && typeof LOCAL_DATA.queue === "function") LOCAL_DATA.queue();
+    return { success: true };
+  } catch(e) {
+    STORAGE_STATE.status = "failed";
+    STORAGE_STATE.error = e?.message || "Storage quota exceeded or storage unavailable.";
+    return { success: false, error: STORAGE_STATE.error };
+  }
 };
+
+const retrySave = () => save();
 
 // Global App State
 let CURRENT_TAB = "home";
@@ -152,5 +190,6 @@ let GUEST_MODE = false;
 let ACTIVE_QUIZ = null;
 let SEARCH_QUERY = "";
 let BOARD_TIER = null;
+
 
 

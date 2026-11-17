@@ -139,12 +139,21 @@ function viewHome() {
         Culturally rooted reading practice built for Grades 7 to 12. Try a placement activity, explore leveled Philippine stories, follow your reading journey, and celebrate progress with badges.
       </p>
       <div class="home-hero-actions">
-        <button class="btn blue sm" data-a="tab" data-v="assess">
-          ${uiIcon("assess")} ${S.lvl === null ? "Start Placement Test" : "Check Reading Level"}
-        </button>
-        <button class="btn o sm" data-a="tab" data-v="practice">
-          ${uiIcon("practice")} Browse 24+ Passages
-        </button>
+        ${isUnassessedStudent ? `
+          <button class="btn blue sm" data-a="tab" data-v="assess">
+            ${uiIcon("assess")} Start Placement Test
+          </button>
+          <button class="btn o sm" data-a="tab" data-v="practice">
+            ${uiIcon("practice")} Browse 24+ Passages
+          </button>
+        ` : `
+          <button class="btn blue sm" data-a="tab" data-v="practice">
+            ${uiIcon("practice")} Continue Reading →
+          </button>
+          <button class="btn o sm" data-a="tab" data-v="assess">
+            ${uiIcon("assess")} Check Reading Level
+          </button>
+        `}
       </div>
       </div>
       <div class="home-hero-art" aria-hidden="true">
@@ -169,6 +178,11 @@ function viewHome() {
             <div class="lab">Your Phil-IRI Level</div>
             <div class="num">${currentLvlStr}</div>
             <div class="sub-sm">${S.ss} sessions completed</div>
+          </div>
+          <div class="stat-box">
+            <div class="lab">Daily Reading Streak</div>
+            <div class="num" style="color:var(--gold-ink)">🔥 ${S.streak || 0} ${(S.streak || 0) === 1 ? "Day" : "Days"}</div>
+            <div class="sub-sm">${(S.streak || 0) > 0 ? "Daily reading habit active!" : "Read a passage today to start!"}</div>
           </div>
           <div class="stat-box">
             <div class="lab">Words Read</div>

@@ -80,9 +80,12 @@ function validateBackup(raw) {
   backupRequire(Array.isArray(raw.users), "users must be an array.");
   for (const user of raw.users) {
     backupRequire(backupIsObject(user), "users contains an invalid record.");
-    for (const field of ["id", "email", "password", "name", "role"]) {
+    for (const field of ["id", "email", "name", "role"]) {
       backupText(user[field], `User ${field}`);
     }
+    const hasPassword = (typeof user.password === "string" && user.password.trim().length > 0)
+      || (typeof user.passwordHash === "string" && user.passwordHash.trim().length > 0);
+    backupRequire(hasPassword, "User password is missing or invalid.");
     backupRequire(["student", "teacher", "admin"].includes(user.role), "User role is invalid.");
     backupRequire(user.status === undefined || ["active", "suspended"].includes(user.status),
       "User status is invalid.");

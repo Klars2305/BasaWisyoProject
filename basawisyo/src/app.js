@@ -490,6 +490,7 @@ document.addEventListener("click", async e => {
     if (banner && bannerText) {
       banner.hidden = false;
       bannerText.textContent = "Online payment is still in development phase.";
+      banner.scrollIntoView?.({ behavior: "smooth", block: "center" });
     }
     showToast("Online payment is still in development phase.");
   }
@@ -524,7 +525,20 @@ document.addEventListener("click", async e => {
     if (confirm("Are you sure you want to exit? Your progress in this quiz will be cancelled.")) {
       stopSpeech();
       ACTIVE_QUIZ = null;
+      if (typeof clearActiveQuizSnapshot === "function") clearActiveQuizSnapshot();
       renderApp();
+    }
+  }
+  else if (a === "resume-interrupted-quiz") {
+    if (typeof resumeInterruptedQuiz === "function") {
+      resumeInterruptedQuiz();
+    }
+  }
+  else if (a === "discard-interrupted-quiz") {
+    if (typeof clearActiveQuizSnapshot === "function") {
+      clearActiveQuizSnapshot();
+      renderApp();
+      showToast("Interrupted reading session discarded.");
     }
   }
 
@@ -1001,10 +1015,11 @@ document.addEventListener("click", async e => {
     const pId = pSelect.value;
     const pTitle = pSelect.options[pSelect.selectedIndex].text;
     const targetGroup = tSelect?.value || "all";
-    const note = noteInput?.value || "Assigned by Teacher";
+    const noteVal = noteInput?.value?.trim() || "";
+    const dueDate = noteVal || "Next Class";
 
     try {
-      AUTH.createAssignment(pId, pTitle, targetGroup, "Upcoming Session", note);
+      AUTH.createAssignment(pId, pTitle, targetGroup, dueDate, noteVal || "Assigned by Teacher");
       showToast(`Assignment dispatched to ${targetGroup === 'all' ? 'entire class' : targetGroup}! 🚀`);
       renderApp();
     } catch (error) {
@@ -1022,11 +1037,17 @@ document.addEventListener("click", async e => {
     }
   }
   else if (a === "teacher-import-guest") {
-    const token = prompt("Enter Student Guest Token (e.g. GUEST-8492):");
-    if (!token) return;
+    const inputEl = $("#guest-token-input");
+    const inputVal = inputEl ? inputEl.value.trim() : "";
+    const token = inputVal || prompt("Enter Student Guest Token (e.g. GUEST-8492):");
+    if (!token) {
+      showToast("Please enter a student guest token.", "warn");
+      return;
+    }
     const code = (AUTH.currentUser && AUTH.currentUser.shareCode) || "BASA-TEACH-8492";
     const res = AUTH.importGuestToken(token.trim().toUpperCase(), code);
     if (res.success) {
+      if (inputEl) inputEl.value = "";
       showToast(`Student ${res.student.name} imported with Phil-IRI Level ${PHIL_IRI_LEVELS[res.student.lvl]}! 🎉`);
       renderApp();
     } else {
@@ -1065,7 +1086,7 @@ document.addEventListener("click", async e => {
       return;
     }
     const studentName = prompt("Enter your Full Name for your teacher's class roster:") || "Guest Student";
-    const token = AUTH.createGuestToken(S.lvl !== null ? S.lvl : 1, 110, 75, studentName);
+    const token = AUTH.createGuestToken(S.lvl !== null ? S.lvl : 1, null, null, studentName);
     S.guestToken = token;
     const impRes = AUTH.importGuestToken(token, teacher.shareCode);
     if (impRes.success) {
@@ -1196,6 +1217,7 @@ document.addEventListener("click", async e => {
     }
   }
   else if (a === "practice-withdraw" || a === "practice-publish" || a === "practice-unpublish") {
+    if (a === "practice-unpublish" && !confirm("Unpublish this passage from the public reading library?")) return;
     try {
       if (a === "practice-withdraw") AUTH.withdrawPractice(v);
       else AUTH.setPracticePublished(v, a === "practice-publish");

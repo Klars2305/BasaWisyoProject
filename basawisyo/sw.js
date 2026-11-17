@@ -116,6 +116,22 @@ self.addEventListener("fetch", event => {
     return;
   }
 
+  // HTML documents / navigations: Network-First so UI updates load without stale cache traps
+  if (event.request.mode === "navigate" || event.request.destination === "document" || url.pathname.endsWith(".html")) {
+    event.respondWith(
+      fetch(event.request)
+        .then(networkResponse => {
+          if (networkResponse && networkResponse.status === 200 && event.request.method === "GET") {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then(cached => cached || caches.match("./index.html")))
+    );
+    return;
+  }
+
   // App shell & static resources: Stale-While-Revalidate
   event.respondWith(
     caches.match(event.request).then(cached => {

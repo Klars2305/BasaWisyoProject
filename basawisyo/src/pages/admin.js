@@ -287,7 +287,7 @@ function renderAdminCurriculumTab() {
                         ${AUTH.assignments.some(assignment => assignment.passageId === p.id) ? `<button class="btn o sm" data-a="practice-remove-assignments" data-v="${escapeHTML(p.id)}">Remove class assignments</button>` : ""}
                         <button class="btn o sm danger" data-a="practice-delete" data-v="${escapeHTML(p.id)}">Delete</button>
                       ` : `
-                        <button class="btn o sm" data-a="read-passage" data-v="${p.id}">Preview</button>
+                        <button class="btn o sm" data-a="read-passage" data-v="${escapeHTML(p.id)}">Preview</button>
                       `}
                     </div>
                   </td>
