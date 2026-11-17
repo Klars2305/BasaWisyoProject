@@ -496,10 +496,14 @@ document.addEventListener("click", async e => {
       popup.style.display = "flex";
       popup.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
     }
-    showToast("Online payment is still in development phase.");
-    if (typeof alert === "function") {
-      alert("Online payment is still in development phase.");
+    const paymentModal = $("#payment-notice-modal");
+    if (paymentModal) {
+      showInlineDialog(paymentModal, paymentModal.querySelector('[data-a="payment-notice-close"]'));
     }
+    showToast("Online payment is still in development phase.");
+  }
+  else if (a === "payment-notice-close") {
+    closeInlineDialog($("#payment-notice-modal"));
   }
   else if (a === "upgrade-toggle-sandbox") {
     if (typeof AUTH !== "undefined" && typeof AUTH.toggleSandboxPremium === "function") {
@@ -1450,6 +1454,7 @@ document.addEventListener("keydown", e => {
     closeReportModal();
     closeInlineDialog($("#auth-modal"));
     closeInlineDialog($("#projector-modal"));
+    closeInlineDialog($("#payment-notice-modal"));
     if (!$("#admin-passage-modal").hidden) {
       PRACTICE_EDITOR_GENERATION++;
       EDITING_PRACTICE_ID = null;
@@ -1473,6 +1478,9 @@ $("#auth-modal")?.addEventListener("click", e => {
 });
 $("#projector-modal")?.addEventListener("click", e => {
   if (e.target.id === "projector-modal") closeInlineDialog($("#projector-modal"));
+});
+$("#payment-notice-modal")?.addEventListener("click", e => {
+  if (e.target.id === "payment-notice-modal") closeInlineDialog($("#payment-notice-modal"));
 });
 $("#admin-passage-modal")?.addEventListener("click", e => {
   if (e.target.id === "admin-passage-modal") {

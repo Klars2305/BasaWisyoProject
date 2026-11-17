@@ -486,6 +486,28 @@
   </div>
 </div>
 
+<!-- Dedicated Online Payment In-Development Pop-up Modal -->
+<div id="payment-notice-modal" class="app-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="payment-notice-title" style="z-index:2000" hidden>
+  <div class="app-modal-card" style="max-width:480px;text-align:center;padding:32px 26px;border-radius:24px;box-shadow:0 24px 64px rgba(0,0,0,0.5);border:2px solid #f59e0b;background:var(--card)">
+    <div style="width:72px;height:72px;margin:0 auto 16px;background:linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);border:2px solid #f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.2rem;box-shadow:0 6px 18px rgba(245,158,11,0.25)">
+      💳
+    </div>
+    <h3 id="payment-notice-title" style="font-family:var(--font-display);font-size:1.4rem;margin:0 0 12px;color:var(--text)">
+      Online Payment Notice
+    </h3>
+    <div style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:10px 16px;border-radius:12px;font-size:0.95rem;font-weight:700;margin-bottom:16px;display:inline-flex;align-items:center;gap:8px">
+      <span aria-hidden="true">ℹ️</span>
+      <span>Online payment is still in development phase.</span>
+    </div>
+    <p style="color:var(--sub);font-size:0.875rem;line-height:1.55;margin:0 0 24px">
+      Thank you for your interest in Wisyo Plus! Online payments and subscription checkout are currently under active development. In the meantime, Phil-IRI diagnostic assessments, classroom reading libraries, and homework remain <b>100% free</b> for every learner.
+    </p>
+    <button class="btn blue" data-a="payment-notice-close" style="width:100%;min-height:46px;font-size:0.95rem;font-weight:700;border-radius:14px">
+      Got It, Continue Reading
+    </button>
+  </div>
+</div>
+
 <!-- Interactive Wisyo AI Assistant Modal Drawer -->
 <div id="ai" role="dialog" aria-modal="true" aria-labelledby="ai-title" hidden>
   <div class="drawer">

@@ -42,12 +42,14 @@ test('Phase 4: Wisyo Plus modal has sandbox simulation removed and informs onlin
   assert.match(indexHtml, /<button[^>]+data-a="upgrade-select"[^>]+data-v="monthly"[^>]*>[\s\S]*?Get Wisyo Plus Monthly/);
   assert.match(indexHtml, /<button[^>]+data-a="upgrade-select"[^>]+data-v="annual"[^>]*>[\s\S]*?Get Wisyo Plus Annual/);
 
-  // 3. upgrade-select action displays development message
+  // 3. upgrade-select action displays development message in modal and toast
   assert.match(appJs, /bannerText\.textContent = "Online payment is still in development phase\.";/);
   assert.match(appJs, /showToast\("Online payment is still in development phase\."\);/);
-  assert.match(appJs, /alert\("Online payment is still in development phase\."\);/);
+  assert.match(appJs, /showInlineDialog\(paymentModal/);
 
-  // 4. In-modal alert popup and high z-index toast exist
+  // 4. Dedicated Payment Notice Modal Pop-up Dialog exists in DOM
+  assert.match(indexHtml, /id="payment-notice-modal"/);
+  assert.match(indexHtml, /data-a="payment-notice-close"/);
   assert.match(indexHtml, /id="upgrade-select-popup"/);
   const baseCss = fs.readFileSync(path.join(baseDir, 'src/styles/base.css'), 'utf8');
   assert.match(baseCss, /\.toast\{[^}]*z-index:\s*99999/);
