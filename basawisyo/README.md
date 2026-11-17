@@ -55,6 +55,24 @@ narration as it reads** enables automatic tracking, and manual scrolling turns
 that option off. Changing settings or rerendering the same view does not force
 the page back to the top.
 
+## BasaMesh offline story exchange
+
+Open **BasaMesh exchange** from the Reading Library or Teacher Reading Studio.
+Teachers and admins can export a built-in or managed passage with its questions
+as a `.basamesh` file. Learners can share stories they have completed. The
+receiving device previews and validates the story before saving. Learner
+imports go to that learner's personal reading library; teacher imports become
+editable drafts. Packets contain passage text, questions, and answer keys, but
+no account, score, XP, or classroom records.
+
+Use the downloaded file with your device's Bluetooth file transfer, Nearby
+Share, AirDrop, or USB. The Share button uses the system share sheet where
+available and downloads the file otherwise. Short packets can also be shown
+as offline QR codes; camera scanning requires browser `BarcodeDetector` support.
+Longer stories should use a file. Web Bluetooth in a web page cannot make two
+ordinary browser tabs act as BLE sender and receiver, so BasaMesh does not
+claim direct browser-to-browser Bluetooth beaming.
+
 ## File map
 
 - `index.html`: public entry, registration, and app markup with ordered scripts.

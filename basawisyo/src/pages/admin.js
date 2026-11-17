@@ -17,8 +17,12 @@ function viewAdmin() {
 
   const allUsers = AUTH.users;
   const students = allUsers.filter(u => u.role === "student");
+  const enrolledStudents = students.filter(student => AUTH.getActiveEnrollment(student));
+  const pendingStudents = students.filter(student => student.enrollmentStatus === "pending" && student.pendingTeacherCode);
   const teachers = allUsers.filter(u => u.role === "teacher");
+  const activeTeachers = teachers.filter(u => u.status === "active");
   const admins = allUsers.filter(u => u.role === "admin");
+  const cleanSchool = teachers.length === 0 && students.length === 0 && AUTH.assignments.length === 0;
 
   // Phil-IRI distribution school-wide
   const frustCount = students.filter(s => s.lvl === 0).length;
@@ -48,6 +52,17 @@ function viewAdmin() {
       </div>
     </div>
 
+    ${cleanSchool ? `<div class="card admin-section-card" role="status">
+      <div class="lab">First school setup</div>
+      <h3>Start with your real teachers and learners</h3>
+      <p class="sub">This browser has only the administrator account. Ask teachers to use Create an account on the public page. Each teacher receives a classroom share code; students can enter it when they register or join later. The teacher reviews each request before the student joins the class.</p>
+      <p class="sub">The built-in reading passages are ready to use. Sample accounts are optional under Local Data &amp; Backup.</p>
+      <div class="dashboard-intro-actions">
+        <button class="btn blue" data-a="auth-logout">Sign out to public page</button>
+        <button class="btn o" data-a="admin-tab" data-v="system">View sample-data option</button>
+      </div>
+    </div>` : ""}
+
     <!-- School Metric Cards -->
     <div class="metric-grid">
       <div class="metric-box">
@@ -55,11 +70,15 @@ function viewAdmin() {
         <div class="metric-title">Total Users</div>
       </div>
       <div class="metric-box">
-        <div class="metric-value" style="color:var(--sky)">${students.length}</div>
+        <div class="metric-value" style="color:var(--sky)">${enrolledStudents.length}</div>
         <div class="metric-title">Enrolled Students</div>
       </div>
       <div class="metric-box">
-        <div class="metric-value" style="color:var(--teal)">${teachers.length}</div>
+        <div class="metric-value">${pendingStudents.length}</div>
+        <div class="metric-title">Pending Enrollments</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-value" style="color:var(--teal)">${activeTeachers.length}</div>
         <div class="metric-title">Active Teachers</div>
       </div>
       <div class="metric-box">
@@ -132,7 +151,9 @@ function renderAdminUsersTab(users) {
                 </td>
                 <td>
                   ${u.role === 'teacher' ? `<b>${escapeHTML(u.shareCode || '')}</b> (${escapeHTML(u.section || 'General')})` : ''}
-                  ${u.role === 'student' ? (u.teacherCode ? `Linked: <b>${escapeHTML(u.teacherCode)}</b>` : '<span style="color:var(--sub)">Unlinked</span>') : ''}
+                  ${u.role === 'student' ? (u.teacherCode ? `Linked: <b>${escapeHTML(u.teacherCode)}</b>`
+                    : u.enrollmentStatus === 'pending' && u.pendingTeacherCode ? `Pending: <b>${escapeHTML(u.pendingTeacherCode)}</b>`
+                      : '<span style="color:var(--sub)">Unlinked</span>') : ''}
                   ${u.role === 'admin' ? 'System Administrator' : ''}
                 </td>
                 <td>
@@ -355,6 +376,7 @@ function renderAdminBenchmarksTab() {
 }
 
 function renderAdminSystemTab() {
+  const canLoadSamples = AUTH.users.every(user => user.role === "admin") && AUTH.assignments.length === 0;
   return `
     <div class="card admin-section-card">
       <div class="lab">Local Data & Emergency Backup</div>
@@ -364,9 +386,16 @@ function renderAdminSystemTab() {
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn" data-a="admin-export-backup">${uiIcon("backup")} Export Complete JSON Backup</button>
         <button class="btn o" data-a="admin-restore-backup-trigger">${uiIcon("upload")} Restore from JSON File</button>
-        <button class="btn o danger" data-a="admin-reset-presets">${uiIcon("reset")} Reset to DepEd Factory Presets</button>
+        <button class="btn o danger" data-a="admin-reset-presets">${uiIcon("reset")} Erase local school records and restart</button>
       </div>
       <input type="file" id="admin-restore-file" style="display:none" accept=".json,application/json">
+    </div>
+    <div class="card admin-section-card">
+      <div class="lab">Optional presentation data</div>
+      <p class="sub">A new school starts with one administrator and no sample users. You can add a sample teacher, students, and assignments for a demonstration. This is available only while the school has no teacher, student, or assignment records.</p>
+      ${canLoadSamples
+        ? `<button class="btn o" data-a="admin-load-demo">Load sample accounts and assignments</button>`
+        : `<p class="sub" role="status">This school already has account or assignment records. Sample data is unavailable to avoid mixing demo records with real learners.</p>`}
     </div>
   `;
 }

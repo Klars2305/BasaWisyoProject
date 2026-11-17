@@ -18,6 +18,7 @@ function viewClassBoard() {
   const tier = BOARD_TIER ?? (user?.role === "student"
     ? journeyUnlockedTier(journey, user.journeyOverride) : 0);
   const optedIn = user?.role === "student" && journey?.boardOptIn === true;
+  const pendingClass = user?.role === "student" && user.enrollmentStatus === "pending" && user.pendingTeacherCode;
 
   const currentMetric = typeof CURRENT_BOARD_METRIC !== "undefined" ? CURRENT_BOARD_METRIC : "weeklyXP";
   const currentScope = typeof CURRENT_BOARD_SCOPE !== "undefined" ? CURRENT_BOARD_SCOPE : "classroom";
@@ -74,13 +75,14 @@ function viewClassBoard() {
     ${!context ? `
       <div class="card join-classroom-gate-card" style="padding:24px;border-top:4px solid var(--sky)">
         <div class="lab" style="color:var(--sky-ink)">${uiIcon("classroom")} Classroom Enrollment Required</div>
-        <h3 style="margin:4px 0 8px 0">Join a Classroom First!</h3>
+        <h3 style="margin:4px 0 8px 0">${pendingClass ? "Waiting for Teacher Approval" : "Join a Classroom First!"}</h3>
         <p class="sub" style="margin-bottom:16px">${!user ? "Sign in with a student account and join a teacher's class to see the board. Your guest reading progress can transfer when you register."
-          : "To view Class Board rankings and participate with your section, enter the Share Code provided by your teacher:"}</p>
-        ${!user ? '<button class="btn blue sm" data-a="auth-open">Sign in</button>' : `
+          : pendingClass ? "Your classroom request is pending. The board becomes available after your teacher accepts it."
+            : "To view Class Board rankings, request enrollment with the Share Code provided by your teacher:"}</p>
+        ${!user ? '<button class="btn blue sm" data-a="auth-open">Sign in</button>' : pendingClass ? "" : `
           <div class="connect-row" style="display:flex;gap:8px;max-width:440px;margin-bottom:16px">
             <input type="text" id="classroom-join-code-board" class="auth-input" placeholder="e.g. BASA-TEACH-8492" aria-label="Teacher share code" style="text-transform:uppercase;font-family:monospace">
-            <button class="btn blue" data-a="student-connect-teacher" data-source="classroom-join-code-board">Join Class</button>
+            <button class="btn blue" data-a="student-connect-teacher" data-source="classroom-join-code-board">Request to Join</button>
           </div>
           <div class="card" style="background:var(--bg);padding:12px 14px;border-left:4px solid var(--teal);margin:0">
             <p class="sub-sm" style="margin:0">

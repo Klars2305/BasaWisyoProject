@@ -39,7 +39,7 @@ function showPopupModal(options = {}) {
 
   const overlay = document.createElement("div");
   overlay.id = "universal-popup-overlay";
-  overlay.className = "app-popup-overlay toast";
+  overlay.className = "app-popup-overlay";
   overlay.setAttribute?.("role", "dialog");
   overlay.setAttribute?.("aria-modal", "true");
   overlay.setAttribute?.("aria-live", "assertive");

@@ -25,6 +25,16 @@ CREATE TABLE IF NOT EXISTS classroom_memberships (
   classroom_id TEXT NOT NULL REFERENCES classrooms(id),
   joined_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS enrollment_requests (
+  student_id TEXT PRIMARY KEY REFERENCES users(id),
+  classroom_id TEXT NOT NULL REFERENCES classrooms(id),
+  status TEXT NOT NULL CHECK (status IN ('pending','accepted','declined')),
+  requested_at TEXT NOT NULL,
+  decided_at TEXT,
+  decline_reason TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS pending_enrollments_by_class
+  ON enrollment_requests(classroom_id, requested_at) WHERE status = 'pending';
 CREATE TABLE IF NOT EXISTS student_states (
   student_id TEXT PRIMARY KEY REFERENCES users(id),
   state_json TEXT NOT NULL,
@@ -148,9 +158,28 @@ function openLocalStore(filename = path.join(__dirname, "basawisyo.sqlite")) {
       }
       const putMembership = db.prepare(`INSERT INTO classroom_memberships(student_id,classroom_id,joined_at) VALUES(?,?,?)
         ON CONFLICT(student_id) DO UPDATE SET classroom_id=excluded.classroom_id`);
+      const putEnrollment = db.prepare(`INSERT INTO enrollment_requests
+        (student_id,classroom_id,status,requested_at,decided_at,decline_reason)
+        VALUES(?,?,?,?,?,?) ON CONFLICT(student_id) DO UPDATE SET
+        classroom_id=excluded.classroom_id, status=excluded.status,
+        requested_at=excluded.requested_at, decided_at=excluded.decided_at,
+        decline_reason=excluded.decline_reason
+        WHERE excluded.requested_at > enrollment_requests.requested_at
+          OR (excluded.requested_at = enrollment_requests.requested_at
+            AND (CASE excluded.status WHEN 'pending' THEN 0 ELSE 1 END)
+              >= (CASE enrollment_requests.status WHEN 'pending' THEN 0 ELSE 1 END))`);
       for (const student of users.filter(user => user?.role === "student" && user.teacherCode)) {
         const classroom = db.prepare("SELECT id FROM classrooms WHERE share_code = ?").get(String(student.teacherCode).toUpperCase());
         if (classroom) putMembership.run(student.id, classroom.id, isoTime(student.createdAt));
+      }
+      for (const student of users.filter(user => user?.role === "student" && user.enrollmentRequestedCode)) {
+        const classroom = db.prepare("SELECT id FROM classrooms WHERE share_code = ?").get(String(student.enrollmentRequestedCode).toUpperCase());
+        if (!classroom) continue;
+        const status = student.enrollmentStatus === "active" ? "accepted" : student.enrollmentStatus;
+        if (!["pending", "accepted", "declined"].includes(status)) continue;
+        putEnrollment.run(student.id, classroom.id, status, isoTime(student.enrollmentRequestedAt),
+          student.enrollmentDecisionAt ? isoTime(student.enrollmentDecisionAt) : null,
+          status === "declined" ? String(student.enrollmentDeclineReason || "").slice(0, 300) : "");
       }
       const putState = db.prepare(`INSERT INTO student_states(student_id,state_json,journey_json,reading_level,base_tier,words_read,sessions,xp,updated_at)
         VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(student_id) DO UPDATE SET state_json=excluded.state_json,

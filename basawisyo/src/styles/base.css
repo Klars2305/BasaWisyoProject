@@ -402,6 +402,13 @@ body.wisyo-chat-open{overflow:hidden !important;touch-action:none}
   padding: 16px;
   animation: fadeIn 0.18s ease-out;
 }
+/* Keep the notification backdrop viewport-wide even beside a narrow scrollbar. */
+#universal-popup-overlay.app-popup-overlay {
+  width: 100vw;
+  max-width: none;
+  transform: none;
+  box-sizing: border-box;
+}
 .app-popup-overlay.popup-closing {
   opacity: 0;
   transition: opacity 0.18s ease-out;

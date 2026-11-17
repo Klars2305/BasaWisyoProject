@@ -17,11 +17,18 @@ key, or free-tier errors; there is no mode dropdown.
 
 Use Node.js 24 or newer. The local server also creates `backend/database/basawisyo.sqlite` on first
 start. It is ignored by Git. While the app is open at `127.0.0.1`, the browser
-sends its existing accounts (without passwords), per-student state, placement
+sends its existing accounts (without passwords or password hashes), per-student state, placement
 results, quiz attempts, classroom links, materials, and assignments to this
 relational copy. Repeated payloads and attempts are deduplicated. The browser
 keeps its offline copy; reopening the page sends pending changes when the
 local server is available. Back up both the browser data and SQLite file.
+
+Student share codes create pending enrollment requests. The teacher reviews
+them in Classroom Hub. Accepted requests become classroom memberships;
+declined and pending requests stay out of rosters, class reports, and boards.
+Existing linked students remain active. This local copy records the request
+and decision but does not synchronize separate devices or provide server-side
+teacher authentication.
 
 This is a localhost pilot data layer. The browser still handles sign-in and
 some scoring and reporting. The SQLite copy does not yet provide secure

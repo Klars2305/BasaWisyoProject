@@ -786,98 +786,69 @@ document.addEventListener("click", async e => {
       showToast(err.message, "warn");
     }
   }
-  else if (a === "mesh-create") {
-    const title = $("#mesh-title").value.trim();
-    const text = $("#mesh-text").value.trim();
-    if (!title || !text) {
-      showToast("Please enter both a title and passage text.");
-      return;
-    }
-    const words = text.split(/\s+/).filter(Boolean);
-    if (words.length < 10) {
-      showToast("Passage must have at least 10 words to share.", "warn");
-      return;
-    }
-    const payload = JSON.stringify({
-      schema: "basa_mesh_v1",
-      t: title,
-      x: text,
-      diff: "medium",
-      author: AUTH.currentUser?.name || "Classmate"
-    });
-    const code = btoa(unescape(encodeURIComponent(payload)));
-    const outBox = $("#mesh-generated-box");
-    const outInp = $("#mesh-code-output");
-    if (outBox && outInp) {
-      outBox.style.display = "block";
-      outInp.value = code;
-    }
-    try {
-      navigator.clipboard.writeText(code);
-      showToast("Share code generated and copied to clipboard! 📋");
-    } catch(e) {
-      showToast("Share code generated in the box below! 📋");
-    }
+  else if (a === "mesh-open") {
+    openBasaMeshModal();
   }
-  else if (a === "mesh-preview") {
+  else if (a === "mesh-close") {
+    closeBasaMeshModal();
+  }
+  else if (a === "mesh-download") {
     try {
-      const raw = $("#mesh-code").value.trim();
-      const pkg = validateBasaMeshPackage(raw);
-      PENDING_MESH_PACKAGE = pkg;
-
-      const previewDiv = $("#mesh-preview-container");
-      if (previewDiv) {
-        previewDiv.style.display = "block";
-        const isDup = isDuplicatePassage(pkg.title);
-        previewDiv.innerHTML = `
-          <div class="card" style="border:2px solid var(--sky);background:var(--card-bg);padding:16px">
-            <div class="lab" style="color:var(--sky-ink)">Passage Preview</div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0">
-              <h3 style="margin:0">${escapeHTML(pkg.title)}</h3>
-              <span class="badge-diff diff-${pkg.diff}">${pkg.diff.toUpperCase()}</span>
-            </div>
-            <p class="sub-sm" style="margin-bottom:8px">
-              <b>${wordCount(pkg.text)} words</b> · <b>${pkg.qs.length} question(s)</b> · Author: <i>${escapeHTML(pkg.author)}</i>
-            </p>
-            <p class="sub-sm" style="font-style:italic;background:var(--bg);padding:8px 12px;border-radius:var(--radius-sm);margin:8px 0">
-              "${escapeHTML(pkg.text.slice(0, 200))}${pkg.text.length > 200 ? '...' : ''}"
-            </p>
-            ${isDup ? `
-              <div style="background:#FFF1F2;border-left:4px solid var(--coral);padding:8px 12px;margin:10px 0;font-size:0.85rem">
-                <b>Notice:</b> A passage titled "${escapeHTML(pkg.title)}" already exists in your library.
-              </div>
-            ` : ''}
-            <div style="display:flex;gap:10px;margin-top:14px">
-              <button class="btn sm blue" data-a="mesh-confirm-import">
-                ${uiIcon("check")} Confirm &amp; Add to Reading Library
-              </button>
-              <button class="btn sm o" data-a="mesh-cancel-import">
-                Cancel
-              </button>
-            </div>
-          </div>
-        `;
+      meshDownloadPacket(meshSelectedPacket());
+      showToast("BasaMesh file saved. Share it using your device's file sharing.");
+    } catch (error) { showToast(error.message, "warn"); }
+  }
+  else if (a === "mesh-share-file") {
+    try {
+      const packet = meshSelectedPacket();
+      const file = typeof File === "function"
+        ? new File([JSON.stringify(packet)], "story.basamesh", { type: "application/json" }) : null;
+      if (file && navigator.canShare?.({ files: [file] }) && navigator.share) {
+        try { await navigator.share({ files: [file], title: packet.passage.t }); }
+        catch (error) { if (error.name !== "AbortError") showToast("Sharing failed. Download the file instead.", "warn"); }
+      } else {
+        meshDownloadPacket(packet);
+        showToast("File downloaded. Send it using Bluetooth, Nearby Share, AirDrop, or USB.");
       }
-    } catch(err) {
-      showToast(err.message, "warn");
-    }
+    } catch (error) { showToast(error.message, "warn"); }
   }
-  else if (a === "mesh-confirm-import") {
-    if (!PENDING_MESH_PACKAGE) return;
-    const pkg = PENDING_MESH_PACKAGE;
-    if (!Array.isArray(S.sh)) S.sh = [];
-    S.sh.push(pkg);
-    save();
-    PENDING_MESH_PACKAGE = null;
-    showToast(`Successfully imported "${pkg.title}"! Available under Practice. 🎉`);
-    CURRENT_TAB = "practice";
-    renderApp();
+  else if (a === "mesh-show-qr") {
+    try { meshShowQr(meshSelectedPacket()); }
+    catch (error) { showToast(error.message, "warn"); }
   }
-  else if (a === "mesh-cancel-import") {
-    PENDING_MESH_PACKAGE = null;
-    const previewDiv = $("#mesh-preview-container");
-    if (previewDiv) previewDiv.style.display = "none";
-    showToast("Import cancelled.");
+  else if (a === "mesh-copy-code") {
+    try {
+      const code = $("#mesh-share-code")?.value;
+      if (!code) throw new Error("Generate a QR code first.");
+      await navigator.clipboard.writeText(code);
+      showToast("BasaMesh code copied.");
+    } catch (error) { showToast("Copy is unavailable. Select the code and copy it manually.", "warn"); }
+  }
+  else if (a === "mesh-inspect-code") {
+    try { meshPreviewPacket($("#mesh-receive-code")?.value || ""); }
+    catch (error) { showToast(error.message, "warn"); }
+  }
+  else if (a === "mesh-import") {
+    try {
+      const result = BASAMESH.importPassage(MESH_PENDING_INSPECTION);
+      closeBasaMeshModal();
+      CURRENT_TAB = AUTH.currentUser?.role === "teacher" ? "teacher-studio"
+        : AUTH.currentUser?.role === "admin" ? "admin" : "practice";
+      renderApp();
+      showToast(`Added to ${result.destination}: ${result.passage.t}`);
+    } catch (error) { showToast(error.message, "warn"); }
+  }
+  else if (a === "mesh-cancel-preview") {
+    MESH_PENDING_INSPECTION = null;
+    const preview = $("#mesh-import-preview");
+    if (preview) preview.innerHTML = "";
+  }
+  else if (a === "mesh-scan-qr") {
+    try { await startBasaMeshCamera(); }
+    catch (error) { showToast(error.message, "warn"); stopBasaMeshCamera(); }
+  }
+  else if (a === "mesh-stop-camera") {
+    stopBasaMeshCamera();
   }
 
   // Modals & Reports
@@ -974,7 +945,9 @@ document.addEventListener("click", async e => {
       $("#auth-modal").hidden = true;
       GUEST_MODE = false;
       if (typeof initWisyoChatForCurrentAccount === "function") initWisyoChatForCurrentAccount();
-      showToast(`Account created! Welcome, ${res.user.name} 🎉`);
+      showToast(res.user.enrollmentStatus === "pending"
+        ? "Account created. Your classroom request is waiting for teacher review."
+        : `Account created! Welcome, ${res.user.name} 🎉`);
       CURRENT_TAB = res.user.role === "student" && S.lvl === null
         ? "assess" : dashboardTabForRole(res.user.role);
       renderApp();
@@ -1066,14 +1039,31 @@ document.addEventListener("click", async e => {
     }
   }
 
+  else if (a === "teacher-enrollment-accept") {
+    const result = AUTH.acceptEnrollment(v);
+    showToast(result.success ? `${result.student.name} joined your class.` : result.message,
+      result.success ? undefined : "warn");
+    if (result.success) renderApp();
+  }
+  else if (a === "teacher-enrollment-decline") {
+    const student = AUTH.getPendingEnrollments().find(user => user.id === v);
+    if (!student || !confirm(`Decline the enrollment request from ${student.name}?`)) return;
+    const result = AUTH.declineEnrollment(v);
+    showToast(result.success ? `${student.name}'s request was declined.` : result.message,
+      result.success ? undefined : "warn");
+    if (result.success) renderApp();
+  }
+
   // Student & Guest Connecting
   else if (a === "student-connect-teacher") {
     const input = $("#classroom-join-code") || $("#classroom-join-code-board") || $("#home-teacher-code");
     const code = input ? input.value : prompt("Enter Teacher Share Code (e.g. BASA-TEACH-8492):");
     if (!code) return;
-    const res = AUTH.connectTeacher(code);
+    const res = AUTH.requestEnrollment(code);
     if (res.success) {
-      showToast(`Successfully connected to ${res.teacherName} (${res.section})! 🤝`);
+      showToast(res.status === "active"
+        ? `Already connected to ${res.teacherName} (${res.section}).`
+        : `Request sent to ${res.teacherName} (${res.section}). Wait for approval.`);
       renderApp();
     } else {
       showToast(res.message, "warn");
@@ -1267,19 +1257,30 @@ document.addEventListener("click", async e => {
       alert("Backup export failed: " + error.message);
     }
   }
+  else if (a === "admin-load-demo") {
+    if (!confirm("Add sample teacher, student, and assignment records to this empty school? These are for demonstrations only.")) return;
+    const result = AUTH.loadSampleDemoData();
+    if (!result.success) {
+      showToast(result.message, "warn");
+      return;
+    }
+    renderApp();
+    showToast(`Added ${result.teachers} sample teacher and ${result.students} sample students.`);
+  }
   else if (a === "admin-restore-backup-trigger") {
     const fileInput = $("#admin-restore-file");
     if (fileInput) fileInput.click();
   }
   else if (a === "admin-reset-presets") {
-    if (!confirm("Are you sure you want to reset all data to DepEd initial presets? All custom users and passages will be reset.")) return;
+    if (!confirm("Erase all accounts, assignments, guest links, and custom passages in this browser? Export a backup first if you need these records. This cannot be undone.")) return;
     localStorage.removeItem(AUTH.USERS_KEY);
     localStorage.removeItem(AUTH.ASSIGNMENTS_KEY);
     localStorage.removeItem(AUTH.GUEST_TOKENS_KEY);
     localStorage.removeItem(AUTH.CUSTOM_PASSAGES_KEY);
     localStorage.removeItem(AUTH.SESSION_KEY);
+    localStorage.removeItem(AUTH.SCHOOL_MODE_KEY);
     AUTH.init();
-    showToast("All data successfully restored to initial presets! 🔄");
+    showToast("Local school records erased. The administrator account is ready for setup.");
     renderApp();
   }
 
@@ -1450,6 +1451,7 @@ document.addEventListener("keydown", e => {
     aiSend(val);
   }
   if (e.key === "Escape") {
+    closeBasaMeshModal();
     closeInlineDialog($("#ai"));
     closeReportModal();
     closeInlineDialog($("#auth-modal"));
@@ -1489,6 +1491,9 @@ $("#admin-passage-modal")?.addEventListener("click", e => {
     closeInlineDialog($("#admin-passage-modal"));
   }
 });
+$("#basamesh-modal")?.addEventListener("click", e => {
+  if (e.target.id === "basamesh-modal") closeBasaMeshModal();
+});
 
 // JSON Backup Restore File Handler
 document.addEventListener("input", e => {
@@ -1498,6 +1503,25 @@ document.addEventListener("input", e => {
 });
 
 document.addEventListener("change", e => {
+  if (e.target.id === "mesh-file-input") {
+    const input = e.target;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.size > 160000) {
+      showToast("BasaMesh file is too large. Maximum size is 160 KB.", "warn");
+      input.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = event => {
+      try { meshPreviewPacket(String(event.target.result || "")); }
+      catch (error) { showToast(error.message, "warn"); }
+      input.value = "";
+    };
+    reader.onerror = () => { showToast("Could not read this file.", "warn"); input.value = ""; };
+    reader.readAsText(file);
+    return;
+  }
   if (e.target.id === "speech-follow") {
     setSpeechSetting("follow", e.target.checked);
     return;

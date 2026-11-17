@@ -98,6 +98,7 @@ function viewTeacherReadingStudio() {
           <button class="btn sm blue" data-a="practice-new">
             ${uiIcon("add")} Add passage
           </button>
+          <button class="btn sm o" data-a="mesh-open">${uiIcon("upload")} BasaMesh exchange</button>
           <button class="btn sm ${TEACHER_STUDIO_SUBTAB === 'queue' ? 'blue' : 'o'}" data-a="tstudio-subtab" data-v="queue">
             ${uiIcon("badge")} Approval Status
           </button>

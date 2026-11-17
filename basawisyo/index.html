@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="src/styles/roles.css">
 <link rel="stylesheet" href="src/styles/login.css">
 <link rel="stylesheet" href="src/styles/visual-system.css">
+<link rel="stylesheet" href="src/styles/basamesh.css">
 <link rel="stylesheet" href="src/styles/reading-studio.css">
 <link rel="stylesheet" href="src/styles/learning-dashboards.css">
 <link rel="stylesheet" href="src/styles/header-redesign.css">
@@ -546,7 +547,12 @@
   </div>
 </div>
 
+<div id="basamesh-modal" class="mesh-overlay" role="dialog" aria-modal="true" aria-labelledby="mesh-heading" hidden>
+  <div id="basamesh-body" class="mesh-dialog"></div>
+</div>
+
 <!-- Production Streamlined Script Bundles (Core Data, Services, UI & Bootstrap) -->
+<script defer src="assets/vendor/qrcode.js"></script>
 <script defer src="src/bundles/bundle-core-data.js"></script>
 <script defer src="src/bundles/bundle-services.js"></script>
 <script defer src="src/bundles/bundle-ui.js"></script>

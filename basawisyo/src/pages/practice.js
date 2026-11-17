@@ -116,6 +116,7 @@ function viewPracticeManagement() {
       : "Manage your own practices and assignments without taking a learner quiz."}</p>
     <div class="practice-management-actions">
       <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add passage</button>
+      <button class="btn o" data-a="mesh-open">${uiIcon("upload")} BasaMesh exchange</button>
       <button class="btn o" data-a="tab" data-v="${isAdmin ? "admin" : "teacher"}">${uiIcon(isAdmin ? "admin" : "teacher")} ${isAdmin ? "Admin Console" : "Classroom Hub"}</button>
     </div>
     <div class="diff-selector" role="group" aria-label="Filter managed passages by difficulty">
@@ -260,6 +261,7 @@ function viewPractice() {
       <span class="pill">${allPassages.length} Passages</span>
     </div>
     <p class="sub library-intro">Tap underlined words for trilingual translations. Test your comprehension with instant feedback.</p>
+    <button class="btn o sm" data-a="mesh-open">${uiIcon("upload")} Share or receive a story</button>
 
     ${(() => {
       const interruptedQuiz = typeof getInterruptedQuizSnapshot === "function" ? getInterruptedQuizSnapshot() : null;

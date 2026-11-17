@@ -9,6 +9,7 @@ const AUTH = {
   ASSIGNMENTS_KEY: "basa_wisyo_assignments_v2",
   GUEST_TOKENS_KEY: "basa_wisyo_guest_tokens_v2",
   CUSTOM_PASSAGES_KEY: "basa_wisyo_custom_passages_v2",
+  SCHOOL_MODE_KEY: "basa_wisyo_school_mode_v1",
 
   currentUser: null,
   users: [],
@@ -104,17 +105,18 @@ const AUTH = {
     this.assignments = [];
     this.guestTokens = {};
     this.customPassages = [];
-    // 1. Load or seed users
+    // A new installation starts with only the school admin. Existing browser data is preserved.
     try {
       const storedUsers = localStorage.getItem(this.USERS_KEY);
       if (storedUsers) {
         this.users = JSON.parse(storedUsers);
       } else {
-        this.users = this.getSeedUsers();
+        this.users = localStorage.getItem(this.SCHOOL_MODE_KEY) === "demo"
+          ? this.getSeedUsers() : [this.getSeedUsers()[0]];
         this.saveUsers();
       }
     } catch(e) {
-      this.users = this.getSeedUsers();
+      this.users = [this.getSeedUsers()[0]];
     }
     // Ensure admin account with admin/admin is always guaranteed in this.users
     let adminUser = this.users.find(u => u.role === "admin");
@@ -148,17 +150,18 @@ const AUTH = {
     }
     if (migratedAny) this.saveUsers();
 
-    // 2. Load or seed assignments
+    // Demo assignments are opt-in and never added to an existing school by reload.
     try {
       const storedAss = localStorage.getItem(this.ASSIGNMENTS_KEY);
       if (storedAss) {
         this.assignments = JSON.parse(storedAss);
       } else {
-        this.assignments = this.getSeedAssignments();
+        this.assignments = localStorage.getItem(this.SCHOOL_MODE_KEY) === "demo"
+          ? this.getSeedAssignments() : [];
         this.saveAssignments();
       }
     } catch(e) {
-      this.assignments = this.getSeedAssignments();
+      this.assignments = [];
     }
 
     // 3. Load guest tokens
@@ -325,6 +328,46 @@ const AUTH = {
     ];
   },
 
+  loadSampleDemoData() {
+    if (this.currentUser?.role !== "admin" || this.currentUser.status !== "active") {
+      return { success: false, message: "An active admin account is required." };
+    }
+    if (this.users.some(user => user.role !== "admin") || this.assignments.length) {
+      return { success: false, message: "Sample data can only be loaded into an empty school. Existing accounts and assignments were kept." };
+    }
+    const samples = this.getSeedUsers().slice(1).map(user => ({
+      ...user, passwordHash: this.hashPassword(user.password)
+    }));
+    const existingIds = new Set(this.users.map(user => user.id));
+    const existingEmails = new Set(this.users.map(user => user.email.toLowerCase()));
+    if (samples.some(user => existingIds.has(user.id) || existingEmails.has(user.email.toLowerCase()))) {
+      return { success: false, message: "A sample account already exists. No records were changed." };
+    }
+    const previous = new Map([this.USERS_KEY, this.ASSIGNMENTS_KEY, this.SCHOOL_MODE_KEY]
+      .map(key => [key, localStorage.getItem(key)]));
+    const nextUsers = [...this.users, ...samples];
+    const nextAssignments = this.getSeedAssignments();
+    try {
+      localStorage.setItem(this.USERS_KEY, JSON.stringify(nextUsers));
+      localStorage.setItem(this.ASSIGNMENTS_KEY, JSON.stringify(nextAssignments));
+      localStorage.setItem(this.SCHOOL_MODE_KEY, "demo");
+    } catch (error) {
+      try {
+        for (const [key, value] of previous) {
+          if (value === null) localStorage.removeItem(key);
+          else localStorage.setItem(key, value);
+        }
+      } catch (rollbackError) {
+        return { success: false, message: "Sample load failed and browser storage could not be restored. Export a backup before continuing." };
+      }
+      return { success: false, message: "Sample data could not be saved. No records were changed." };
+    }
+    this.users = nextUsers;
+    this.assignments = nextAssignments;
+    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
+    return { success: true, students: samples.filter(user => user.role === "student").length, teachers: samples.filter(user => user.role === "teacher").length };
+  },
+
   saveUsers() {
     try {
       if (Array.isArray(this.users)) {
@@ -464,8 +507,12 @@ const AUTH = {
       name,
       role: data.role,
       school: data.school || "Rizal National High School",
-      section: data.role === "teacher" ? section : linkedTeacher?.section || "",
-      teacherCode: data.role === "student" ? teacherCode : "",
+      section: data.role === "teacher" ? section : "",
+      teacherCode: "",
+      pendingTeacherCode: data.role === "student" && linkedTeacher ? teacherCode : null,
+      enrollmentRequestedCode: data.role === "student" && linkedTeacher ? teacherCode : null,
+      enrollmentStatus: data.role === "student" ? (linkedTeacher ? "pending" : "none") : undefined,
+      enrollmentRequestedAt: data.role === "student" && linkedTeacher ? new Date().toISOString() : null,
       shareCode,
       lvl: data.role === "student" && GUEST_MODE && S.placementReport ? S.lvl : null,
       wpm: null,
@@ -592,22 +639,87 @@ const AUTH = {
   },
 
   // Student Actions
-  connectTeacher(teacherCode) {
-    if (!this.currentUser) return { success: false, message: "Must be logged in." };
+  requestEnrollment(teacherCode) {
+    if (!this.currentUser || this.currentUser.role !== "student" || this.currentUser.status === "suspended") {
+      return { success: false, message: "Sign in as an active student to request a classroom." };
+    }
     const code = (teacherCode || "").trim().toUpperCase();
     const teacher = this.users.find(u => u.role === "teacher" && u.status === "active" && u.shareCode === code);
     if (!teacher) {
       return { success: false, message: `No active classroom found for code "${code}". Please check with your teacher.` };
     }
-
-    this.currentUser.teacherCode = code;
-    this.currentUser.section = teacher.section;
-    const idx = this.users.findIndex(u => u.id === this.currentUser.id);
-    if (idx >= 0) this.users[idx] = { ...this.currentUser };
-    this.saveUsers();
+    if (this.currentUser.teacherCode) {
+      return this.currentUser.teacherCode === code
+        ? { success: true, status: "active", teacherName: teacher.name, section: teacher.section }
+        : { success: false, message: "You are already in a classroom. Ask your teacher or school admin before changing classes." };
+    }
+    if (this.currentUser.enrollmentStatus === "pending" && this.currentUser.pendingTeacherCode === code) {
+      return { success: true, status: "pending", teacherName: teacher.name, section: teacher.section };
+    }
+    const updated = {
+      ...this.currentUser,
+      teacherCode: "",
+      pendingTeacherCode: code,
+      enrollmentRequestedCode: code,
+      enrollmentStatus: "pending",
+      enrollmentRequestedAt: new Date().toISOString(),
+      enrollmentDecisionAt: null,
+      enrollmentDeclineReason: ""
+    };
+    const next = this.users.map(user => user.id === updated.id ? updated : user);
+    try { localStorage.setItem(this.USERS_KEY, JSON.stringify(next)); }
+    catch (error) { return { success: false, message: "Request could not be saved in this browser. Try again." }; }
+    this.users = next;
+    this.currentUser = updated;
     this.saveSession();
+    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
+    return { success: true, status: "pending", teacherName: teacher.name, section: teacher.section };
+  },
 
-    return { success: true, teacherName: teacher.name, section: teacher.section };
+  connectTeacher(teacherCode) {
+    return this.requestEnrollment(teacherCode);
+  },
+
+  getPendingEnrollments(teacherCode = this.currentUser?.shareCode) {
+    const teacher = this.currentUser;
+    if (!teacher || teacher.role !== "teacher" || teacher.status !== "active" || teacher.shareCode !== teacherCode) return [];
+    return this.users.filter(user => user.role === "student" && user.status !== "suspended"
+      && !user.teacherCode && user.enrollmentStatus === "pending" && user.pendingTeacherCode === teacherCode);
+  },
+
+  decideEnrollment(studentId, decision, reason = "") {
+    const teacher = this.currentUser;
+    if (!teacher || teacher.role !== "teacher" || teacher.status !== "active") {
+      return { success: false, message: "An active teacher account is required." };
+    }
+    const student = this.getPendingEnrollments(teacher.shareCode).find(user => user.id === studentId);
+    if (!student) return { success: false, message: "This student has no pending request for your class." };
+    const accepted = decision === "accept";
+    if (!accepted && decision !== "decline") return { success: false, message: "Choose accept or decline." };
+    const updated = {
+      ...student,
+      teacherCode: accepted ? teacher.shareCode : "",
+      section: accepted ? teacher.section : student.section,
+      school: accepted ? teacher.school : student.school,
+      pendingTeacherCode: null,
+      enrollmentStatus: accepted ? "active" : "declined",
+      enrollmentDecisionAt: new Date().toISOString(),
+      enrollmentDeclineReason: accepted ? "" : String(reason || "").trim().slice(0, 300)
+    };
+    const next = this.users.map(user => user.id === updated.id ? updated : user);
+    try { localStorage.setItem(this.USERS_KEY, JSON.stringify(next)); }
+    catch (error) { return { success: false, message: "Decision could not be saved in this browser. Try again." }; }
+    this.users = next;
+    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
+    return { success: true, status: updated.enrollmentStatus, student: updated };
+  },
+
+  acceptEnrollment(studentId) {
+    return this.decideEnrollment(studentId, "accept");
+  },
+
+  declineEnrollment(studentId, reason = "") {
+    return this.decideEnrollment(studentId, "decline", reason);
   },
 
   // Teacher Actions
@@ -703,6 +815,7 @@ const AUTH = {
       school: "Rizal National High School",
       section: this.currentUser ? this.currentUser.section : "Connected Class",
       teacherCode: teacherCode || (this.currentUser ? this.currentUser.shareCode : ""),
+      enrollmentStatus: "active",
       lvl: data.lvl,
       wpm: data.wpm ?? null,
       comp: data.comp ?? null,

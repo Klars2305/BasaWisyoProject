@@ -22,6 +22,7 @@ function viewQuest() {
 
   const user = typeof AUTH !== "undefined" ? AUTH.currentUser : null;
   const isTeacher = user && user.role === "teacher";
+  const pendingClass = user?.role === "student" && user.enrollmentStatus === "pending" && user.pendingTeacherCode;
   const sectionName = user?.section || (user?.teacherCode ? `Section (${user.teacherCode})` : "Classroom");
 
   const subnavHtml = `
@@ -49,14 +50,16 @@ function viewQuest() {
 
         <div class="card join-classroom-gate-card" style="padding:24px;border-top:4px solid var(--sky)">
           <div class="lab" style="color:var(--sky-ink)">${uiIcon("classroom")} Classroom Enrollment Required</div>
-          <h3 style="margin:4px 0 8px 0">Join a Classroom First!</h3>
+          <h3 style="margin:4px 0 8px 0">${pendingClass ? "Waiting for Teacher Approval" : "Join a Classroom First!"}</h3>
           <p class="sub" style="margin-bottom:16px">
-            To participate in the collective Bayanihan Reading Quest and contribute your words read toward a weekly classroom goal, enter the Share Code provided by your teacher:
+            ${pendingClass
+              ? "Your classroom request is pending. Your teacher will review it before your reading contributes to the class goal."
+              : "To participate in the collective Bayanihan Reading Quest, request enrollment with the Share Code provided by your teacher:"}
           </p>
-          <div class="connect-row" style="display:flex;gap:8px;max-width:440px;margin-bottom:16px">
+          ${pendingClass ? "" : `<div class="connect-row" style="display:flex;gap:8px;max-width:440px;margin-bottom:16px">
             <input type="text" id="classroom-join-code" class="auth-input" placeholder="e.g. BASA-TEACH-8492" aria-label="Teacher share code" style="text-transform:uppercase;font-family:monospace">
-            <button class="btn blue" data-a="student-connect-teacher" data-source="classroom-join-code">Join Class</button>
-          </div>
+            <button class="btn blue" data-a="student-connect-teacher" data-source="classroom-join-code">Request to Join</button>
+          </div>`}
           <div class="card" style="background:var(--bg);padding:12px 14px;border-left:4px solid var(--teal);margin:0">
             <p class="sub-sm" style="margin:0">
               💡 <b>Personal reading is always open!</b> You can freely explore and practice stories in the Reading Library once your diagnostic placement is complete, even before joining a classroom.
@@ -163,39 +166,9 @@ function viewQuest() {
       <!-- BasaMesh Offline Story Exchange -->
       <div class="card">
         <div class="lab">${uiIcon("upload")} BasaMesh · Offline Story Exchange</div>
-        <h3 style="margin:2px 0">Share Stories &amp; Quizzes Without Internet</h3>
-        <p class="sub">
-          Generate an encoded share code for any custom reading passage. Classmates and teachers can import it via Bluetooth, flash drive, SMS, or local text!
-        </p>
-
-        <!-- Generate Code Form -->
-        <div style="margin-top:14px;background:var(--bg);padding:14px;border-radius:var(--radius-sm)">
-          <h4 style="margin:0 0 8px 0">Create Share Code for a Passage</h4>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <input id="mesh-title" class="auth-input" placeholder="Passage Title (e.g. Ang Agila ng Davao)">
-            <textarea id="mesh-text" class="auth-input" rows="3" placeholder="Paste or type passage text here..."></textarea>
-            <button class="btn sm o" data-a="mesh-create" style="align-self:flex-start">
-              ${uiIcon("copy")} Generate BasaMesh Code
-            </button>
-            <div id="mesh-generated-box" style="display:none;margin-top:8px">
-              <span class="lab">Your Share Code (Copy and send to classmates):</span>
-              <textarea id="mesh-code-output" class="auth-input" rows="3" readonly style="font-family:monospace;font-size:0.8rem;background:var(--card-bg)"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- Import Code Form with Preview -->
-        <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:16px">
-          <h4 style="margin:0 0 4px 0">Import Passage from Classmate</h4>
-          <p class="sub-sm" style="margin-bottom:8px">Paste code below to preview the passage before adding it to your library:</p>
-          <textarea id="mesh-code" class="auth-input" rows="2" placeholder="Paste BasaMesh code here..."></textarea>
-          <button class="btn sm blue" data-a="mesh-preview" style="margin-top:8px">
-            ${uiIcon("eye")} Inspect &amp; Preview Passage
-          </button>
-        </div>
-
-        <!-- Interactive Import Preview Card -->
-        <div id="mesh-preview-container" style="display:none;margin-top:16px"></div>
+        <h3 style="margin:2px 0">Share stories and quizzes without internet</h3>
+        <p class="sub">Exchange a validated story packet by file or QR code. Imported stories stay on this device and do not transfer class scores.</p>
+        <button class="btn blue" data-a="mesh-open">Open BasaMesh</button>
       </div>
     </div>
   `;

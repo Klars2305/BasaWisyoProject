@@ -22,6 +22,7 @@ function viewTeacherOverview() {
     return `<section class="card"><h2>Class Overview</h2><p class="sub">Teacher account required.</p></section>`;
   }
   const students = AUTH.getTeacherStudents(teacher.shareCode);
+  const pendingEnrollments = AUTH.getPendingEnrollments(teacher.shareCode);
   const passages = getPublishedPassages();
   const passageById = new Map(passages.map(passage => [passage.id, passage]));
   const progress = students.map(student => teacherOverviewStudentProgress(student, passageById));
@@ -50,12 +51,13 @@ function viewTeacherOverview() {
     <section class="card teacher-overview-code" aria-label="Classroom share code">
       <div><div class="lab">Classroom share code</div>
         <strong>${escapeHTML(teacher.shareCode || "No code available")}</strong>
-        <p class="sub-sm">Students enter this code to link their account to your class in this browser.</p></div>
+        <p class="sub-sm">Students enter this code to request a place in your class. Review requests in Classroom Hub.</p></div>
       <button class="btn blue" data-a="teacher-copy-code">${uiIcon("copy")} Copy code</button>
     </section>
 
     <section class="teacher-overview-metrics" aria-label="Local classroom summary">
       <div class="card"><span class="lab">Linked students</span><b>${students.length}</b><span class="sub-sm">In this browser</span></div>
+      <div class="card"><span class="lab">Enrollment requests</span><b>${pendingEnrollments.length}</b><button class="btn o sm" data-a="tab" data-v="teacher">Review requests</button></div>
       <div class="card"><span class="lab">Passage results</span><b>${completed}</b><span class="sub-sm">Completed student-passage pairs</span></div>
       <div class="card"><span class="lab">Active assignments</span><b>${assignments.length}</b><span class="sub-sm">Completion is not tracked per assignment</span></div>
       <div class="card"><span class="lab">Awaiting admin review</span><b>${pending}</b><span class="sub-sm">Your submitted practices</span></div>
@@ -124,6 +126,7 @@ function viewTeacher() {
   }
 
   const dataset = getClassroomReportDataset(teacher);
+  const pendingEnrollments = AUTH.getPendingEnrollments(teacher.shareCode);
   const students = dataset ? dataset.students : [];
   const totalStudents = dataset ? dataset.total : 0;
 
@@ -158,7 +161,7 @@ function viewTeacher() {
       <h2>Classroom Hub</h2>
       <div class="share-code-label">${uiIcon("teacher")} Teacher Share Code (Class Section: ${escapeHTML(teacher.section || "Grade 8")})</div>
       <p class="teacher-share-help">
-        Share this code with your nearby students so they can join your classroom roster:
+        Share this code with students so they can request enrollment. Review each request below before it enters your roster:
       </p>
       <div class="share-code-box">
         <span class="share-code-digits" id="teacher-share-code-val">${escapeHTML(teacher.shareCode)}</span>
@@ -175,6 +178,28 @@ function viewTeacher() {
         </button>
       </div>
     </div>
+
+    <section class="card teacher-section-card" aria-labelledby="pending-enrollments-heading">
+      <div class="teacher-section-head"><div>
+        <div class="lab">Enrollment review · ${pendingEnrollments.length} pending</div>
+        <h3 id="pending-enrollments-heading">Student requests</h3>
+        <p class="sub-sm">Only accepted students appear in your roster, assignments, and class reports.</p>
+      </div></div>
+      ${pendingEnrollments.length ? `<ul class="teacher-overview-assignments" aria-label="Pending student enrollment requests">
+        ${pendingEnrollments.map(student => {
+          const placement = Number.isInteger(student.lvl) && student.lvl >= 0 && student.lvl < PHIL_IRI_LEVELS.length
+            ? `${PHIL_IRI_LEVELS[student.lvl]} · app diagnostic` : "Placement not completed";
+          const requested = student.enrollmentRequestedAt && !Number.isNaN(Date.parse(student.enrollmentRequestedAt))
+            ? new Date(student.enrollmentRequestedAt).toLocaleString() : "Date unavailable";
+          return `<li><div><b>${escapeHTML(student.name)}</b>
+            <span class="sub-sm">${escapeHTML(placement)} · Requested ${escapeHTML(requested)}</span></div>
+            <div class="teacher-roster-actions">
+              <button type="button" class="btn blue sm" data-a="teacher-enrollment-accept" data-v="${escapeHTML(student.id)}" aria-label="Accept ${escapeHTML(student.name)} into your class">Accept</button>
+              <button type="button" class="btn o sm" data-a="teacher-enrollment-decline" data-v="${escapeHTML(student.id)}" aria-label="Decline ${escapeHTML(student.name)} from your class">Decline</button>
+            </div></li>`;
+        }).join("")}
+      </ul>` : `<p class="sub">No enrollment requests are waiting for review.</p>`}
+    </section>
 
     <!-- Live Classroom Metric Summary -->
     <div class="metric-grid">

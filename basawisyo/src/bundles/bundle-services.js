@@ -10,6 +10,7 @@ const AUTH = {
   ASSIGNMENTS_KEY: "basa_wisyo_assignments_v2",
   GUEST_TOKENS_KEY: "basa_wisyo_guest_tokens_v2",
   CUSTOM_PASSAGES_KEY: "basa_wisyo_custom_passages_v2",
+  SCHOOL_MODE_KEY: "basa_wisyo_school_mode_v1",
 
   currentUser: null,
   users: [],
@@ -105,17 +106,18 @@ const AUTH = {
     this.assignments = [];
     this.guestTokens = {};
     this.customPassages = [];
-    // 1. Load or seed users
+    // A new installation starts with only the school admin. Existing browser data is preserved.
     try {
       const storedUsers = localStorage.getItem(this.USERS_KEY);
       if (storedUsers) {
         this.users = JSON.parse(storedUsers);
       } else {
-        this.users = this.getSeedUsers();
+        this.users = localStorage.getItem(this.SCHOOL_MODE_KEY) === "demo"
+          ? this.getSeedUsers() : [this.getSeedUsers()[0]];
         this.saveUsers();
       }
     } catch(e) {
-      this.users = this.getSeedUsers();
+      this.users = [this.getSeedUsers()[0]];
     }
     // Ensure admin account with admin/admin is always guaranteed in this.users
     let adminUser = this.users.find(u => u.role === "admin");
@@ -149,17 +151,18 @@ const AUTH = {
     }
     if (migratedAny) this.saveUsers();
 
-    // 2. Load or seed assignments
+    // Demo assignments are opt-in and never added to an existing school by reload.
     try {
       const storedAss = localStorage.getItem(this.ASSIGNMENTS_KEY);
       if (storedAss) {
         this.assignments = JSON.parse(storedAss);
       } else {
-        this.assignments = this.getSeedAssignments();
+        this.assignments = localStorage.getItem(this.SCHOOL_MODE_KEY) === "demo"
+          ? this.getSeedAssignments() : [];
         this.saveAssignments();
       }
     } catch(e) {
-      this.assignments = this.getSeedAssignments();
+      this.assignments = [];
     }
 
     // 3. Load guest tokens
@@ -326,6 +329,46 @@ const AUTH = {
     ];
   },
 
+  loadSampleDemoData() {
+    if (this.currentUser?.role !== "admin" || this.currentUser.status !== "active") {
+      return { success: false, message: "An active admin account is required." };
+    }
+    if (this.users.some(user => user.role !== "admin") || this.assignments.length) {
+      return { success: false, message: "Sample data can only be loaded into an empty school. Existing accounts and assignments were kept." };
+    }
+    const samples = this.getSeedUsers().slice(1).map(user => ({
+      ...user, passwordHash: this.hashPassword(user.password)
+    }));
+    const existingIds = new Set(this.users.map(user => user.id));
+    const existingEmails = new Set(this.users.map(user => user.email.toLowerCase()));
+    if (samples.some(user => existingIds.has(user.id) || existingEmails.has(user.email.toLowerCase()))) {
+      return { success: false, message: "A sample account already exists. No records were changed." };
+    }
+    const previous = new Map([this.USERS_KEY, this.ASSIGNMENTS_KEY, this.SCHOOL_MODE_KEY]
+      .map(key => [key, localStorage.getItem(key)]));
+    const nextUsers = [...this.users, ...samples];
+    const nextAssignments = this.getSeedAssignments();
+    try {
+      localStorage.setItem(this.USERS_KEY, JSON.stringify(nextUsers));
+      localStorage.setItem(this.ASSIGNMENTS_KEY, JSON.stringify(nextAssignments));
+      localStorage.setItem(this.SCHOOL_MODE_KEY, "demo");
+    } catch (error) {
+      try {
+        for (const [key, value] of previous) {
+          if (value === null) localStorage.removeItem(key);
+          else localStorage.setItem(key, value);
+        }
+      } catch (rollbackError) {
+        return { success: false, message: "Sample load failed and browser storage could not be restored. Export a backup before continuing." };
+      }
+      return { success: false, message: "Sample data could not be saved. No records were changed." };
+    }
+    this.users = nextUsers;
+    this.assignments = nextAssignments;
+    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
+    return { success: true, students: samples.filter(user => user.role === "student").length, teachers: samples.filter(user => user.role === "teacher").length };
+  },
+
   saveUsers() {
     try {
       if (Array.isArray(this.users)) {
@@ -465,8 +508,12 @@ const AUTH = {
       name,
       role: data.role,
       school: data.school || "Rizal National High School",
-      section: data.role === "teacher" ? section : linkedTeacher?.section || "",
-      teacherCode: data.role === "student" ? teacherCode : "",
+      section: data.role === "teacher" ? section : "",
+      teacherCode: "",
+      pendingTeacherCode: data.role === "student" && linkedTeacher ? teacherCode : null,
+      enrollmentRequestedCode: data.role === "student" && linkedTeacher ? teacherCode : null,
+      enrollmentStatus: data.role === "student" ? (linkedTeacher ? "pending" : "none") : undefined,
+      enrollmentRequestedAt: data.role === "student" && linkedTeacher ? new Date().toISOString() : null,
       shareCode,
       lvl: data.role === "student" && GUEST_MODE && S.placementReport ? S.lvl : null,
       wpm: null,
@@ -593,22 +640,87 @@ const AUTH = {
   },
 
   // Student Actions
-  connectTeacher(teacherCode) {
-    if (!this.currentUser) return { success: false, message: "Must be logged in." };
+  requestEnrollment(teacherCode) {
+    if (!this.currentUser || this.currentUser.role !== "student" || this.currentUser.status === "suspended") {
+      return { success: false, message: "Sign in as an active student to request a classroom." };
+    }
     const code = (teacherCode || "").trim().toUpperCase();
     const teacher = this.users.find(u => u.role === "teacher" && u.status === "active" && u.shareCode === code);
     if (!teacher) {
       return { success: false, message: `No active classroom found for code "${code}". Please check with your teacher.` };
     }
-
-    this.currentUser.teacherCode = code;
-    this.currentUser.section = teacher.section;
-    const idx = this.users.findIndex(u => u.id === this.currentUser.id);
-    if (idx >= 0) this.users[idx] = { ...this.currentUser };
-    this.saveUsers();
+    if (this.currentUser.teacherCode) {
+      return this.currentUser.teacherCode === code
+        ? { success: true, status: "active", teacherName: teacher.name, section: teacher.section }
+        : { success: false, message: "You are already in a classroom. Ask your teacher or school admin before changing classes." };
+    }
+    if (this.currentUser.enrollmentStatus === "pending" && this.currentUser.pendingTeacherCode === code) {
+      return { success: true, status: "pending", teacherName: teacher.name, section: teacher.section };
+    }
+    const updated = {
+      ...this.currentUser,
+      teacherCode: "",
+      pendingTeacherCode: code,
+      enrollmentRequestedCode: code,
+      enrollmentStatus: "pending",
+      enrollmentRequestedAt: new Date().toISOString(),
+      enrollmentDecisionAt: null,
+      enrollmentDeclineReason: ""
+    };
+    const next = this.users.map(user => user.id === updated.id ? updated : user);
+    try { localStorage.setItem(this.USERS_KEY, JSON.stringify(next)); }
+    catch (error) { return { success: false, message: "Request could not be saved in this browser. Try again." }; }
+    this.users = next;
+    this.currentUser = updated;
     this.saveSession();
+    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
+    return { success: true, status: "pending", teacherName: teacher.name, section: teacher.section };
+  },
 
-    return { success: true, teacherName: teacher.name, section: teacher.section };
+  connectTeacher(teacherCode) {
+    return this.requestEnrollment(teacherCode);
+  },
+
+  getPendingEnrollments(teacherCode = this.currentUser?.shareCode) {
+    const teacher = this.currentUser;
+    if (!teacher || teacher.role !== "teacher" || teacher.status !== "active" || teacher.shareCode !== teacherCode) return [];
+    return this.users.filter(user => user.role === "student" && user.status !== "suspended"
+      && !user.teacherCode && user.enrollmentStatus === "pending" && user.pendingTeacherCode === teacherCode);
+  },
+
+  decideEnrollment(studentId, decision, reason = "") {
+    const teacher = this.currentUser;
+    if (!teacher || teacher.role !== "teacher" || teacher.status !== "active") {
+      return { success: false, message: "An active teacher account is required." };
+    }
+    const student = this.getPendingEnrollments(teacher.shareCode).find(user => user.id === studentId);
+    if (!student) return { success: false, message: "This student has no pending request for your class." };
+    const accepted = decision === "accept";
+    if (!accepted && decision !== "decline") return { success: false, message: "Choose accept or decline." };
+    const updated = {
+      ...student,
+      teacherCode: accepted ? teacher.shareCode : "",
+      section: accepted ? teacher.section : student.section,
+      school: accepted ? teacher.school : student.school,
+      pendingTeacherCode: null,
+      enrollmentStatus: accepted ? "active" : "declined",
+      enrollmentDecisionAt: new Date().toISOString(),
+      enrollmentDeclineReason: accepted ? "" : String(reason || "").trim().slice(0, 300)
+    };
+    const next = this.users.map(user => user.id === updated.id ? updated : user);
+    try { localStorage.setItem(this.USERS_KEY, JSON.stringify(next)); }
+    catch (error) { return { success: false, message: "Decision could not be saved in this browser. Try again." }; }
+    this.users = next;
+    if (typeof LOCAL_DATA !== "undefined") LOCAL_DATA.queue();
+    return { success: true, status: updated.enrollmentStatus, student: updated };
+  },
+
+  acceptEnrollment(studentId) {
+    return this.decideEnrollment(studentId, "accept");
+  },
+
+  declineEnrollment(studentId, reason = "") {
+    return this.decideEnrollment(studentId, "decline", reason);
   },
 
   // Teacher Actions
@@ -704,6 +816,7 @@ const AUTH = {
       school: "Rizal National High School",
       section: this.currentUser ? this.currentUser.section : "Connected Class",
       teacherCode: teacherCode || (this.currentUser ? this.currentUser.shareCode : ""),
+      enrollmentStatus: "active",
       lvl: data.lvl,
       wpm: data.wpm ?? null,
       comp: data.comp ?? null,
@@ -893,9 +1006,6 @@ function isUserPremium() {
   if (!user) return false;
   return user.isPremium === true || user.plan === "plus" || user.plan === "annual";
 }
-
-
-
 
 /* === src/services/state.js === */
 /* ==========================================================================
@@ -5701,7 +5811,7 @@ const LOCAL_DATA = {
       }
     }
     return {
-      users: backup.users.map(({ password, ...user }) => user),
+      users: backup.users.map(({ password, passwordHash, ...user }) => user),
       userStates: states,
       assignments: backup.assignments,
       materials: [...materials.values()]
@@ -5762,7 +5872,6 @@ const LOCAL_DATA = {
     });
   }
 };
-
 
 /* === src/services/import-reader.js === */
 /* ==========================================================================
@@ -7395,4 +7504,148 @@ if (typeof module !== "undefined" && module.exports) {
   };
 }
 
+/* === src/services/basamesh.js === */
+/* Offline passage packets. Files and codes contain reading content only, never account data. */
+const BASAMESH = {
+  PROTOCOL: "BasaMesh-v1",
+  MAX_PACKET_CHARS: 120000,
+  MAX_QR_CHARS: 2500,
 
+  checksum(value) {
+    let hash = 2166136261;
+    for (let i = 0; i < value.length; i++) {
+      hash ^= value.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, "0");
+  },
+
+  content(passage) {
+    const normalized = normalizePassage({ ...passage, id: passage.id || "mesh_preview", status: "published" });
+    return {
+      t: normalized.t, x: normalized.x, diff: normalized.diff,
+      ...(normalized.lang ? { lang: normalized.lang } : {}),
+      qs: normalized.qs
+    };
+  },
+
+  createPacket(passage) {
+    const content = this.content(passage);
+    const data = JSON.stringify(content);
+    const packet = {
+      protocol: this.PROTOCOL,
+      createdAt: new Date().toISOString(),
+      passage: content,
+      checksum: this.checksum(data)
+    };
+    if (JSON.stringify(packet).length > this.MAX_PACKET_CHARS) {
+      throw new Error("This story is too large for a BasaMesh packet.");
+    }
+    return packet;
+  },
+
+  encode(packet) {
+    const json = JSON.stringify(packet);
+    if (json.length > this.MAX_PACKET_CHARS) throw new Error("BasaMesh packet is too large.");
+    const bytes = typeof TextEncoder !== "undefined" ? new TextEncoder().encode(json)
+      : Buffer.from(json, "utf8");
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return "BW1:" + (typeof btoa === "function" ? btoa(binary)
+      : Buffer.from(bytes).toString("base64"));
+  },
+
+  decode(input) {
+    if (typeof input !== "string" || !input.trim()) throw new Error("Choose a BasaMesh file or paste a code.");
+    const raw = input.trim();
+    if (raw.length > this.MAX_PACKET_CHARS * 2) throw new Error("BasaMesh input is too large.");
+    if (raw.startsWith("{")) {
+      try { return JSON.parse(raw); } catch (_) { throw new Error("BasaMesh file is not valid JSON."); }
+    }
+    const code = raw.startsWith("BW1:") ? raw.slice(4) : raw;
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(code) || code.length % 4 !== 0) {
+      throw new Error("BasaMesh code is damaged or incomplete.");
+    }
+    try {
+      const binary = typeof atob === "function" ? atob(code) : Buffer.from(code, "base64").toString("binary");
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      const json = typeof TextDecoder !== "undefined" ? new TextDecoder("utf-8", { fatal: true }).decode(bytes)
+        : Buffer.from(bytes).toString("utf8");
+      return JSON.parse(json);
+    } catch (_) {
+      throw new Error("BasaMesh code is damaged or incomplete.");
+    }
+  },
+
+  inspect(input) {
+    const packet = typeof input === "string" ? this.decode(input) : input;
+    if (!packet || typeof packet !== "object" || Array.isArray(packet)) throw new Error("Invalid BasaMesh packet.");
+    if (packet.protocol !== this.PROTOCOL) {
+      // Older text codes remain readable, but must still pass the passage contract.
+      if (packet.schema !== "basa_mesh_v1") throw new Error("Unsupported BasaMesh packet version.");
+      const legacy = validateBasaMeshPackage(this.encodeLegacy(packet));
+      return { passage: normalizePassage({ ...legacy, status: "published" }), legacy: true };
+    }
+    if (!packet.passage || typeof packet.passage !== "object" || Array.isArray(packet.passage)) {
+      throw new Error("BasaMesh packet has no passage.");
+    }
+    const data = JSON.stringify(packet.passage);
+    if (data.length > this.MAX_PACKET_CHARS || packet.checksum !== this.checksum(data)) {
+      throw new Error("BasaMesh packet failed its integrity check.");
+    }
+    const passage = normalizePassage({ ...packet.passage, id: "mesh_preview", status: "published" });
+    if (passage.x.split(/\s+/).length < 10) throw new Error("A shared passage needs at least 10 words.");
+    return { passage, legacy: false };
+  },
+
+  encodeLegacy(packet) {
+    const json = JSON.stringify(packet);
+    const bytes = typeof TextEncoder !== "undefined" ? new TextEncoder().encode(json)
+      : Buffer.from(json, "utf8");
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
+  },
+
+  sameContent(a, b) {
+    return String(a?.t || "").trim().toLowerCase() === String(b?.t || "").trim().toLowerCase()
+      && String(a?.x || "").trim() === String(b?.x || "").trim();
+  },
+
+  importPassage(inspected) {
+    const source = inspected?.passage;
+    if (!source) throw new Error("Preview the packet before importing it.");
+    const passage = normalizePassage({ ...source, id: "mesh_preview", status: "published" });
+    const existing = [
+      ...getPublishedPassages(),
+      ...(Array.isArray(AUTH.customPassages) ? AUTH.customPassages : [])
+    ];
+    if (existing.some(item => this.sameContent(item, passage))) {
+      throw new Error("This story is already in your library.");
+    }
+    if (["teacher", "admin"].includes(AUTH.currentUser?.role)) {
+      const saved = AUTH.savePractice(passage, { submit: false });
+      return { passage: saved, destination: AUTH.currentUser.role === "teacher" ? "teacher draft" : "admin curriculum" };
+    }
+    const previous = Array.isArray(S.sh) ? S.sh : [];
+    const stateKeys = ["basa_wisyo_state_v2", getStateStorageKey()];
+    const previousState = stateKeys.map(key => [key, localStorage.getItem(key)]);
+    const next = normalizePassage({
+      ...passage, id: `mesh_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      status: "published"
+    });
+    S.sh = [...previous, next];
+    const saved = save();
+    if (!saved?.success) {
+      S.sh = previous;
+      try {
+        for (const [key, value] of previousState) {
+          if (value === null) localStorage.removeItem(key);
+          else localStorage.setItem(key, value);
+        }
+      } catch (_) { /* The browser may still be out of storage. */ }
+      throw new Error("The story could not be saved in this browser. Check available storage and try again.");
+    }
+    return { passage: next, destination: "personal reading library" };
+  }
+};

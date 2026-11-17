@@ -563,22 +563,22 @@ const PRACTICE_DATA = {
       qs: [
         {
           q: "What revolutionary legal doctrine was established in the Oposa v. Factoran ruling?",
-          o: ["Minors are forbidden from filing petitions in Supreme Court proceedings", "Present generations possess legal standing to advocate for the rights of unborn future generations", "Timber licenses are completely exempt from judicial review", "Economic profits must always supersede ecological concerns"],
-          a: 1,
+          o: ["Minors are forbidden from filing petitions in Supreme Court proceedings", "Timber licenses are completely exempt from judicial review", "Present generations possess legal standing to advocate for the rights of unborn future generations", "Economic profits must always supersede ecological concerns"],
+          a: 2,
           k: "Main idea",
           exp: "The Court recognized locus standi rooted in the doctrine of intergenerational responsibility."
         },
         {
           q: "In the context of the ruling, what does 'self-executing constitutional mandate' signify?",
-          o: ["The right requires a separate statute enacted by Congress before courts can enforce it", "The constitutional right to a balanced ecology is directly enforceable without waiting for enabling legislation", "The president can unilaterally abolish the court's jurisdiction", "Constitutional clauses apply only during national martial law"],
-          a: 1,
+          o: ["The constitutional right to a balanced ecology is directly enforceable without waiting for enabling legislation", "The right requires a separate statute enacted by Congress before courts can enforce it", "The president can unilaterally abolish the court's jurisdiction", "Constitutional clauses apply only during national martial law"],
+          a: 0,
           k: "Critical reading",
           exp: "Self-executing provisions are directly enforceable by courts without requiring supplementary statutes."
         },
         {
           q: "How did Justice Davide's decision challenge traditional legal positivism?",
-          o: ["By arguing that contracts can never be overturned", "By viewing ecological preservation as a fundamental human right grounded in intergenerational justice", "By dismissing international environmental treaties entirely", "By declaring that nature has no legal relevance in judicial courts"],
-          a: 1,
+          o: ["By arguing that contracts can never be overturned", "By dismissing international environmental treaties entirely", "By declaring that nature has no legal relevance in judicial courts", "By viewing ecological preservation as a fundamental human right grounded in intergenerational justice"],
+          a: 3,
           k: "Inference",
           exp: "The ruling transcended rigid legalism by grounding ecological rights in moral stewardship across generations."
         }
@@ -592,15 +592,15 @@ const PRACTICE_DATA = {
       qs: [
         {
           q: "What physiological consequence occurs in tarsiers subjected to noisy ecotourism and flash photography?",
-          o: ["Their visual acuity permanently improves under artificial lights", "They experience elevated stress hormone levels (cortisol) leading to severe distress and self-harm", "Their cervical spine loses the ability to rotate", "They transition from nocturnal to strictly diurnal habits"],
-          a: 1,
+          o: ["Their visual acuity permanently improves under artificial lights", "Their cervical spine loses the ability to rotate", "They transition from nocturnal to strictly diurnal habits", "They experience elevated stress hormone levels (cortisol) leading to severe distress and self-harm"],
+          a: 3,
           k: "Literal",
           exp: "The text explains they exhibit elevated plasma cortisol titers and documented stress-induced self-harm."
         },
         {
           q: "What core policy recommendation is supported by the author's analysis?",
-          o: ["Expanding petting-zoo enclosures to allow direct tourist interaction", "Transitioning from exploitative commercial exhibits to strictly protected wild habitats", "Domesticating tarsiers as household pets to guarantee their safety", "Training tarsiers to adapt to louder tourist noise levels"],
-          a: 1,
+          o: ["Transitioning from exploitative commercial exhibits to strictly protected wild habitats", "Expanding petting-zoo enclosures to allow direct tourist interaction", "Domesticating tarsiers as household pets to guarantee their safety", "Training tarsiers to adapt to louder tourist noise levels"],
+          a: 0,
           k: "Critical reading",
           exp: "The author advocates dismantling exploitative exhibits in favor of vast, inviolable forest sanctuaries."
         }
@@ -621,8 +621,8 @@ const PRACTICE_DATA = {
         },
         {
           q: "What complex tension does the passage delineate?",
-          o: ["The conflict between teaching mathematics versus natural sciences", "The tension between economic mobility in global tongues and the preservation of indigenous linguistic heritage", "The competition between private and public school tuition fees", "The debate over printing textbooks versus buying smartphones"],
-          a: 1,
+          o: ["The conflict between teaching mathematics versus natural sciences", "The competition between private and public school tuition fees", "The tension between economic mobility in global tongues and the preservation of indigenous linguistic heritage", "The debate over printing textbooks versus buying smartphones"],
+          a: 2,
           k: "Critical reading",
           exp: "The text highlights the challenge of balancing global economic advancement with safeguarding local heritage."
         }
@@ -636,15 +636,15 @@ const PRACTICE_DATA = {
       qs: [
         {
           q: "What role do the highland clan-managed forests (muyong) play in the terrace ecosystem?",
-          o: ["They are cleared annually to make room for industrial factories", "They capture cloud moisture and recharge water springs that supply the terraced fields below", "They act as private hunting grounds where water is strictly diverted away from crops", "They store chemical fertilizers used to speed rice germination"],
-          a: 1,
+          o: ["They capture cloud moisture and recharge water springs that supply the terraced fields below", "They are cleared annually to make room for industrial factories", "They act as private hunting grounds where water is strictly diverted away from crops", "They store chemical fertilizers used to speed rice germination"],
+          a: 0,
           k: "Literal",
           exp: "The text notes the muyong act as biological reservoirs capturing moisture to recharge springs."
         },
         {
           q: "How does water distribution across the terraces challenge modern management assumptions?",
-          o: ["It proves that water can only be managed through heavy corporate taxation", "It demonstrates that complex hydrology can be equitably governed through unwritten customary consensus", "It reveals that mountainous farming inevitably fails without heavy tractors", "It shows that tribal rituals have no practical correlation with agricultural success"],
-          a: 1,
+          o: ["It proves that water can only be managed through heavy corporate taxation", "It reveals that mountainous farming inevitably fails without heavy tractors", "It shows that tribal rituals have no practical correlation with agricultural success", "It demonstrates that complex hydrology can be equitably governed through unwritten customary consensus"],
+          a: 3,
           k: "Critical reading",
           exp: "Hydrology is sustained through customary law (doh-ad) and collective consensus without bureaucracy."
         }
@@ -658,8 +658,8 @@ const PRACTICE_DATA = {
       qs: [
         {
           q: "Why do political economists characterize the outsourced AI labor market as 'cyber-feudalism'?",
-          o: ["Because laborers are required to wear medieval clothing while working", "Because tech conglomerates extract massive capital while consigning Global South workers to precarious, unprotected labor", "Because artificial intelligence models are trained entirely on ancient historical manuscripts", "Because the internet is completely outlawed in developing nations"],
-          a: 1,
+          o: ["Because laborers are required to wear medieval clothing while working", "Because artificial intelligence models are trained entirely on ancient historical manuscripts", "Because tech conglomerates extract massive capital while consigning Global South workers to precarious, unprotected labor", "Because the internet is completely outlawed in developing nations"],
+          a: 2,
           k: "Main idea",
           exp: "The term reflects the one-sided extraction of value by tech monopolies while workers face precarity."
         },
@@ -680,15 +680,15 @@ const PRACTICE_DATA = {
       qs: [
         {
           q: "What colonial bias regarding pre-colonial Philippine culture does the author challenge?",
-          o: ["The belief that Filipinos had no appreciation for natural landscapes", "The assumption that oral societies lacked historical consciousness and intellectual rigor because they did not rely on written parchment", "The claim that oral epics could only be chanted by foreign travelers", "The idea that Philippine epics were entirely borrowed from European folklore"],
-          a: 1,
+          o: ["The assumption that oral societies lacked historical consciousness and intellectual rigor because they did not rely on written parchment", "The belief that Filipinos had no appreciation for natural landscapes", "The claim that oral epics could only be chanted by foreign travelers", "The idea that Philippine epics were entirely borrowed from European folklore"],
+          a: 0,
           k: "Main idea",
           exp: "The author repudiates the notion that pre-colonial oral cultures lacked historical memory and depth."
         },
         {
           q: "According to the passage, what functions do the Darangen and Hudhud serve beyond storytelling?",
-          o: ["They served exclusively as private lullabies for children", "They function as juridical, astronomical, and customary repositories of communal law and memory", "They were financial balance sheets used for foreign trade receipts", "They were military codes designed to confuse neighboring islands"],
-          a: 1,
+          o: ["They served exclusively as private lullabies for children", "They were financial balance sheets used for foreign trade receipts", "They were military codes designed to confuse neighboring islands", "They function as juridical, astronomical, and customary repositories of communal law and memory"],
+          a: 3,
           k: "Critical reading",
           exp: "The epics serve as comprehensive juridical, ecological, and astronomical archives."
         }

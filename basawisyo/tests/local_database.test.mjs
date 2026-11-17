@@ -77,6 +77,35 @@ test("invalid relational writes roll back without partial accounts", () => {
   }
 });
 
+test("pending enrollment stays out of membership until accepted and a stale snapshot cannot undo review", () => {
+  const store = openLocalStore(":memory:");
+  try {
+    const pending = pilotSnapshot();
+    Object.assign(pending.users[2], {
+      teacherCode: "", pendingTeacherCode: "CLASS-123", enrollmentRequestedCode: "CLASS-123",
+      enrollmentStatus: "pending", enrollmentRequestedAt: "2026-11-17T09:00:00Z"
+    });
+    store.sync(pending);
+    assert.equal(store.summary("student_2").student.classroom_id, null);
+    assert.equal(store.db.prepare("SELECT status FROM enrollment_requests WHERE student_id='student_2'").get().status, "pending");
+
+    const accepted = structuredClone(pending);
+    Object.assign(accepted.users[2], {
+      teacherCode: "CLASS-123", pendingTeacherCode: null, enrollmentStatus: "active",
+      enrollmentDecisionAt: "2026-11-17T09:05:00Z"
+    });
+    store.sync(accepted);
+    assert.equal(store.summary("student_2").student.classroom_id, "class_teacher_1");
+    assert.equal(store.db.prepare("SELECT status FROM enrollment_requests WHERE student_id='student_2'").get().status, "accepted");
+
+    pending.users[2].name = "Updated local name";
+    store.sync(pending);
+    assert.equal(store.db.prepare("SELECT status FROM enrollment_requests WHERE student_id='student_2'").get().status, "accepted");
+  } finally {
+    store.close();
+  }
+});
+
 test("localhost sync route accepts a snapshot and rejects a foreign origin", async () => {
   const store = openLocalStore(":memory:");
   const handler = createDataHandler({ store });

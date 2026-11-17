@@ -49,6 +49,7 @@ const files = [
 ];
 
 function loadApp(storage = new Map()) {
+  if (!storage.has('basa_wisyo_users_v2')) storage.set('basa_wisyo_school_mode_v1', 'demo');
   const elements = new Map();
   const listeners = new Map();
   const createMockElem = () => ({

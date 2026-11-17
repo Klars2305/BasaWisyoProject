@@ -34,7 +34,7 @@ const LOCAL_DATA = {
       }
     }
     return {
-      users: backup.users.map(({ password, ...user }) => user),
+      users: backup.users.map(({ password, passwordHash, ...user }) => user),
       userStates: states,
       assignments: backup.assignments,
       materials: [...materials.values()]

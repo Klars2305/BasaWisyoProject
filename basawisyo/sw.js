@@ -3,7 +3,7 @@
    Provides offline functionality for the reading companion.
    ========================================================================== */
 
-const CACHE_NAME = "basawisyo-shell-v1";
+const CACHE_NAME = "basawisyo-shell-v3";
 
 const APP_SHELL_FILES = [
   "./",
@@ -13,6 +13,7 @@ const APP_SHELL_FILES = [
   "./src/styles/roles.css",
   "./src/styles/login.css",
   "./src/styles/visual-system.css",
+  "./src/styles/basamesh.css",
   "./src/styles/reading-studio.css",
   "./src/styles/learning-dashboards.css",
   "./src/styles/header-redesign.css",
@@ -22,6 +23,9 @@ const APP_SHELL_FILES = [
   "./src/bundles/bundle-core-data.js",
   "./src/bundles/bundle-services.js",
   "./src/bundles/bundle-ui.js",
+  "./assets/vendor/qrcode.js",
+  "./src/services/basamesh.js",
+  "./src/components/basamesh-modal.js",
   "./src/utils/core.js",
   "./src/data/dictionary.js",
   "./src/data/passages.js",

@@ -57,6 +57,7 @@ test('Phase 4: Wisyo Plus modal has sandbox simulation removed and informs onlin
 
 test('Phase 4: Universal Pop-up Notification System functions across all notification types', () => {
   const notifJs = fs.readFileSync(path.join(baseDir, 'src/components/notifications.js'), 'utf8');
+  const bundleUi = fs.readFileSync(path.join(baseDir, 'src/bundles/bundle-ui.js'), 'utf8');
   const baseCss = fs.readFileSync(path.join(baseDir, 'src/styles/base.css'), 'utf8');
 
   // Architecture check
@@ -64,9 +65,13 @@ test('Phase 4: Universal Pop-up Notification System functions across all notific
   assert.match(notifJs, /function showToast/);
   assert.match(notifJs, /universal-popup-overlay/);
   assert.match(notifJs, /app-popup-card/);
+  assert.match(notifJs, /overlay\.className = "app-popup-overlay"/);
+  assert.match(bundleUi, /overlay\.className = "app-popup-overlay"/);
+  assert.doesNotMatch(bundleUi, /overlay\.className = "app-popup-overlay toast"/);
 
   // CSS Styles check
   assert.match(baseCss, /\.app-popup-overlay\s*\{[^}]*z-index:\s*100000/);
+  assert.match(baseCss, /#universal-popup-overlay\.app-popup-overlay\s*\{[^}]*width:\s*100vw;[^}]*transform:\s*none;/);
   assert.match(baseCss, /\.app-popup-card\s*\{/);
   assert.match(baseCss, /\.popup-btn\s*\{[^}]*min-height:\s*44px/);
 
@@ -102,4 +107,5 @@ test('Phase 4: Universal Pop-up Notification System functions across all notific
   assert.equal(appended.length, 1);
   assert.match(appended[0].innerHTML, /Test success popup/);
   assert.match(appended[0].innerHTML, /popup-ok/);
+  assert.equal(appended[0].className, 'app-popup-overlay');
 });

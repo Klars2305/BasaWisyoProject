@@ -49,6 +49,7 @@ const files = [
 ];
 
 function loadApp(storage = new Map()) {
+  if (!storage.has('basa_wisyo_users_v2')) storage.set('basa_wisyo_school_mode_v1', 'demo');
   const elements = new Map();
   const listeners = new Map();
   const createMockElem = () => ({
@@ -249,7 +250,9 @@ test('Offline & Service Worker: sw.js exists and implements app-shell caching wi
   assert.ok(existsSync(join(appRoot, 'sw.js')), 'sw.js exists in repository root');
   const swCode = readFileSync(join(appRoot, 'sw.js'), 'utf8');
 
-  assert.ok(swCode.includes('basawisyo-shell-v1'), 'sw.js defines versioned cache');
+  assert.match(swCode, /basawisyo-shell-v\d+/, 'sw.js defines a versioned cache');
+  assert.match(swCode, /src\/styles\/basamesh\.css/, 'offline exchange styles are cached');
+  assert.match(swCode, /assets\/vendor\/qrcode\.js/, 'offline QR renderer is cached');
   assert.ok(swCode.includes('APP_SHELL_FILES'), 'sw.js specifies app shell file list');
   assert.ok(swCode.includes('Offline Mode') || swCode.includes('offline'), 'sw.js provides offline response for API');
 
@@ -378,9 +381,16 @@ test('Centralized Classroom Enrollment: Unenrolled students are gated from Bayan
   assert.ok(boardHtml.includes('Join a Classroom First!'), 'Class Board shows Join a Classroom First!');
   assert.ok(boardHtml.includes('classroom-join-code-board'), 'Class Board provides classroom join code input');
 
-  // 3. Connect to valid teacher classroom
+  // 3. Request the valid classroom, then wait for teacher review
   const connectResult = app.eval('AUTH.connectTeacher("BASA-TEACH-8492")');
-  assert.equal(connectResult.success, true, 'Successfully connected to teacher BASA-TEACH-8492');
+  assert.equal(connectResult.success, true, 'Classroom request was saved');
+  assert.equal(connectResult.status, 'pending');
+  assert.equal(app.eval('AUTH.getActiveEnrollment()'), null, 'Pending requests are not active enrollment');
+  assert.equal(app.eval('getBayanihanStats().isEnrolled'), false);
+  const requestingStudentId = app.eval('AUTH.currentUser.id');
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.equal(app.eval(`AUTH.acceptEnrollment("${requestingStudentId}").success`), true);
+  app.eval('AUTH.login("indep@basawisyo.ph", "password123")');
 
   const activeEnrollment = app.eval('AUTH.getActiveEnrollment()');
   assert.ok(activeEnrollment !== null, 'Active enrollment is now resolved');
@@ -467,6 +477,10 @@ test('Student-Teacher Data Integration: Single authoritative reporting pipeline 
   // 4. Log in as Teacher Cruz and verify single authoritative reporting pipeline
   app.eval('AUTH.logout()');
   app.eval('AUTH.login("cruz@basawisyo.ph", "teach123")');
+  assert.equal(app.eval('AUTH.getPendingEnrollments().length'), 2, 'Both requests await Teacher Cruz');
+  assert.equal(app.eval('getClassroomReportDataset().total'), 0, 'Pending learners are not in reports');
+  assert.equal(app.eval(`AUTH.acceptEnrollment("${regJuan.user.id}").success`), true);
+  assert.equal(app.eval(`AUTH.acceptEnrollment("${regMaria.user.id}").success`), true);
 
   const dataset = app.eval('getClassroomReportDataset()');
   assert.equal(dataset.total, 2, 'Classroom has 2 enrolled students');

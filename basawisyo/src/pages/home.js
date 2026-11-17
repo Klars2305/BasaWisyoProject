@@ -68,14 +68,22 @@ function viewHome() {
           `}
         </div>
       `;
+    } else if (u.enrollmentStatus === "pending" && u.pendingTeacherCode) {
+      const requestedTeacher = AUTH.users.find(x => x.role === "teacher" && x.shareCode === u.pendingTeacherCode);
+      roleBanner = `<section class="card home-role-card" role="status" aria-live="polite">
+        <div class="lab">Classroom request pending</div><h3>Waiting for teacher review</h3>
+        <p class="sub">${escapeHTML(requestedTeacher?.name || "Your teacher")} · ${escapeHTML(requestedTeacher?.section || "Classroom")}. You can continue reading while your teacher reviews your request.</p>
+      </section>`;
     } else {
       roleBanner = `
         <div class="connect-teacher-card">
           <h3>${uiIcon("classroom")} Connect with Your Teacher</h3>
-          <p class="sub">Enter the Share Code provided by your teacher to join your section, sync diagnostic scores, and receive assigned stories:</p>
+          <p class="sub">${u.enrollmentStatus === "declined"
+            ? "Your previous request was declined. Confirm the code with your teacher, then request again."
+            : "Enter your teacher's Share Code to request a place in their class. Your teacher will review it before class assignments appear."}</p>
           <div class="connect-row">
             <input type="text" id="home-teacher-code" aria-label="Teacher share code" placeholder="e.g. BASA-TEACH-8492">
-            <button class="btn" data-a="student-connect-teacher">Join Class</button>
+            <button class="btn" data-a="student-connect-teacher">Request to Join</button>
           </div>
         </div>
       `;

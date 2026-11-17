@@ -10,6 +10,8 @@ function viewProfile() {
   const teacher = user?.teacherCode
     ? AUTH.users.find(item => item.role === "teacher" && item.shareCode === user.teacherCode)
     : null;
+  const pendingTeacher = user?.pendingTeacherCode
+    ? AUTH.users.find(item => item.role === "teacher" && item.shareCode === user.pendingTeacherCode) : null;
   const placement = user && Number.isInteger(user.lvl) && user.lvl >= 0 && user.lvl < PHIL_IRI_LEVELS.length
     ? PHIL_IRI_LEVELS[user.lvl] : "Not assessed";
   const completed = DIFF_KEYS.flatMap((_, tier) => journeyEligiblePassages(tier))
@@ -37,6 +39,8 @@ function viewProfile() {
       <div class="lab">My Class</div>
       <p><b>Section:</b> ${escapeHTML(user.section || "Not linked to a class")}</p>
       <p><b>Teacher:</b> ${escapeHTML(teacher?.name || "Not linked to a teacher")}</p>
+      ${user.enrollmentStatus === "pending" ? `<p role="status"><b>Enrollment:</b> Waiting for ${escapeHTML(pendingTeacher?.name || "your teacher")} to review your request.</p>` : ""}
+      ${user.enrollmentStatus === "declined" ? `<p role="status"><b>Enrollment:</b> Request declined. Check the share code with your teacher and try again from Home.</p>` : ""}
       <p><b>Placement label:</b> ${escapeHTML(placement)} <span class="sub-sm">(prototype placement, not an official Phil-IRI result)</span></p>
     </section>`}
     ${(() => {

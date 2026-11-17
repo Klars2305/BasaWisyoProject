@@ -948,6 +948,7 @@ function showPopupModal(options = {}) {
   const duration = typeof options.duration === "number" ? options.duration : 4200;
   const confirmText = options.confirmText || "Got it";
 
+  // Remove any currently open popup modal
   const existing = typeof document.getElementById === "function"
     ? document.getElementById("universal-popup-overlay")
     : (typeof document.querySelector === "function" ? document.querySelector("#universal-popup-overlay") : null);
@@ -956,6 +957,7 @@ function showPopupModal(options = {}) {
     existing.remove?.();
   }
 
+  // Type configuration
   const typeConfig = {
     ok:      { icon: "✅", title: title || "Success!", class: "popup-ok", badgeBg: "rgba(16, 185, 129, 0.15)", border: "#10b981", btnClass: "blue" },
     success: { icon: "✅", title: title || "Success!", class: "popup-ok", badgeBg: "rgba(16, 185, 129, 0.15)", border: "#10b981", btnClass: "blue" },
@@ -966,6 +968,7 @@ function showPopupModal(options = {}) {
     info:    { icon: "ℹ️", title: title || "BasaWisyo Notice", class: "popup-info", badgeBg: "rgba(43, 127, 255, 0.15)", border: "#2b7fff", btnClass: "blue" }
   }[type] || { icon: "💬", title: title || "BasaWisyo Notice", class: "popup-info", badgeBg: "rgba(43, 127, 255, 0.15)", border: "#2b7fff", btnClass: "blue" };
 
+  // Detect leading emoji in message
   let displayIcon = typeConfig.icon;
   if (/^([🎉🚀👏📝📇🎯📋📦👑❤️🔥⭐🛡️⚠️])/.test(msg)) {
     const match = msg.match(/^([🎉🚀👏📝📇🎯📋📦👑❤️🔥⭐🛡️⚠️])/);
@@ -974,7 +977,7 @@ function showPopupModal(options = {}) {
 
   const overlay = document.createElement("div");
   overlay.id = "universal-popup-overlay";
-  overlay.className = "app-popup-overlay toast";
+  overlay.className = "app-popup-overlay";
   overlay.setAttribute?.("role", "dialog");
   overlay.setAttribute?.("aria-modal", "true");
   overlay.setAttribute?.("aria-live", "assertive");
@@ -1030,11 +1033,10 @@ function showPopupModal(options = {}) {
   }
 }
 
+// Global showToast dispatcher upgraded to universal popup modal
 function showToast(msg, type = "info") {
   showPopupModal({ message: msg, type });
 }
-
-
 
 /* === src/components/onboarding-tour.js === */
 /* ==========================================================================
@@ -1590,6 +1592,7 @@ function viewTeacherOverview() {
     return `<section class="card"><h2>Class Overview</h2><p class="sub">Teacher account required.</p></section>`;
   }
   const students = AUTH.getTeacherStudents(teacher.shareCode);
+  const pendingEnrollments = AUTH.getPendingEnrollments(teacher.shareCode);
   const passages = getPublishedPassages();
   const passageById = new Map(passages.map(passage => [passage.id, passage]));
   const progress = students.map(student => teacherOverviewStudentProgress(student, passageById));
@@ -1618,12 +1621,13 @@ function viewTeacherOverview() {
     <section class="card teacher-overview-code" aria-label="Classroom share code">
       <div><div class="lab">Classroom share code</div>
         <strong>${escapeHTML(teacher.shareCode || "No code available")}</strong>
-        <p class="sub-sm">Students enter this code to link their account to your class in this browser.</p></div>
+        <p class="sub-sm">Students enter this code to request a place in your class. Review requests in Classroom Hub.</p></div>
       <button class="btn blue" data-a="teacher-copy-code">${uiIcon("copy")} Copy code</button>
     </section>
 
     <section class="teacher-overview-metrics" aria-label="Local classroom summary">
       <div class="card"><span class="lab">Linked students</span><b>${students.length}</b><span class="sub-sm">In this browser</span></div>
+      <div class="card"><span class="lab">Enrollment requests</span><b>${pendingEnrollments.length}</b><button class="btn o sm" data-a="tab" data-v="teacher">Review requests</button></div>
       <div class="card"><span class="lab">Passage results</span><b>${completed}</b><span class="sub-sm">Completed student-passage pairs</span></div>
       <div class="card"><span class="lab">Active assignments</span><b>${assignments.length}</b><span class="sub-sm">Completion is not tracked per assignment</span></div>
       <div class="card"><span class="lab">Awaiting admin review</span><b>${pending}</b><span class="sub-sm">Your submitted practices</span></div>
@@ -1692,6 +1696,7 @@ function viewTeacher() {
   }
 
   const dataset = getClassroomReportDataset(teacher);
+  const pendingEnrollments = AUTH.getPendingEnrollments(teacher.shareCode);
   const students = dataset ? dataset.students : [];
   const totalStudents = dataset ? dataset.total : 0;
 
@@ -1726,7 +1731,7 @@ function viewTeacher() {
       <h2>Classroom Hub</h2>
       <div class="share-code-label">${uiIcon("teacher")} Teacher Share Code (Class Section: ${escapeHTML(teacher.section || "Grade 8")})</div>
       <p class="teacher-share-help">
-        Share this code with your nearby students so they can join your classroom roster:
+        Share this code with students so they can request enrollment. Review each request below before it enters your roster:
       </p>
       <div class="share-code-box">
         <span class="share-code-digits" id="teacher-share-code-val">${escapeHTML(teacher.shareCode)}</span>
@@ -1743,6 +1748,28 @@ function viewTeacher() {
         </button>
       </div>
     </div>
+
+    <section class="card teacher-section-card" aria-labelledby="pending-enrollments-heading">
+      <div class="teacher-section-head"><div>
+        <div class="lab">Enrollment review · ${pendingEnrollments.length} pending</div>
+        <h3 id="pending-enrollments-heading">Student requests</h3>
+        <p class="sub-sm">Only accepted students appear in your roster, assignments, and class reports.</p>
+      </div></div>
+      ${pendingEnrollments.length ? `<ul class="teacher-overview-assignments" aria-label="Pending student enrollment requests">
+        ${pendingEnrollments.map(student => {
+          const placement = Number.isInteger(student.lvl) && student.lvl >= 0 && student.lvl < PHIL_IRI_LEVELS.length
+            ? `${PHIL_IRI_LEVELS[student.lvl]} · app diagnostic` : "Placement not completed";
+          const requested = student.enrollmentRequestedAt && !Number.isNaN(Date.parse(student.enrollmentRequestedAt))
+            ? new Date(student.enrollmentRequestedAt).toLocaleString() : "Date unavailable";
+          return `<li><div><b>${escapeHTML(student.name)}</b>
+            <span class="sub-sm">${escapeHTML(placement)} · Requested ${escapeHTML(requested)}</span></div>
+            <div class="teacher-roster-actions">
+              <button type="button" class="btn blue sm" data-a="teacher-enrollment-accept" data-v="${escapeHTML(student.id)}" aria-label="Accept ${escapeHTML(student.name)} into your class">Accept</button>
+              <button type="button" class="btn o sm" data-a="teacher-enrollment-decline" data-v="${escapeHTML(student.id)}" aria-label="Decline ${escapeHTML(student.name)} from your class">Decline</button>
+            </div></li>`;
+        }).join("")}
+      </ul>` : `<p class="sub">No enrollment requests are waiting for review.</p>`}
+    </section>
 
     <!-- Live Classroom Metric Summary -->
     <div class="metric-grid">
@@ -1943,8 +1970,6 @@ function viewTeacher() {
   `;
 }
 
-
-
 /* === src/pages/admin.js === */
 /* ==========================================================================
    Admin Interface Views
@@ -1965,8 +1990,12 @@ function viewAdmin() {
 
   const allUsers = AUTH.users;
   const students = allUsers.filter(u => u.role === "student");
+  const enrolledStudents = students.filter(student => AUTH.getActiveEnrollment(student));
+  const pendingStudents = students.filter(student => student.enrollmentStatus === "pending" && student.pendingTeacherCode);
   const teachers = allUsers.filter(u => u.role === "teacher");
+  const activeTeachers = teachers.filter(u => u.status === "active");
   const admins = allUsers.filter(u => u.role === "admin");
+  const cleanSchool = teachers.length === 0 && students.length === 0 && AUTH.assignments.length === 0;
 
   // Phil-IRI distribution school-wide
   const frustCount = students.filter(s => s.lvl === 0).length;
@@ -1996,6 +2025,17 @@ function viewAdmin() {
       </div>
     </div>
 
+    ${cleanSchool ? `<div class="card admin-section-card" role="status">
+      <div class="lab">First school setup</div>
+      <h3>Start with your real teachers and learners</h3>
+      <p class="sub">This browser has only the administrator account. Ask teachers to use Create an account on the public page. Each teacher receives a classroom share code; students can enter it when they register or join later. The teacher reviews each request before the student joins the class.</p>
+      <p class="sub">The built-in reading passages are ready to use. Sample accounts are optional under Local Data &amp; Backup.</p>
+      <div class="dashboard-intro-actions">
+        <button class="btn blue" data-a="auth-logout">Sign out to public page</button>
+        <button class="btn o" data-a="admin-tab" data-v="system">View sample-data option</button>
+      </div>
+    </div>` : ""}
+
     <!-- School Metric Cards -->
     <div class="metric-grid">
       <div class="metric-box">
@@ -2003,11 +2043,15 @@ function viewAdmin() {
         <div class="metric-title">Total Users</div>
       </div>
       <div class="metric-box">
-        <div class="metric-value" style="color:var(--sky)">${students.length}</div>
+        <div class="metric-value" style="color:var(--sky)">${enrolledStudents.length}</div>
         <div class="metric-title">Enrolled Students</div>
       </div>
       <div class="metric-box">
-        <div class="metric-value" style="color:var(--teal)">${teachers.length}</div>
+        <div class="metric-value">${pendingStudents.length}</div>
+        <div class="metric-title">Pending Enrollments</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-value" style="color:var(--teal)">${activeTeachers.length}</div>
         <div class="metric-title">Active Teachers</div>
       </div>
       <div class="metric-box">
@@ -2080,7 +2124,9 @@ function renderAdminUsersTab(users) {
                 </td>
                 <td>
                   ${u.role === 'teacher' ? `<b>${escapeHTML(u.shareCode || '')}</b> (${escapeHTML(u.section || 'General')})` : ''}
-                  ${u.role === 'student' ? (u.teacherCode ? `Linked: <b>${escapeHTML(u.teacherCode)}</b>` : '<span style="color:var(--sub)">Unlinked</span>') : ''}
+                  ${u.role === 'student' ? (u.teacherCode ? `Linked: <b>${escapeHTML(u.teacherCode)}</b>`
+                    : u.enrollmentStatus === 'pending' && u.pendingTeacherCode ? `Pending: <b>${escapeHTML(u.pendingTeacherCode)}</b>`
+                      : '<span style="color:var(--sub)">Unlinked</span>') : ''}
                   ${u.role === 'admin' ? 'System Administrator' : ''}
                 </td>
                 <td>
@@ -2235,7 +2281,7 @@ function renderAdminCurriculumTab() {
                         ${AUTH.assignments.some(assignment => assignment.passageId === p.id) ? `<button class="btn o sm" data-a="practice-remove-assignments" data-v="${escapeHTML(p.id)}">Remove class assignments</button>` : ""}
                         <button class="btn o sm danger" data-a="practice-delete" data-v="${escapeHTML(p.id)}">Delete</button>
                       ` : `
-                        <button class="btn o sm" data-a="read-passage" data-v="${p.id}">Preview</button>
+                        <button class="btn o sm" data-a="read-passage" data-v="${escapeHTML(p.id)}">Preview</button>
                       `}
                     </div>
                   </td>
@@ -2303,6 +2349,7 @@ function renderAdminBenchmarksTab() {
 }
 
 function renderAdminSystemTab() {
+  const canLoadSamples = AUTH.users.every(user => user.role === "admin") && AUTH.assignments.length === 0;
   return `
     <div class="card admin-section-card">
       <div class="lab">Local Data & Emergency Backup</div>
@@ -2312,15 +2359,19 @@ function renderAdminSystemTab() {
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn" data-a="admin-export-backup">${uiIcon("backup")} Export Complete JSON Backup</button>
         <button class="btn o" data-a="admin-restore-backup-trigger">${uiIcon("upload")} Restore from JSON File</button>
-        <button class="btn o danger" data-a="admin-reset-presets">${uiIcon("reset")} Reset to DepEd Factory Presets</button>
+        <button class="btn o danger" data-a="admin-reset-presets">${uiIcon("reset")} Erase local school records and restart</button>
       </div>
       <input type="file" id="admin-restore-file" style="display:none" accept=".json,application/json">
     </div>
+    <div class="card admin-section-card">
+      <div class="lab">Optional presentation data</div>
+      <p class="sub">A new school starts with one administrator and no sample users. You can add a sample teacher, students, and assignments for a demonstration. This is available only while the school has no teacher, student, or assignment records.</p>
+      ${canLoadSamples
+        ? `<button class="btn o" data-a="admin-load-demo">Load sample accounts and assignments</button>`
+        : `<p class="sub" role="status">This school already has account or assignment records. Sample data is unavailable to avoid mixing demo records with real learners.</p>`}
+    </div>
   `;
 }
-
-
-
 
 /* === src/pages/home.js === */
 function viewHome() {
@@ -2393,14 +2444,22 @@ function viewHome() {
           `}
         </div>
       `;
+    } else if (u.enrollmentStatus === "pending" && u.pendingTeacherCode) {
+      const requestedTeacher = AUTH.users.find(x => x.role === "teacher" && x.shareCode === u.pendingTeacherCode);
+      roleBanner = `<section class="card home-role-card" role="status" aria-live="polite">
+        <div class="lab">Classroom request pending</div><h3>Waiting for teacher review</h3>
+        <p class="sub">${escapeHTML(requestedTeacher?.name || "Your teacher")} · ${escapeHTML(requestedTeacher?.section || "Classroom")}. You can continue reading while your teacher reviews your request.</p>
+      </section>`;
     } else {
       roleBanner = `
         <div class="connect-teacher-card">
           <h3>${uiIcon("classroom")} Connect with Your Teacher</h3>
-          <p class="sub">Enter the Share Code provided by your teacher to join your section, sync diagnostic scores, and receive assigned stories:</p>
+          <p class="sub">${u.enrollmentStatus === "declined"
+            ? "Your previous request was declined. Confirm the code with your teacher, then request again."
+            : "Enter your teacher's Share Code to request a place in their class. Your teacher will review it before class assignments appear."}</p>
           <div class="connect-row">
             <input type="text" id="home-teacher-code" aria-label="Teacher share code" placeholder="e.g. BASA-TEACH-8492">
-            <button class="btn" data-a="student-connect-teacher">Join Class</button>
+            <button class="btn" data-a="student-connect-teacher">Request to Join</button>
           </div>
         </div>
       `;
@@ -2464,12 +2523,21 @@ function viewHome() {
         Culturally rooted reading practice built for Grades 7 to 12. Try a placement activity, explore leveled Philippine stories, follow your reading journey, and celebrate progress with badges.
       </p>
       <div class="home-hero-actions">
-        <button class="btn blue sm" data-a="tab" data-v="assess">
-          ${uiIcon("assess")} ${S.lvl === null ? "Start Placement Test" : "Check Reading Level"}
-        </button>
-        <button class="btn o sm" data-a="tab" data-v="practice">
-          ${uiIcon("practice")} Browse 24+ Passages
-        </button>
+        ${isUnassessedStudent ? `
+          <button class="btn blue sm" data-a="tab" data-v="assess">
+            ${uiIcon("assess")} Start Placement Test
+          </button>
+          <button class="btn o sm" data-a="tab" data-v="practice">
+            ${uiIcon("practice")} Browse 24+ Passages
+          </button>
+        ` : `
+          <button class="btn blue sm" data-a="tab" data-v="practice">
+            ${uiIcon("practice")} Continue Reading →
+          </button>
+          <button class="btn o sm" data-a="tab" data-v="assess">
+            ${uiIcon("assess")} Check Reading Level
+          </button>
+        `}
       </div>
       </div>
       <div class="home-hero-art" aria-hidden="true">
@@ -2494,6 +2562,11 @@ function viewHome() {
             <div class="lab">Your Phil-IRI Level</div>
             <div class="num">${currentLvlStr}</div>
             <div class="sub-sm">${S.ss} sessions completed</div>
+          </div>
+          <div class="stat-box">
+            <div class="lab">Daily Reading Streak</div>
+            <div class="num" style="color:var(--gold-ink)">🔥 ${S.streak || 0} ${(S.streak || 0) === 1 ? "Day" : "Days"}</div>
+            <div class="sub-sm">${(S.streak || 0) > 0 ? "Daily reading habit active!" : "Read a passage today to start!"}</div>
           </div>
           <div class="stat-box">
             <div class="lab">Words Read</div>
@@ -2546,8 +2619,6 @@ function viewHome() {
     </div>
   `;
 }
-
-
 
 /* === src/pages/assess.js === */
 function viewAssess() {
@@ -2884,6 +2955,7 @@ function viewPracticeManagement() {
       : "Manage your own practices and assignments without taking a learner quiz."}</p>
     <div class="practice-management-actions">
       <button class="btn blue" data-a="practice-new">${uiIcon("add")} Add passage</button>
+      <button class="btn o" data-a="mesh-open">${uiIcon("upload")} BasaMesh exchange</button>
       <button class="btn o" data-a="tab" data-v="${isAdmin ? "admin" : "teacher"}">${uiIcon(isAdmin ? "admin" : "teacher")} ${isAdmin ? "Admin Console" : "Classroom Hub"}</button>
     </div>
     <div class="diff-selector" role="group" aria-label="Filter managed passages by difficulty">
@@ -3028,6 +3100,29 @@ function viewPractice() {
       <span class="pill">${allPassages.length} Passages</span>
     </div>
     <p class="sub library-intro">Tap underlined words for trilingual translations. Test your comprehension with instant feedback.</p>
+    <button class="btn o sm" data-a="mesh-open">${uiIcon("upload")} Share or receive a story</button>
+
+    ${(() => {
+      const interruptedQuiz = typeof getInterruptedQuizSnapshot === "function" ? getInterruptedQuizSnapshot() : null;
+      if (!interruptedQuiz) return "";
+      return `
+        <div class="card interrupted-quiz-card" style="background:#eff6ff;border:1.5px solid #3b82f6;border-radius:var(--radius-md, 12px);padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <div class="lab" style="color:#1d4ed8">${uiIcon("practice")} Unfinished Reading Session</div>
+            <h3 style="margin:4px 0 4px 0">Resume "${escapeHTML(interruptedQuiz.title || "Reading Story")}"</h3>
+            <p class="sub" style="margin:0">You were on Question ${interruptedQuiz.idx + 1} of ${interruptedQuiz.steps.length}. Pick up right where you left off!</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn blue sm" data-a="resume-interrupted-quiz">
+              Resume Reading →
+            </button>
+            <button class="btn o sm" data-a="discard-interrupted-quiz">
+              Start Over
+            </button>
+          </div>
+        </div>
+      `;
+    })()}
 
     ${isUnassessedStudent ? `
       <div class="card placement-required-banner" style="background:linear-gradient(135deg, rgba(37,137,230,0.08), rgba(46,196,182,0.1));border:1.5px solid var(--sky);padding:18px 20px;border-radius:var(--radius-md);margin-bottom:18px">
@@ -3107,8 +3202,6 @@ function viewPractice() {
     </div>
   `;
 }
-
-
 
 /* === src/pages/flashcards.js === */
 /* ==========================================================================
@@ -3322,6 +3415,8 @@ function viewProfile() {
   const teacher = user?.teacherCode
     ? AUTH.users.find(item => item.role === "teacher" && item.shareCode === user.teacherCode)
     : null;
+  const pendingTeacher = user?.pendingTeacherCode
+    ? AUTH.users.find(item => item.role === "teacher" && item.shareCode === user.pendingTeacherCode) : null;
   const placement = user && Number.isInteger(user.lvl) && user.lvl >= 0 && user.lvl < PHIL_IRI_LEVELS.length
     ? PHIL_IRI_LEVELS[user.lvl] : "Not assessed";
   const completed = DIFF_KEYS.flatMap((_, tier) => journeyEligiblePassages(tier))
@@ -3349,6 +3444,8 @@ function viewProfile() {
       <div class="lab">My Class</div>
       <p><b>Section:</b> ${escapeHTML(user.section || "Not linked to a class")}</p>
       <p><b>Teacher:</b> ${escapeHTML(teacher?.name || "Not linked to a teacher")}</p>
+      ${user.enrollmentStatus === "pending" ? `<p role="status"><b>Enrollment:</b> Waiting for ${escapeHTML(pendingTeacher?.name || "your teacher")} to review your request.</p>` : ""}
+      ${user.enrollmentStatus === "declined" ? `<p role="status"><b>Enrollment:</b> Request declined. Check the share code with your teacher and try again from Home.</p>` : ""}
       <p><b>Placement label:</b> ${escapeHTML(placement)} <span class="sub-sm">(prototype placement, not an official Phil-IRI result)</span></p>
     </section>`}
     ${(() => {
@@ -3427,7 +3524,6 @@ function viewProfile() {
     </section></div>`;
 }
 
-
 /* === src/pages/quest.js === */
 /* ==========================================================================
    BAYANIHAN COOPERATIVE READING QUEST VIEW (quest.js)
@@ -3453,6 +3549,7 @@ function viewQuest() {
 
   const user = typeof AUTH !== "undefined" ? AUTH.currentUser : null;
   const isTeacher = user && user.role === "teacher";
+  const pendingClass = user?.role === "student" && user.enrollmentStatus === "pending" && user.pendingTeacherCode;
   const sectionName = user?.section || (user?.teacherCode ? `Section (${user.teacherCode})` : "Classroom");
 
   const subnavHtml = `
@@ -3480,14 +3577,16 @@ function viewQuest() {
 
         <div class="card join-classroom-gate-card" style="padding:24px;border-top:4px solid var(--sky)">
           <div class="lab" style="color:var(--sky-ink)">${uiIcon("classroom")} Classroom Enrollment Required</div>
-          <h3 style="margin:4px 0 8px 0">Join a Classroom First!</h3>
+          <h3 style="margin:4px 0 8px 0">${pendingClass ? "Waiting for Teacher Approval" : "Join a Classroom First!"}</h3>
           <p class="sub" style="margin-bottom:16px">
-            To participate in the collective Bayanihan Reading Quest and contribute your words read toward a weekly classroom goal, enter the Share Code provided by your teacher:
+            ${pendingClass
+              ? "Your classroom request is pending. Your teacher will review it before your reading contributes to the class goal."
+              : "To participate in the collective Bayanihan Reading Quest, request enrollment with the Share Code provided by your teacher:"}
           </p>
-          <div class="connect-row" style="display:flex;gap:8px;max-width:440px;margin-bottom:16px">
+          ${pendingClass ? "" : `<div class="connect-row" style="display:flex;gap:8px;max-width:440px;margin-bottom:16px">
             <input type="text" id="classroom-join-code" class="auth-input" placeholder="e.g. BASA-TEACH-8492" aria-label="Teacher share code" style="text-transform:uppercase;font-family:monospace">
-            <button class="btn blue" data-a="student-connect-teacher" data-source="classroom-join-code">Join Class</button>
-          </div>
+            <button class="btn blue" data-a="student-connect-teacher" data-source="classroom-join-code">Request to Join</button>
+          </div>`}
           <div class="card" style="background:var(--bg);padding:12px 14px;border-left:4px solid var(--teal);margin:0">
             <p class="sub-sm" style="margin:0">
               💡 <b>Personal reading is always open!</b> You can freely explore and practice stories in the Reading Library once your diagnostic placement is complete, even before joining a classroom.
@@ -3594,44 +3693,13 @@ function viewQuest() {
       <!-- BasaMesh Offline Story Exchange -->
       <div class="card">
         <div class="lab">${uiIcon("upload")} BasaMesh · Offline Story Exchange</div>
-        <h3 style="margin:2px 0">Share Stories &amp; Quizzes Without Internet</h3>
-        <p class="sub">
-          Generate an encoded share code for any custom reading passage. Classmates and teachers can import it via Bluetooth, flash drive, SMS, or local text!
-        </p>
-
-        <!-- Generate Code Form -->
-        <div style="margin-top:14px;background:var(--bg);padding:14px;border-radius:var(--radius-sm)">
-          <h4 style="margin:0 0 8px 0">Create Share Code for a Passage</h4>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <input id="mesh-title" class="auth-input" placeholder="Passage Title (e.g. Ang Agila ng Davao)">
-            <textarea id="mesh-text" class="auth-input" rows="3" placeholder="Paste or type passage text here..."></textarea>
-            <button class="btn sm o" data-a="mesh-create" style="align-self:flex-start">
-              ${uiIcon("copy")} Generate BasaMesh Code
-            </button>
-            <div id="mesh-generated-box" style="display:none;margin-top:8px">
-              <span class="lab">Your Share Code (Copy and send to classmates):</span>
-              <textarea id="mesh-code-output" class="auth-input" rows="3" readonly style="font-family:monospace;font-size:0.8rem;background:var(--card-bg)"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- Import Code Form with Preview -->
-        <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:16px">
-          <h4 style="margin:0 0 4px 0">Import Passage from Classmate</h4>
-          <p class="sub-sm" style="margin-bottom:8px">Paste code below to preview the passage before adding it to your library:</p>
-          <textarea id="mesh-code" class="auth-input" rows="2" placeholder="Paste BasaMesh code here..."></textarea>
-          <button class="btn sm blue" data-a="mesh-preview" style="margin-top:8px">
-            ${uiIcon("eye")} Inspect &amp; Preview Passage
-          </button>
-        </div>
-
-        <!-- Interactive Import Preview Card -->
-        <div id="mesh-preview-container" style="display:none;margin-top:16px"></div>
+        <h3 style="margin:2px 0">Share stories and quizzes without internet</h3>
+        <p class="sub">Exchange a validated story packet by file or QR code. Imported stories stay on this device and do not transfer class scores.</p>
+        <button class="btn blue" data-a="mesh-open">Open BasaMesh</button>
       </div>
     </div>
   `;
 }
-
 
 /* === src/pages/board.js === */
 /* ==========================================================================
@@ -3654,6 +3722,7 @@ function viewClassBoard() {
   const tier = BOARD_TIER ?? (user?.role === "student"
     ? journeyUnlockedTier(journey, user.journeyOverride) : 0);
   const optedIn = user?.role === "student" && journey?.boardOptIn === true;
+  const pendingClass = user?.role === "student" && user.enrollmentStatus === "pending" && user.pendingTeacherCode;
 
   const currentMetric = typeof CURRENT_BOARD_METRIC !== "undefined" ? CURRENT_BOARD_METRIC : "weeklyXP";
   const currentScope = typeof CURRENT_BOARD_SCOPE !== "undefined" ? CURRENT_BOARD_SCOPE : "classroom";
@@ -3710,13 +3779,14 @@ function viewClassBoard() {
     ${!context ? `
       <div class="card join-classroom-gate-card" style="padding:24px;border-top:4px solid var(--sky)">
         <div class="lab" style="color:var(--sky-ink)">${uiIcon("classroom")} Classroom Enrollment Required</div>
-        <h3 style="margin:4px 0 8px 0">Join a Classroom First!</h3>
+        <h3 style="margin:4px 0 8px 0">${pendingClass ? "Waiting for Teacher Approval" : "Join a Classroom First!"}</h3>
         <p class="sub" style="margin-bottom:16px">${!user ? "Sign in with a student account and join a teacher's class to see the board. Your guest reading progress can transfer when you register."
-          : "To view Class Board rankings and participate with your section, enter the Share Code provided by your teacher:"}</p>
-        ${!user ? '<button class="btn blue sm" data-a="auth-open">Sign in</button>' : `
+          : pendingClass ? "Your classroom request is pending. The board becomes available after your teacher accepts it."
+            : "To view Class Board rankings, request enrollment with the Share Code provided by your teacher:"}</p>
+        ${!user ? '<button class="btn blue sm" data-a="auth-open">Sign in</button>' : pendingClass ? "" : `
           <div class="connect-row" style="display:flex;gap:8px;max-width:440px;margin-bottom:16px">
             <input type="text" id="classroom-join-code-board" class="auth-input" placeholder="e.g. BASA-TEACH-8492" aria-label="Teacher share code" style="text-transform:uppercase;font-family:monospace">
-            <button class="btn blue" data-a="student-connect-teacher" data-source="classroom-join-code-board">Join Class</button>
+            <button class="btn blue" data-a="student-connect-teacher" data-source="classroom-join-code-board">Request to Join</button>
           </div>
           <div class="card" style="background:var(--bg);padding:12px 14px;border-left:4px solid var(--teal);margin:0">
             <p class="sub-sm" style="margin:0">
@@ -3811,7 +3881,6 @@ function viewClassBoard() {
     `}
   `;
 }
-
 
 /* === src/pages/reports.js === */
 /* DEPED REPORTS VIEW */
@@ -4573,6 +4642,7 @@ function viewTeacherReadingStudio() {
           <button class="btn sm blue" data-a="practice-new">
             ${uiIcon("add")} Add passage
           </button>
+          <button class="btn sm o" data-a="mesh-open">${uiIcon("upload")} BasaMesh exchange</button>
           <button class="btn sm ${TEACHER_STUDIO_SUBTAB === 'queue' ? 'blue' : 'o'}" data-a="tstudio-subtab" data-v="queue">
             ${uiIcon("badge")} Approval Status
           </button>
@@ -4782,4 +4852,200 @@ function renderTeacherAssignmentsView() {
       `}
     </div>
   `;
+}
+
+/* === src/components/basamesh-modal.js === */
+/* BasaMesh exchange controls. Camera scanning is optional; files work offline everywhere. */
+let MESH_PENDING_INSPECTION = null;
+let MESH_CAMERA_STREAM = null;
+let MESH_SCAN_RUN = 0;
+
+function meshShareablePassages() {
+  const role = AUTH.currentUser?.role;
+  const builtIn = [...PRACTICE_DATA.easy, ...PRACTICE_DATA.medium,
+    ...PRACTICE_DATA.hard, ...PRACTICE_DATA.extreme];
+  const custom = (Array.isArray(AUTH.customPassages) ? AUTH.customPassages : [])
+    .filter(item => item?.status === "published" || (role === "teacher" && item?.ownerId === AUTH.currentUser.id)
+      || role === "admin");
+  const choices = [
+    ...builtIn, ...custom,
+    ...(!["teacher", "admin"].includes(role) && Array.isArray(S.sh) ? S.sh : [])
+  ].flatMap(item => {
+    try { return [normalizePassage(item)]; } catch (_) { return []; }
+  });
+  const allowed = ["teacher", "admin"].includes(role)
+    ? choices : choices.filter(item => Array.isArray(S.done) && S.done.includes(item.id));
+  return [...new Map(allowed.map(item => [item.id, item])).values()];
+}
+
+function renderBasaMeshModal() {
+  const choices = meshShareablePassages();
+  return `<div class="mesh-modal-head">
+      <div><div class="lab">Offline story exchange</div><h2 id="mesh-heading">BasaMesh</h2></div>
+      <button class="btn o sm" type="button" data-a="mesh-close" aria-label="Close BasaMesh">Close</button>
+    </div>
+    <p class="sub">Share a passage with questions between devices. Files work through Bluetooth file transfer, Nearby Share, AirDrop, or USB. No internet or account data is included.</p>
+    <div class="mesh-grid">
+      <section class="mesh-panel" aria-labelledby="mesh-send-heading">
+        <h3 id="mesh-send-heading">Send a story</h3>
+        <p class="sub-sm">${["teacher", "admin"].includes(AUTH.currentUser?.role)
+          ? "Choose a built-in story or one you manage. Teacher drafts remain drafts when imported by another teacher."
+          : "Completed stories can be shared. Finish reading a story first to add it here."}</p>
+        <label for="mesh-send-passage">Passage</label>
+        <select id="mesh-send-passage" class="auth-input" ${choices.length ? "" : "disabled"}>
+          ${choices.length ? choices.map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.t)}</option>`).join("")
+            : `<option>No completed passages yet</option>`}
+        </select>
+        <div class="mesh-actions">
+          <button class="btn blue" data-a="mesh-download" ${choices.length ? "" : "disabled"}>Download .basamesh file</button>
+          <button class="btn o" data-a="mesh-share-file" ${choices.length ? "" : "disabled"}>Share file on this device</button>
+          <button class="btn o" data-a="mesh-show-qr" ${choices.length ? "" : "disabled"}>Show QR code</button>
+        </div>
+        <div id="mesh-send-result" class="mesh-result" role="status" aria-live="polite"></div>
+      </section>
+      <section class="mesh-panel" aria-labelledby="mesh-receive-heading">
+        <h3 id="mesh-receive-heading">Receive a story</h3>
+        <p class="sub-sm">Inspect the story and questions before saving. Received stories do not transfer scores, XP, or class membership.</p>
+        <label class="btn o mesh-file-label" for="mesh-file-input">Choose .basamesh file</label>
+        <input id="mesh-file-input" type="file" accept=".basamesh,application/json" hidden>
+        <label for="mesh-receive-code">Or paste a BasaMesh code</label>
+        <textarea id="mesh-receive-code" class="auth-input" rows="3" placeholder="BW1:..."></textarea>
+        <div class="mesh-actions">
+          <button class="btn blue" data-a="mesh-inspect-code">Preview code</button>
+          <button class="btn o" data-a="mesh-scan-qr">Scan QR with camera</button>
+        </div>
+        <div id="mesh-camera" class="mesh-camera" hidden>
+          <video id="mesh-video" autoplay muted playsinline aria-label="QR scanner camera preview"></video>
+          <button class="btn o sm" data-a="mesh-stop-camera">Stop camera</button>
+        </div>
+        <div id="mesh-receive-result" class="mesh-result" role="status" aria-live="polite"></div>
+        <div id="mesh-import-preview"></div>
+      </section>
+    </div>`;
+}
+
+function openBasaMeshModal() {
+  MESH_PENDING_INSPECTION = null;
+  const dialog = document.querySelector("#basamesh-modal");
+  const body = document.querySelector("#basamesh-body");
+  if (!dialog || !body) return;
+  body.innerHTML = renderBasaMeshModal();
+  const sendSelect = body.querySelector("#mesh-send-passage");
+  showInlineDialog(dialog, sendSelect?.disabled ? body.querySelector("#mesh-receive-code") : sendSelect);
+}
+
+function stopBasaMeshCamera() {
+  MESH_SCAN_RUN++;
+  if (MESH_CAMERA_STREAM) {
+    MESH_CAMERA_STREAM.getTracks().forEach(track => track.stop());
+    MESH_CAMERA_STREAM = null;
+  }
+  const video = document.querySelector("#mesh-video");
+  if (video) video.srcObject = null;
+  const container = document.querySelector("#mesh-camera");
+  if (container) container.hidden = true;
+}
+
+function closeBasaMeshModal() {
+  stopBasaMeshCamera();
+  MESH_PENDING_INSPECTION = null;
+  closeInlineDialog(document.querySelector("#basamesh-modal"));
+}
+
+function meshSelectedPacket() {
+  const id = document.querySelector("#mesh-send-passage")?.value;
+  const passage = meshShareablePassages().find(item => item.id === id);
+  if (!passage) throw new Error("Choose a passage to share.");
+  return BASAMESH.createPacket(passage);
+}
+
+function meshDownloadPacket(packet) {
+  const filename = packet.passage.t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "story";
+  const blob = new Blob([JSON.stringify(packet, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${filename}.basamesh`;
+  link.click();
+  URL.revokeObjectURL(url);
+  return blob;
+}
+
+function meshShowQr(packet) {
+  const code = BASAMESH.encode(packet);
+  if (code.length > BASAMESH.MAX_QR_CHARS) {
+    throw new Error("This passage is too long for a reliable QR code. Download and share the file instead.");
+  }
+  if (typeof qrcode !== "function") throw new Error("Offline QR renderer is unavailable. Use the file option.");
+  const qr = qrcode(0, "L");
+  qr.addData(code, "Byte");
+  qr.make();
+  const result = document.querySelector("#mesh-send-result");
+  if (result) result.innerHTML = `<div class="mesh-qr">${qr.createSvgTag(3, 4)}</div>
+    <p class="sub-sm">Scan from another device. If its browser cannot scan QR, share the file instead.</p>
+    <label for="mesh-share-code">Copyable code</label>
+    <textarea id="mesh-share-code" class="auth-input" rows="3" readonly></textarea>
+    <button class="btn o sm" data-a="mesh-copy-code">Copy code</button>`;
+  const codeField = document.querySelector("#mesh-share-code");
+  if (codeField) codeField.value = code;
+}
+
+function meshPreviewPacket(input) {
+  MESH_PENDING_INSPECTION = null;
+  const previousPreview = document.querySelector("#mesh-import-preview");
+  if (previousPreview) previousPreview.innerHTML = "";
+  const inspected = BASAMESH.inspect(input);
+  MESH_PENDING_INSPECTION = inspected;
+  stopBasaMeshCamera();
+  const passage = inspected.passage;
+  const duplicate = [...getPublishedPassages(), ...(AUTH.customPassages || [])]
+    .some(item => BASAMESH.sameContent(item, passage));
+  const preview = document.querySelector("#mesh-import-preview");
+  if (preview) preview.innerHTML = `<div class="mesh-preview card">
+      <div class="lab">Review before saving</div>
+      <h4>${escapeHTML(passage.t)}</h4>
+      <p class="sub-sm">${escapeHTML(passage.diff)} · ${passage.qs.length} questions · ${passage.x.split(/\s+/).length} words${inspected.legacy ? " · Older code" : ""}</p>
+      <p>${escapeHTML(passage.x.slice(0, 360))}${passage.x.length > 360 ? "…" : ""}</p>
+      ${passage.x.length > 360 ? `<details><summary>Read the full passage</summary><p>${escapeHTML(passage.x)}</p></details>` : ""}
+      <details><summary>View questions</summary><ol>${passage.qs.map(q => `<li>${escapeHTML(q.q)}</li>`).join("")}</ol></details>
+      ${duplicate ? `<p class="sub-sm" role="status">This exact story is already in your library.</p>` : ""}
+      <button class="btn blue" data-a="mesh-import" ${duplicate ? "disabled" : ""}>Add to ${["teacher", "admin"].includes(AUTH.currentUser?.role) ? "managed passages" : "my library"}</button>
+      <button class="btn o" data-a="mesh-cancel-preview">Cancel</button>
+    </div>`;
+}
+
+async function startBasaMeshCamera() {
+  const result = document.querySelector("#mesh-receive-result");
+  if (typeof BarcodeDetector === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+    throw new Error("This browser cannot scan QR codes here. Import a .basamesh file or paste a code.");
+  }
+  stopBasaMeshCamera();
+  const run = MESH_SCAN_RUN;
+  const detector = new BarcodeDetector({ formats: ["qr_code"] });
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+  if (run !== MESH_SCAN_RUN) { stream.getTracks().forEach(track => track.stop()); return; }
+  MESH_CAMERA_STREAM = stream;
+  const video = document.querySelector("#mesh-video");
+  const container = document.querySelector("#mesh-camera");
+  if (!video || !container) { stopBasaMeshCamera(); return; }
+  video.srcObject = stream;
+  container.hidden = false;
+  await video.play();
+  if (result) result.textContent = "Point the camera at a BasaMesh QR code.";
+  async function scan() {
+    if (run !== MESH_SCAN_RUN) return;
+    try {
+      const found = await detector.detect(video);
+      if (found.length) {
+        try {
+          meshPreviewPacket(found[0].rawValue);
+          return;
+        } catch (error) {
+          if (result) result.textContent = error.message;
+        }
+      }
+    } catch (_) { /* Keep scanning while the camera is settling. */ }
+    if (run === MESH_SCAN_RUN) setTimeout(scan, 250);
+  }
+  scan();
 }

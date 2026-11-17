@@ -8,6 +8,7 @@ const root = process.cwd();
 
 function createAuthContext() {
   const store = new Map();
+  store.set('basa_wisyo_school_mode_v1', 'demo');
   const localStorage = {
     getItem: key => (store.has(key) ? store.get(key) : null),
     setItem: (key, value) => { store.set(key, String(value)); },

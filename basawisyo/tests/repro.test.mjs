@@ -24,6 +24,7 @@ const files = [
   'src/pages/home.js',
   'src/pages/practice.js',
   'src/pages/profile.js',
+  'src/pages/quest.js',
   'src/pages/board.js',
   'src/pages/reports.js',
   'src/pages/practice.js',
@@ -35,6 +36,7 @@ const files = [
 ];
 
 function loadApp(storage = new Map(), { confirmResult = true, locationHash = '' } = {}) {
+  if (!storage.has('basa_wisyo_users_v2')) storage.set('basa_wisyo_school_mode_v1', 'demo');
   const elements = new Map();
   const listeners = new Map();
   const alerts = [];
@@ -504,6 +506,7 @@ test('custom passage text is escaped in library and quiz markup', () => {
 
 test('separate login page rejects bad credentials and redirects after sign-in', () => {
   const storage = new Map();
+  storage.set('basa_wisyo_school_mode_v1', 'demo');
   const listeners = new Map();
   const field = value => ({ value, type: 'text', addEventListener(type, callback) { listeners.set(`${this.id}:${type}`, callback); } });
   const email = { ...field('teacher@basawisyo.ph'), id: 'email' };
@@ -552,6 +555,30 @@ test('fresh visits show the landing page and returning students open Student Hom
   assert.equal(returningVisit.eval('AUTH.currentUser.role'), 'student');
   assert.equal(returningVisit.eval('CURRENT_TAB'), 'home');
   assert.equal(returningVisit.eval('GUEST_MODE'), false);
+});
+
+test('admin setup offers sample data only for a clean school', () => {
+  const storage = new Map();
+  const app = loadApp(storage);
+  app.eval('AUTH.login("admin", "admin")');
+  // The shared harness opts into demo fixtures. Return to the real first-run state.
+  app.eval('AUTH.users = [AUTH.users.find(user => user.role === "admin")]; AUTH.assignments = []; AUTH.saveUsers(); AUTH.saveAssignments()');
+  assert.match(app.eval('viewAdmin()'), /Start with your real teachers and learners/);
+  assert.match(app.eval('renderAdminSystemTab()'), /admin-load-demo/);
+  app.click('admin-load-demo');
+  assert.equal(app.eval('AUTH.users.filter(user => user.role === "teacher").length'), 1);
+  assert.equal(app.eval('AUTH.users.filter(user => user.role === "student").length'), 5);
+  assert.doesNotMatch(app.eval('renderAdminSystemTab()'), /data-a="admin-load-demo"/);
+});
+
+test('explicit local reset returns demo data to an admin-only school', () => {
+  const app = loadApp();
+  app.eval('AUTH.login("admin", "admin")');
+  assert.ok(app.eval('AUTH.users.length') > 1);
+  app.click('admin-reset-presets');
+  assert.equal(app.eval('AUTH.users.length'), 1);
+  assert.equal(app.eval('AUTH.assignments.length'), 0);
+  assert.equal(app.storage.has('basa_wisyo_school_mode_v1'), false);
 });
 
 test('teacher and admin reloads restore their own dashboard', () => {
@@ -637,12 +664,83 @@ test('teacher registration needs a section and student share codes link to that 
     teacherCode: 'basa-teach-8492'
   })`);
   assert.equal(student.success, true);
-  assert.equal(student.user.teacherCode, 'BASA-TEACH-8492');
-  assert.equal(student.user.section, 'Grade 8 - Emerald');
+  assert.equal(student.user.teacherCode, '');
+  assert.equal(student.user.pendingTeacherCode, 'BASA-TEACH-8492');
+  assert.equal(student.user.enrollmentStatus, 'pending');
   assert.equal(app.eval(`AUTH.register({
     name: 'Bad Code', email: 'badcode@school.test', password: 'test123', role: 'student',
     teacherCode: 'BASA-TEACH-9999'
   }).success`), false);
+});
+
+test('teacher code at registration waits for teacher acceptance before roster access', () => {
+  const app = loadApp();
+  const created = app.eval(`AUTH.register({name:"Pending Reader",email:"pending.reader@example.test",password:"secret7",role:"student",teacherCode:"BASA-TEACH-8492"})`);
+  assert.equal(created.success, true);
+  assert.equal(created.user.teacherCode, '');
+  assert.equal(created.user.enrollmentStatus, 'pending');
+  assert.equal(app.eval('AUTH.getTeacherStudents("BASA-TEACH-8492").some(u => u.email === "pending.reader@example.test")'), false);
+  assert.match(app.eval('viewHome()'), /Waiting for teacher review/);
+  assert.match(app.eval('viewProfile()'), /Waiting for .* to review your request/);
+  assert.match(app.eval('viewQuest()'), /Waiting for Teacher Approval/);
+  assert.doesNotMatch(app.eval('viewQuest()'), /id="classroom-join-code"/);
+  assert.match(app.eval('viewClassBoard()'), /Waiting for Teacher Approval/);
+
+  app.eval('AUTH.login("admin", "admin")');
+  assert.match(app.eval('viewAdmin()'), /Pending Enrollments/);
+  assert.match(app.eval('viewAdmin()'), /Pending: <b>BASA-TEACH-8492<\/b>/);
+
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.match(app.eval('viewTeacher()'), /Pending Reader/);
+  assert.equal(app.eval('AUTH.getPendingEnrollments().length'), 1);
+  const accepted = app.eval(`AUTH.acceptEnrollment("${created.user.id}")`);
+  assert.equal(accepted.success, true);
+  assert.equal(accepted.status, 'active');
+  assert.equal(app.eval('AUTH.getPendingEnrollments().length'), 0);
+  assert.equal(app.eval('AUTH.getTeacherStudents().some(u => u.id === "' + created.user.id + '")'), true);
+  assert.equal(app.eval(`AUTH.acceptEnrollment("${created.user.id}").success`), false);
+  app.eval('AUTH.login("pending.reader@example.test", "secret7")');
+  assert.equal(app.eval('AUTH.currentUser.teacherCode'), 'BASA-TEACH-8492');
+});
+
+test('teacher can decline a request and student can request again without joining first', () => {
+  const app = loadApp();
+  const created = app.eval('AUTH.register({name:"Retry Reader",email:"retry.reader@example.test",password:"secret7",role:"student"})');
+  assert.equal(created.success, true);
+  assert.equal(app.eval('AUTH.requestEnrollment("BASA-TEACH-8492").status'), 'pending');
+  assert.equal(app.eval('AUTH.requestEnrollment("BASA-TEACH-8492").status'), 'pending');
+  assert.equal(app.eval('AUTH.currentUser.teacherCode'), '');
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  assert.equal(app.eval(`AUTH.declineEnrollment("${created.user.id}", "Wrong section").status`), 'declined');
+  assert.equal(app.eval('AUTH.getTeacherStudents().some(u => u.email === "retry.reader@example.test")'), false);
+  app.eval('AUTH.login("retry.reader@example.test", "secret7")');
+  assert.match(app.eval('viewHome()'), /previous request was declined/);
+  assert.equal(app.eval('AUTH.requestEnrollment("BASA-TEACH-8492").status'), 'pending');
+});
+
+test('student and unrelated teacher cannot approve another classroom request', () => {
+  const app = loadApp();
+  const student = app.eval('AUTH.register({name:"Review Guard",email:"review.guard@example.test",password:"secret7",role:"student",teacherCode:"BASA-TEACH-8492"})');
+  assert.equal(app.eval(`AUTH.acceptEnrollment("${student.user.id}").success`), false);
+  const other = app.eval('AUTH.register({name:"Other Guro",email:"other.review@example.test",password:"secret7",role:"teacher",section:"Grade 9"})');
+  assert.equal(other.success, true);
+  assert.equal(app.eval('AUTH.getPendingEnrollments("BASA-TEACH-8492").length'), 0);
+  assert.equal(app.eval(`AUTH.acceptEnrollment("${student.user.id}").success`), false);
+  assert.equal(app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123").success'), true);
+  assert.equal(app.eval(`AUTH.acceptEnrollment("${student.user.id}").success`), true);
+});
+
+test('failed browser write leaves an enrollment request unchanged', () => {
+  const app = loadApp();
+  const student = app.eval('AUTH.register({name:"Storage Reader",email:"storage.reader@example.test",password:"secret7",role:"student"})');
+  app.failNextWrite('basa_wisyo_users_v2');
+  assert.equal(app.eval('AUTH.requestEnrollment("BASA-TEACH-8492").success'), false);
+  assert.equal(app.eval('AUTH.currentUser.enrollmentStatus'), 'none');
+  app.eval('AUTH.requestEnrollment("BASA-TEACH-8492")');
+  app.eval('AUTH.login("teacher@basawisyo.ph", "teacher123")');
+  app.failNextWrite('basa_wisyo_users_v2');
+  assert.equal(app.eval(`AUTH.acceptEnrollment("${student.user.id}").success`), false);
+  assert.equal(app.eval('AUTH.getPendingEnrollments().length'), 1);
 });
 
 test('a new student must complete placement before starting leveled practice', () => {
@@ -1101,6 +1199,10 @@ test('class board stays inside the teacher group and excludes guests and admins'
   const student = app.eval(`AUTH.register({name:"Second Reader",email:"secondreader@example.ph",password:"secret7",role:"student",teacherCode:"${code}"})`);
   assert.equal(student.success, true);
   assert.equal(app.eval('AUTH.currentUser.journey.boardOptIn'), false);
+  assert.throws(() => app.eval('setClassBoardOptIn(true)'), /Join a teacher/);
+  app.eval('AUTH.logout(); AUTH.login("secondguro@example.ph", "secret7")');
+  assert.equal(app.eval(`AUTH.acceptEnrollment("${student.user.id}").success`), true);
+  app.eval('AUTH.logout(); AUTH.login("secondreader@example.ph", "secret7")');
   app.eval('setClassBoardOptIn(true)');
   assert.equal(app.eval('classBoardEntries(0).length'), 1);
   app.eval('AUTH.logout(); AUTH.login("teacher@basawisyo.ph", "teacher123")');

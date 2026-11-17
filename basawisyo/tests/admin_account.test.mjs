@@ -9,6 +9,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 function createAuthContext(initialUsers = null) {
   const store = new Map();
+  store.set('basa_wisyo_school_mode_v1', 'demo');
   if (initialUsers) {
     store.set('basawisyo_users_v2', JSON.stringify(initialUsers));
   }
