@@ -30,6 +30,10 @@
   --font-body:'Lexend',system-ui,sans-serif;
   --font-display:'Bricolage Grotesque',system-ui,sans-serif;
   --font-scale:1;
+  --font-h1:clamp(1.4rem, 4vw, 2.1rem);
+  --font-h2:clamp(1.2rem, 3.2vw, 1.75rem);
+  --font-h3:clamp(1.02rem, 2.5vw, 1.35rem);
+  --font-reading:clamp(1.05rem, 2.2vw, 1.25rem);
   --ease-out-expo:cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-smooth:cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -89,7 +93,10 @@ a{text-underline-offset:3px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{font-size:100%}
 /* Responsive PC Web & Mobile Layout */
-#app{width:100%;max-width:1240px;margin:0 auto;padding:18px 24px 100px;min-height:100vh;box-sizing:border-box;position:relative}
+#app{width:100%;max-width:1240px;margin:0 auto;padding:clamp(10px, 2.5vw, 20px) clamp(10px, 3.5vw, 24px) clamp(24px, 5vw, 36px);min-height:100vh;min-height:100dvh;box-sizing:border-box;position:relative}
+@media (max-width: 767px) {
+  #app { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+}
 
 .mascot-img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
 
@@ -116,10 +123,10 @@ body{font-size:calc(1rem * var(--font-scale))}
   .stat-grid{grid-template-columns:repeat(4,1fr)}
 }
 
-/* Reading Split-Screen on Desktop */
+/* Reading Split-Screen on Tablet & Desktop */
 .reading-split{display:block}
-@media (min-width: 860px) {
-  .reading-split{display:grid;grid-template-columns:1.35fr 1fr;gap:24px;align-items:start}
+@media (min-width: 768px) {
+  .reading-split{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
   .reading-sidebar-col{position:sticky;top:20px}
 }
 
@@ -139,9 +146,9 @@ body{font-size:calc(1rem * var(--font-scale))}
 
 /* Typography */
 h1,h2,h3,.title{font-family:var(--font-display);color:var(--text);margin:0;letter-spacing:-0.02em;line-height:1.25}
-h1{font-size:1.35rem;font-weight:800}
-h2{font-size:1.25rem;font-weight:700;margin-bottom:6px}
-h3{font-size:1.05rem;font-weight:700}
+h1{font-size:var(--font-h1, 1.35rem);font-weight:800}
+h2{font-size:var(--font-h2, 1.25rem);font-weight:700;margin-bottom:6px}
+h3{font-size:var(--font-h3, 1.05rem);font-weight:700}
 .sub{color:var(--sub);font-size:0.9375rem;margin:4px 0 12px;line-height:1.55;text-wrap:pretty}
 .sub-sm{font-size:0.8125rem;color:var(--sub);line-height:1.5}
 
@@ -405,13 +412,16 @@ body.wisyo-chat-open{overflow:hidden !important;touch-action:none}
   color: var(--text, #0f172a);
   border: 2px solid var(--border, #e2e8f0);
   border-radius: 24px;
-  max-width: 440px;
+  max-width: min(440px, calc(100vw - 28px));
+  max-height: calc(100dvh - 32px);
   width: 100%;
-  padding: 28px 24px 22px;
+  padding: clamp(20px, 4vw, 28px) clamp(16px, 4vw, 24px) 20px;
   text-align: center;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
   animation: scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 :root[data-theme="dark"] .app-popup-card {

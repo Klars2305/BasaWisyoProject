@@ -395,8 +395,7 @@ body.auth-entry { background: var(--bg); }
   }
 }
 
-/* Mobile-first reading and task layout. Wider layouts add columns below. */
-#app { padding: 12px 16px calc(100px + env(safe-area-inset-bottom, 0px)); }
+/* Mobile-first reading and task layout. Fluid container governed by base.css. */
 #v, #v > *, .home-layout > *, .reading-split > * { min-width: 0; }
 #v { padding-bottom: 12px; }
 .card { box-shadow: none; }
@@ -507,7 +506,6 @@ input, textarea { caret-color: var(--sky-ink); }
   .projector-actions .btn { width: auto; }
 }
 @media (min-width: 768px) {
-  #app { padding: 20px 24px 96px; }
   .app-modal-overlay { padding: 24px; align-items: center; }
   .app-modal-card { max-width: 520px; max-height: min(90dvh, 900px); border-radius: var(--radius-md); padding: var(--feature-pad, clamp(18px, 3vw, 28px)); }
   .app-modal-card.wide { max-width: 800px; }
@@ -847,7 +845,7 @@ input, textarea { caret-color: var(--sky-ink); }
   cursor: pointer;
 }
 .speech-follow-control input { width: 18px; min-height: 18px; height: 18px; margin: 0; accent-color: var(--sky); }
-@media (max-width: 859px) {
+@media (max-width: 767px) {
   .reading-passage-col { margin-bottom: 16px; }
 }
 @media (max-width: 559px) {

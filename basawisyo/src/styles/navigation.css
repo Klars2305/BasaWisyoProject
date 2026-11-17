@@ -35,7 +35,8 @@
     border: 0;
     background: none;
     font-family: var(--font-body, system-ui, sans-serif);
-    font-size: 0.75rem;
+    font-size: clamp(0.68rem, 2.2vw, 0.75rem);
+    letter-spacing: -0.01em;
     font-weight: 600;
     color: var(--sub, #64748b);
     padding: 8px 2px 7px;
@@ -48,6 +49,9 @@
     cursor: pointer;
     transition: all 0.15s ease;
     position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   nav button.on,
   nav button.active {
@@ -122,6 +126,7 @@
     cursor: pointer;
     transition: all 0.18s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    white-space: nowrap;
   }
   #sn button:hover {
     background: var(--card-bg, #f8fafc);
