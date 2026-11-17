@@ -54,3 +54,52 @@ test('Phase 4: Wisyo Plus modal has sandbox simulation removed and informs onlin
   const baseCss = fs.readFileSync(path.join(baseDir, 'src/styles/base.css'), 'utf8');
   assert.match(baseCss, /\.toast\{[^}]*z-index:\s*99999/);
 });
+
+test('Phase 4: Universal Pop-up Notification System functions across all notification types', () => {
+  const notifJs = fs.readFileSync(path.join(baseDir, 'src/components/notifications.js'), 'utf8');
+  const baseCss = fs.readFileSync(path.join(baseDir, 'src/styles/base.css'), 'utf8');
+
+  // Architecture check
+  assert.match(notifJs, /function showPopupModal/);
+  assert.match(notifJs, /function showToast/);
+  assert.match(notifJs, /universal-popup-overlay/);
+  assert.match(notifJs, /app-popup-card/);
+
+  // CSS Styles check
+  assert.match(baseCss, /\.app-popup-overlay\s*\{[^}]*z-index:\s*100000/);
+  assert.match(baseCss, /\.app-popup-card\s*\{/);
+  assert.match(baseCss, /\.popup-btn\s*\{[^}]*min-height:\s*44px/);
+
+  // Functional simulation in DOM VM
+  const appended = [];
+  const fakeDoc = {
+    getElementById: () => null,
+    createElement: tag => {
+      const el = {
+        tagName: tag,
+        className: '',
+        style: {},
+        setAttribute: () => {},
+        querySelector: () => ({ addEventListener: () => {}, focus: () => {} }),
+        addEventListener: () => {}
+      };
+      return el;
+    },
+    body: {
+      appendChild: el => appended.push(el)
+    },
+    addEventListener: () => {}
+  };
+
+  const context = vm.createContext({
+    document: fakeDoc,
+    escapeHTML: s => s,
+    setTimeout: fn => fn()
+  });
+
+  vm.runInContext(notifJs, context);
+  context.showToast("Test success popup", "ok");
+  assert.equal(appended.length, 1);
+  assert.match(appended[0].innerHTML, /Test success popup/);
+  assert.match(appended[0].innerHTML, /popup-ok/);
+});
